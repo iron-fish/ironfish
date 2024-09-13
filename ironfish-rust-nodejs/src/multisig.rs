@@ -4,7 +4,6 @@
 
 use crate::{structs::NativeUnsignedTransaction, to_napi_err};
 use ironfish::{
-    errors::{IronfishError, IronfishErrorKind},
     frost::{keys::KeyPackage, round2, Randomizer},
     frost_utils::{
         account_keys::derive_account_keys, signing_package::SigningPackage,
@@ -293,9 +292,8 @@ impl NativePublicKeyPackage {
     pub fn new(value: String) -> Result<NativePublicKeyPackage> {
         let bytes = hex_to_vec_bytes(&value).map_err(to_napi_err)?;
 
-        let public_key_package = PublicKeyPackage::deserialize_from(&bytes[..])
-            .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e))
-            .map_err(to_napi_err)?;
+        let public_key_package =
+            PublicKeyPackage::deserialize_from(&bytes[..]).map_err(to_napi_err)?;
 
         Ok(NativePublicKeyPackage { public_key_package })
     }
@@ -327,7 +325,6 @@ impl NativeSigningCommitment {
         let bytes = js_bytes.into_value()?;
         SigningCommitment::deserialize_from(bytes.as_ref())
             .map(|signing_commitment| NativeSigningCommitment { signing_commitment })
-            .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e))
             .map_err(to_napi_err)
     }
 
@@ -399,7 +396,6 @@ pub fn dkg_round1(
         &participant_identities,
         thread_rng(),
     )
-    .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e))
     .map_err(to_napi_err)?;
 
     Ok(DkgRound1Packages {
@@ -423,7 +419,6 @@ pub fn dkg_round2(
     let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
     let round1_public_packages = try_deserialize(round1_public_packages, |bytes| {
         dkg::round1::PublicPackage::deserialize_from(bytes)
-            .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e))
     })?;
     let round1_secret_package = hex_to_vec_bytes(&round1_secret_package).map_err(to_napi_err)?;
 
@@ -433,7 +428,6 @@ pub fn dkg_round2(
         &round1_public_packages,
         thread_rng(),
     )
-    .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e))
     .map_err(to_napi_err)?;
 
     Ok(DkgRound2Packages {
@@ -458,11 +452,9 @@ pub fn dkg_round3(
     let round2_secret_package = hex_to_vec_bytes(&round2_secret_package).map_err(to_napi_err)?;
     let round1_public_packages = try_deserialize(round1_public_packages, |bytes| {
         dkg::round1::PublicPackage::deserialize_from(bytes)
-            .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e))
     })?;
     let round2_public_packages = try_deserialize(round2_public_packages, |bytes| {
         dkg::round2::CombinedPublicPackage::deserialize_from(bytes)
-            .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e))
     })?;
 
     let (key_package, public_key_package, group_secret_key) = dkg::round3::round3(
@@ -471,7 +463,6 @@ pub fn dkg_round3(
         round1_public_packages.iter(),
         round2_public_packages.iter(),
     )
-    .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e))
     .map_err(to_napi_err)?;
 
     let account_keys = derive_account_keys(public_key_package.verifying_key(), &group_secret_key)
@@ -499,9 +490,8 @@ pub struct PublicPackage {
 #[napi]
 pub fn deserialize_public_package(round1_public_package: String) -> Result<PublicPackage> {
     let serialized_item = hex_to_vec_bytes(&round1_public_package).map_err(to_napi_err)?;
-    let pkg = dkg::round1::PublicPackage::deserialize_from(&serialized_item[..])
-        .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e))
-        .map_err(to_napi_err)?;
+    let pkg =
+        dkg::round1::PublicPackage::deserialize_from(&serialized_item[..]).map_err(to_napi_err)?;
 
     Ok(PublicPackage {
         identity: pkg.identity().to_string(),
@@ -530,7 +520,6 @@ pub fn deserialize_round2_combined_public_package(
 ) -> Result<Round2CombinedPublicPackage> {
     let serialized_item = hex_to_vec_bytes(&round2_combined_public_package).map_err(to_napi_err)?;
     let pkg = dkg::round2::CombinedPublicPackage::deserialize_from(&serialized_item[..])
-        .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e))
         .map_err(to_napi_err)?;
 
     let mut packages: Vec<Round2PublicPackage> = Vec::new();
