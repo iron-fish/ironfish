@@ -54,7 +54,10 @@ import {
 } from './errors'
 import { isMultisigSignerImport } from './exporter'
 import { AccountImport, validateAccountImport } from './exporter/accountImport'
-import { isMultisigSignerTrustedDealerImport } from './exporter/multisig'
+import {
+  isMultisigHardwareSignerImport,
+  isMultisigSignerTrustedDealerImport,
+} from './exporter/multisig'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
 import { ScanState } from './scanner/scanState'
 import { WalletScanner } from './scanner/walletScanner'
@@ -1418,29 +1421,31 @@ export class Wallet {
   ): Promise<Account> {
     let multisigKeys = accountValue.multisigKeys
     let secret: Buffer | undefined
+    let identity: Buffer | undefined
     const name = accountValue.name
 
-    if (
-      accountValue.multisigKeys &&
-      isMultisigSignerTrustedDealerImport(accountValue.multisigKeys)
-    ) {
-      const multisigIdentity = await this.walletDb.getMultisigIdentity(
-        Buffer.from(accountValue.multisigKeys.identity, 'hex'),
-      )
-      if (!multisigIdentity || !multisigIdentity.secret) {
-        throw new Error('Cannot import identity without a corresponding multisig secret')
-      }
+    if (accountValue.multisigKeys) {
+      if (isMultisigSignerTrustedDealerImport(accountValue.multisigKeys)) {
+        const multisigIdentity = await this.walletDb.getMultisigIdentity(
+          Buffer.from(accountValue.multisigKeys.identity, 'hex'),
+        )
+        if (!multisigIdentity || !multisigIdentity.secret) {
+          throw new Error('Cannot import identity without a corresponding multisig secret')
+        }
 
-      multisigKeys = {
-        keyPackage: accountValue.multisigKeys.keyPackage,
-        publicKeyPackage: accountValue.multisigKeys.publicKeyPackage,
-        secret: multisigIdentity.secret.toString('hex'),
+        multisigKeys = {
+          keyPackage: accountValue.multisigKeys.keyPackage,
+          publicKeyPackage: accountValue.multisigKeys.publicKeyPackage,
+          secret: multisigIdentity.secret.toString('hex'),
+        }
+        secret = multisigIdentity.secret
+        identity = Buffer.from(accountValue.multisigKeys.identity, 'hex')
+      } else if (isMultisigSignerImport(accountValue.multisigKeys)) {
+        secret = Buffer.from(accountValue.multisigKeys.secret, 'hex')
+        identity = new multisig.ParticipantSecret(secret).toIdentity().serialize()
+      } else if (isMultisigHardwareSignerImport(accountValue.multisigKeys)) {
+        identity = Buffer.from(accountValue.multisigKeys.identity, 'hex')
       }
-      secret = multisigIdentity.secret
-    }
-
-    if (accountValue.multisigKeys && isMultisigSignerImport(accountValue.multisigKeys)) {
-      secret = Buffer.from(accountValue.multisigKeys.secret, 'hex')
     }
 
     if (name && this.getAccountByName(name)) {
@@ -1500,23 +1505,21 @@ export class Wallet {
         await this.walletDb.setAccount(account, tx)
       }
 
-      if (secret) {
-        const identitySerialized = new multisig.ParticipantSecret(secret)
-          .toIdentity()
-          .serialize()
-        const multisigIdentity = await this.walletDb.getMultisigIdentity(identitySerialized, tx)
+      if (identity) {
+        const existingIdentity = await this.walletDb.getMultisigIdentity(identity, tx)
 
-        if (!multisigIdentity) {
+        if (!existingIdentity) {
           const duplicateSecret = await this.walletDb.getMultisigSecretByName(
             accountValue.name,
             tx,
           )
+
           if (duplicateSecret) {
             throw new DuplicateIdentityNameError(accountValue.name)
           }
 
           await this.walletDb.putMultisigIdentity(
-            identitySerialized,
+            identity,
             {
               name: account.name,
               secret,
