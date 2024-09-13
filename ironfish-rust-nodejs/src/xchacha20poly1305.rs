@@ -12,10 +12,10 @@ use napi_derive::napi;
 use crate::to_napi_err;
 
 #[napi{namespace = "xchacha20poly1305"}]
-pub const XCHACHA20POLY1305_KEY_LENGTH: u32 = KEY_SIZE as u32;
+pub const XKEY_LENGTH: u32 = KEY_SIZE as u32;
 
 #[napi{namespace = "xchacha20poly1305"}]
-pub const SALT_LENGTH: u32 = SALT_SIZE as u32;
+pub const XSALT_LENGTH: u32 = SALT_SIZE as u32;
 
 #[napi{namespace = "xchacha20poly1305"}]
 pub const XNONCE_LENGTH: u32 = XNONCE_SIZE as u32;

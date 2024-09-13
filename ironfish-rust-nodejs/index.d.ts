@@ -348,8 +348,8 @@ export namespace multisig {
   }
 }
 export namespace xchacha20poly1305 {
-  export const XCHACHA20POLY1305_KEY_LENGTH: number
-  export const SALT_LENGTH: number
+  export const XKEY_LENGTH: number
+  export const XSALT_LENGTH: number
   export const XNONCE_LENGTH: number
   export type NativeXChaCha20Poly1305Key = XChaCha20Poly1305Key
     export class XChaCha20Poly1305Key {
