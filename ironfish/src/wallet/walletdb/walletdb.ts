@@ -40,7 +40,7 @@ import { BalanceValue, BalanceValueEncoding } from './balanceValue'
 import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
-import { MultisigSecretValue, MultisigSecretValueEncoding } from './multisigSecretValue'
+import { MultisigIdentityValue, MultisigIdentityValueEncoder } from './multisigIdentityValue'
 import { ParticipantIdentity, ParticipantIdentityEncoding } from './participantIdentity'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
@@ -138,9 +138,9 @@ export class WalletDB {
     value: null
   }>
 
-  multisigSecrets: IDatabaseStore<{
+  multisigIdentities: IDatabaseStore<{
     key: Buffer
-    value: MultisigSecretValue
+    value: MultisigIdentityValue
   }>
 
   participantIdentities: IDatabaseStore<{
@@ -298,10 +298,10 @@ export class WalletDB {
       valueEncoding: NULL_ENCODING,
     })
 
-    this.multisigSecrets = this.db.addStore({
+    this.multisigIdentities = this.db.addStore({
       name: 'ms',
       keyEncoding: new BufferEncoding(),
-      valueEncoding: new MultisigSecretValueEncoding(),
+      valueEncoding: new MultisigIdentityValueEncoder(),
     })
 
     this.participantIdentities = this.db.addStore({
@@ -1420,36 +1420,36 @@ export class WalletDB {
     await this.nullifierToTransactionHash.del([account.prefix, nullifier], tx)
   }
 
-  async putMultisigSecret(
+  async putMultisigIdentity(
     identity: Buffer,
-    value: MultisigSecretValue,
+    value: MultisigIdentityValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.multisigSecrets.put(identity, value, tx)
+    await this.multisigIdentities.put(identity, value, tx)
   }
 
-  async getMultisigSecret(
+  async getMultisigIdentity(
     identity: Buffer,
     tx?: IDatabaseTransaction,
-  ): Promise<MultisigSecretValue | undefined> {
-    return this.multisigSecrets.get(identity, tx)
+  ): Promise<MultisigIdentityValue | undefined> {
+    return this.multisigIdentities.get(identity, tx)
   }
 
-  async hasMultisigSecret(identity: Buffer, tx?: IDatabaseTransaction): Promise<boolean> {
-    return (await this.getMultisigSecret(identity, tx)) !== undefined
+  async hasMultisigIdentity(identity: Buffer, tx?: IDatabaseTransaction): Promise<boolean> {
+    return (await this.getMultisigIdentity(identity, tx)) !== undefined
   }
 
-  async deleteMultisigSecret(identity: Buffer, tx?: IDatabaseTransaction): Promise<void> {
-    await this.multisigSecrets.del(identity, tx)
+  async deleteMultisigIdentity(identity: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+    await this.multisigIdentities.del(identity, tx)
   }
 
   async getMultisigSecretByName(
     name: string,
     tx?: IDatabaseTransaction,
-  ): Promise<MultisigSecretValue | undefined> {
-    for await (const value of this.multisigSecrets.getAllValuesIter(tx)) {
+  ): Promise<Buffer | undefined> {
+    for await (const value of this.multisigIdentities.getAllValuesIter(tx)) {
       if (value.name === name) {
-        return value
+        return value.secret
       }
     }
 
@@ -1460,8 +1460,10 @@ export class WalletDB {
     return (await this.getMultisigSecretByName(name, tx)) !== undefined
   }
 
-  async *getMultisigSecrets(tx?: IDatabaseTransaction): AsyncGenerator<MultisigSecretValue> {
-    for await (const value of this.multisigSecrets.getAllValuesIter(tx)) {
+  async *getMultisigIdentities(
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<MultisigIdentityValue> {
+    for await (const value of this.multisigIdentities.getAllValuesIter(tx)) {
       yield value
     }
   }

@@ -11,6 +11,7 @@ import {
   isValidSpendingKey,
   isValidViewKey,
 } from '../validator'
+import { isSignerMultisig } from '../walletdb/multisigKeys'
 import { MultisigKeysImport } from './multisig'
 
 export type AccountImport = {
@@ -58,7 +59,7 @@ export function toAccountImport(
   if (viewOnly) {
     value.spendingKey = null
 
-    if (value.multisigKeys) {
+    if (value.multisigKeys && isSignerMultisig(value.multisigKeys)) {
       value.multisigKeys = {
         publicKeyPackage: value.multisigKeys.publicKeyPackage,
       }

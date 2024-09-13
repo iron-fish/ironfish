@@ -1421,17 +1421,17 @@ export class Wallet {
       accountValue.multisigKeys &&
       isMultisigSignerTrustedDealerImport(accountValue.multisigKeys)
     ) {
-      const multisigSecret = await this.walletDb.getMultisigSecret(
+      const multisigIdentity = await this.walletDb.getMultisigIdentity(
         Buffer.from(accountValue.multisigKeys.identity, 'hex'),
       )
-      if (!multisigSecret) {
+      if (!multisigIdentity || !multisigIdentity.secret) {
         throw new Error('Cannot import identity without a corresponding multisig secret')
       }
 
       multisigKeys = {
         keyPackage: accountValue.multisigKeys.keyPackage,
         publicKeyPackage: accountValue.multisigKeys.publicKeyPackage,
-        secret: multisigSecret.secret.toString('hex'),
+        secret: multisigIdentity.secret.toString('hex'),
       }
     }
 
@@ -1856,7 +1856,7 @@ export class Wallet {
       const secret = multisig.ParticipantSecret.random()
       const identity = secret.toIdentity()
 
-      await this.walletDb.putMultisigSecret(
+      await this.walletDb.putMultisigIdentity(
         identity.serialize(),
         {
           name,

@@ -57,7 +57,7 @@ routes.register<typeof DkgRound3RequestSchema, DkgRound3Response>(
       )
     }
 
-    const secret = new multisig.ParticipantSecret(multisigSecret.secret)
+    const secret = new multisig.ParticipantSecret(multisigSecret)
     const identity = secret.toIdentity().serialize().toString('hex')
 
     const {

@@ -24,7 +24,7 @@ use ironfish::{
     MerkleNoteHash, OutgoingViewKey, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
     ViewKey,
 };
-use ironfish_frost::keys::PublicKeyPackage;
+use ironfish_frost::dkg::round3::PublicKeyPackage;
 use ironfish_frost::signature_share::SignatureShare;
 use ironfish_frost::signing_commitment::SigningCommitment;
 use napi::{

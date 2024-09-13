@@ -36,13 +36,12 @@ routes.register<typeof GetIdentityRequestSchema, GetIdentityResponse>(
 
     const { name } = request.data
 
-    const record = await context.wallet.walletDb.getMultisigSecretByName(name)
-    if (record === undefined) {
+    const secret = await context.wallet.walletDb.getMultisigSecretByName(name)
+    if (secret === undefined) {
       throw new RpcValidationError(`No identity found with name ${name}`, 404)
     }
 
-    const secret = new multisig.ParticipantSecret(record.secret)
-    const identity = secret.toIdentity()
+    const identity = new multisig.ParticipantSecret(secret).toIdentity()
 
     request.end({ identity: identity.serialize().toString('hex') })
   },

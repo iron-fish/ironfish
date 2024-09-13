@@ -55,7 +55,7 @@ routes.register<typeof DkgRound1RequestSchema, DkgRound1Response>(
     }
 
     const participantIdentities = participants.map((p) => p.identity)
-    const selfIdentity = new multisig.ParticipantSecret(multisigSecret.secret)
+    const selfIdentity = new multisig.ParticipantSecret(multisigSecret)
       .toIdentity()
       .serialize()
       .toString('hex')
