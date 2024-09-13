@@ -365,3 +365,22 @@ export namespace multisig {
     signers(): Array<Buffer>
   }
 }
+export namespace xchacha20poly1305 {
+  export const XKEY_LENGTH: number
+  export const XSALT_LENGTH: number
+  export const XNONCE_LENGTH: number
+  export type NativeXChaCha20Poly1305Key = XChaCha20Poly1305Key
+    export class XChaCha20Poly1305Key {
+    constructor(passphrase: string)
+    static fromParts(passphrase: string, salt: Buffer, nonce: Buffer): XChaCha20Poly1305Key
+    deriveKey(salt: Buffer, nonce: Buffer): XChaCha20Poly1305Key
+    deriveNewKey(): XChaCha20Poly1305Key
+    static deserialize(jsBytes: Buffer): NativeXChaCha20Poly1305Key
+    destroy(): void
+    salt(): Buffer
+    nonce(): Buffer
+    key(): Buffer
+    encrypt(plaintext: Buffer): Buffer
+    decrypt(ciphertext: Buffer): Buffer
+  }
+}
