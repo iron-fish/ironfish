@@ -47,6 +47,9 @@ export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const LATEST_TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
+export const XCHACHA20POLY1305_KEY_LENGTH: number
+export const SALT_LENGTH: number
+export const XNONCE_LENGTH: number
 export function encrypt(plaintext: Buffer, passphrase: string): Buffer
 export function decrypt(encryptedBlob: Buffer, passphrase: string): Buffer
 export const enum LanguageCode {
@@ -236,6 +239,20 @@ export class UnsignedTransaction {
   signingPackage(nativeIdentiferCommitments: Array<string>): string
   sign(spenderHexKey: string): Buffer
   addSignature(signature: Buffer): Buffer
+}
+export type NativeXChaCha20Poly1305Key = XChaCha20Poly1305Key
+export class XChaCha20Poly1305Key {
+  constructor(passphrase: string)
+  static fromParts(passphrase: string, salt: Buffer, nonce: Buffer): XChaCha20Poly1305Key
+  deriveKey(salt: Buffer, nonce: Buffer): XChaCha20Poly1305Key
+  deriveNewKey(): XChaCha20Poly1305Key
+  static deserialize(jsBytes: Buffer): NativeXChaCha20Poly1305Key
+  destroy(): void
+  salt(): Buffer
+  nonce(): Buffer
+  key(): Buffer
+  encrypt(plaintext: Buffer): Buffer
+  decrypt(ciphertext: Buffer): Buffer
 }
 export class FoundBlockResult {
   randomness: string
