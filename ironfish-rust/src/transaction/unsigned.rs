@@ -230,7 +230,7 @@ impl UnsignedTransaction {
         let serialized_signature = authorizing_group_signature.serialize();
 
         let mut bytes = [0; 64];
-        bytes.copy_from_slice(&serialized_signature.unwrap());
+        bytes.copy_from_slice(&serialized_signature?);
         let transaction = self.add_signature(bytes)?;
 
         Ok(transaction)

@@ -35,7 +35,7 @@ pub fn split_spender_key(
         split_secret(spender_key, identities, min_signers, thread_rng())?;
 
     assert_eq!(
-        public_key_package.verifying_key().serialize().unwrap(),
+        public_key_package.verifying_key().serialize()?,
         spender_key.view_key().authorizing_key.to_bytes()
     );
 
