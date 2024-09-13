@@ -81,9 +81,10 @@ pub fn create_signing_commitment(
         key_package.signing_share(),
         &transaction_hash,
         &signers,
-    );
+    )
+    .map_err(to_napi_err)?;
 
-    let bytes = signing_commitment.unwrap().serialize();
+    let bytes = signing_commitment.serialize();
     Ok(bytes_to_hex(&bytes[..]))
 }
 
@@ -503,7 +504,7 @@ pub fn deserialize_public_package(round1_public_package: String) -> Result<Publi
 
     Ok(PublicPackage {
         identity: pkg.identity().to_string(),
-        frost_package: bytes_to_hex(&pkg.frost_package().serialize().unwrap()),
+        frost_package: bytes_to_hex(&pkg.frost_package().serialize().map_err(to_napi_err)?),
         group_secret_key_shard_encrypted: bytes_to_hex(pkg.group_secret_key_shard_encrypted()),
         checksum: pkg.checksum().to_string(),
     })
