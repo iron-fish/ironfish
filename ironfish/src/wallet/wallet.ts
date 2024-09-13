@@ -46,11 +46,13 @@ import { EncryptedAccount } from './account/encryptedAccount'
 import { AssetBalances } from './assetBalances'
 import {
   DuplicateAccountNameError,
+  DuplicateIdentityNameError,
   DuplicateMultisigSecretNameError,
   DuplicateSpendingKeyError,
   MaxMemoLengthError,
   NotEnoughFundsError,
 } from './errors'
+import { isMultisigSignerImport } from './exporter'
 import { AccountImport, validateAccountImport } from './exporter/accountImport'
 import { isMultisigSignerTrustedDealerImport } from './exporter/multisig'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
@@ -1415,6 +1417,7 @@ export class Wallet {
     options?: { createdAt?: number; passphrase?: string },
   ): Promise<Account> {
     let multisigKeys = accountValue.multisigKeys
+    let secret: Buffer | undefined
     const name = accountValue.name
 
     if (
@@ -1433,6 +1436,11 @@ export class Wallet {
         publicKeyPackage: accountValue.multisigKeys.publicKeyPackage,
         secret: multisigIdentity.secret.toString('hex'),
       }
+      secret = multisigIdentity.secret
+    }
+
+    if (accountValue.multisigKeys && isMultisigSignerImport(accountValue.multisigKeys)) {
+      secret = Buffer.from(accountValue.multisigKeys.secret, 'hex')
     }
 
     if (name && this.getAccountByName(name)) {
@@ -1490,6 +1498,32 @@ export class Wallet {
         await this.walletDb.setEncryptedAccount(account, options.passphrase, tx)
       } else {
         await this.walletDb.setAccount(account, tx)
+      }
+
+      if (secret) {
+        const identitySerialized = new multisig.ParticipantSecret(secret)
+          .toIdentity()
+          .serialize()
+        const multisigIdentity = await this.walletDb.getMultisigIdentity(identitySerialized, tx)
+
+        if (!multisigIdentity) {
+          const duplicateSecret = await this.walletDb.getMultisigSecretByName(
+            accountValue.name,
+            tx,
+          )
+          if (duplicateSecret) {
+            throw new DuplicateIdentityNameError(accountValue.name)
+          }
+
+          await this.walletDb.putMultisigIdentity(
+            identitySerialized,
+            {
+              name: account.name,
+              secret,
+            },
+            tx,
+          )
+        }
       }
 
       if (createdAt !== null) {
