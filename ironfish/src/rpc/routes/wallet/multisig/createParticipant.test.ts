@@ -45,12 +45,10 @@ describe('Route wallet/multisig/createParticipant', () => {
     const name = 'identity'
     const response = await routeTest.client.wallet.multisig.createParticipant({ name })
 
-    const secretValue = await routeTest.node.wallet.walletDb.getMultisigSecretByName(name)
+    const secretValue = await routeTest.node.wallet.walletDb.getMultisigIdentity(
+      Buffer.from(response.content.identity, 'hex'),
+    )
     Assert.isNotUndefined(secretValue)
-    
-    const identity = await routeTest.node.wallet.walletDb.getMultisigIdentity(name)
-    Assert.isNotUndefined(identity)
-
-    expect(identity.name).toEqual(name)
+    expect(secretValue.name).toEqual(name)
   })
 })
