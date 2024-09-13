@@ -474,7 +474,8 @@ pub fn dkg_round3(
     .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e))
     .map_err(to_napi_err)?;
 
-    let account_keys = derive_account_keys(public_key_package.verifying_key(), &group_secret_key);
+    let account_keys = derive_account_keys(public_key_package.verifying_key(), &group_secret_key)
+        .map_err(to_napi_err)?;
 
     Ok(DkgRound3Packages {
         public_address: account_keys.public_address.hex_public_address(),
