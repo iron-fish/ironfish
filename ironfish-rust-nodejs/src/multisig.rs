@@ -4,7 +4,7 @@
 
 use crate::{structs::NativeUnsignedTransaction, to_napi_err};
 use ironfish::{
-    frost::{keys::KeyPackage, round1::SigningNonces, round2, Randomizer},
+    frost::{keys::KeyPackage, round2, Randomizer},
     frost_utils::{
         account_keys::derive_account_keys, signing_package::SigningPackage,
         split_spender_key::split_spender_key,
@@ -602,48 +602,4 @@ pub struct DkgRound3Packages {
     pub incoming_view_key: String,
     pub outgoing_view_key: String,
     pub proof_authorizing_key: String,
-}
-
-#[napi(js_name = "SigningNonces", namespace = "multisig")]
-pub struct NativeSigningNonces {
-    signing_nonces: SigningNonces,
-}
-
-#[napi(namespace = "multisig")]
-impl NativeSigningNonces {
-    #[napi(constructor)]
-    pub fn new(js_bytes: JsBuffer) -> Result<NativeSigningNonces> {
-        let bytes = js_bytes.into_value()?;
-        SigningNonces::deserialize(bytes.as_ref())
-            .map(|signing_nonces| NativeSigningNonces { signing_nonces })
-            .map_err(to_napi_err)
-    }
-
-    #[napi]
-    pub fn raw_commitments(&self) -> Result<Buffer> {
-        let raw_commitments = *self.signing_nonces.commitments();
-
-        Ok(Buffer::from(
-            &raw_commitments.serialize().map_err(to_napi_err)?[..],
-        ))
-    }
-}
-
-#[napi(namespace = "multisig")]
-pub fn get_deterministic_signing_nonces(
-    key_package: String,
-    transaction_hash: JsBuffer,
-    signers: Vec<String>,
-) -> Result<String> {
-    let key_package =
-        KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?[..])
-            .map_err(to_napi_err)?;
-
-    let transaction_hash = transaction_hash.into_value()?;
-    let signers = try_deserialize_identities(signers)?;
-
-    let nonces =
-        deterministic_signing_nonces(key_package.signing_share(), &transaction_hash, &signers);
-
-    Ok(bytes_to_hex(&nonces.serialize().map_err(to_napi_err)?[..]))
 }

@@ -5,7 +5,7 @@
 use std::cell::RefCell;
 
 use std::collections::BTreeMap;
-use std::convert::TryInto;
+use std::convert::{identity, TryInto};
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
 use ironfish::frost::round1::SigningCommitments;
