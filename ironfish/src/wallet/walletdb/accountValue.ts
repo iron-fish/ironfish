@@ -1,12 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  KEY_LENGTH,
-  PUBLIC_ADDRESS_LENGTH,
-  SALT_LENGTH,
-  XNONCE_LENGTH,
-} from '@ironfish/rust-nodejs'
+import { KEY_LENGTH, PUBLIC_ADDRESS_LENGTH, xchacha20poly1305 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 import { MultisigKeys } from '../interfaces/multisigKeys'
@@ -122,8 +117,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     // Skip flags
     reader.readU8()
 
-    const salt = reader.readBytes(SALT_LENGTH)
-    const nonce = reader.readBytes(XNONCE_LENGTH)
+    const salt = reader.readBytes(xchacha20poly1305.XSALT_LENGTH)
+    const nonce = reader.readBytes(xchacha20poly1305.XNONCE_LENGTH)
     const data = reader.readVarBytes()
     return {
       encrypted: true,
@@ -195,8 +190,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   getSizeEncrypted(value: EncryptedAccountValue): number {
     let size = 0
     size += 1 // flags
-    size += SALT_LENGTH
-    size += XNONCE_LENGTH
+    size += xchacha20poly1305.XSALT_LENGTH
+    size += xchacha20poly1305.XNONCE_LENGTH
     size += bufio.sizeVarBytes(value.data)
     return size
   }
