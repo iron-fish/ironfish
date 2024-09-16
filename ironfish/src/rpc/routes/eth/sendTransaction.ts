@@ -13,31 +13,39 @@ import { AssertSpending } from '../../../wallet/account/account'
 import { ApiNamespace } from '../namespaces'
 import { registerEthRoute } from './ethRouter'
 
-export type EthSendTransactionRequest = {
-  from: string
-  to?: string
-  gas?: string
-  gasPrice?: string
-  value?: string
-  data?: string
-  nonce?: string
-}
+export type EthSendTransactionRequest = [
+  {
+    from: string
+    to?: string
+    gas?: string
+    gasPrice?: string
+    value?: string
+    data?: string
+    nonce?: string
+  },
+]
 
 export type EthSendTransactionResponse = {
   result: string
 }
 
-export const EthSendTransactionRequestSchema: yup.ObjectSchema<EthSendTransactionRequest> = yup
-  .object({
-    from: yup.string().defined(),
-    to: yup.string().optional(),
-    gas: yup.string().optional(),
-    gasPrice: yup.string().optional(),
-    value: yup.string().optional(),
-    data: yup.string().optional(),
-    nonce: yup.string().optional(),
-  })
-  .defined()
+export const EthSendTransactionRequestSchema: yup.ArraySchema<EthSendTransactionRequest[0]> =
+  yup
+    .array()
+    .of(
+      yup
+        .object({
+          from: yup.string().defined(),
+          to: yup.string().optional(),
+          gas: yup.string().optional(),
+          gasPrice: yup.string().optional(),
+          value: yup.string().optional(),
+          data: yup.string().optional(),
+          nonce: yup.string().optional(),
+        })
+        .defined(),
+    )
+    .defined()
 
 export const EthSendTransactionResponseSchema: yup.ObjectSchema<EthSendTransactionResponse> =
   yup
@@ -53,7 +61,10 @@ registerEthRoute<typeof EthSendTransactionRequestSchema, EthSendTransactionRespo
   async (request, node): Promise<void> => {
     Assert.isInstanceOf(node, FullNode)
 
-    const account = node.wallet.listAccounts().find((a) => a.ethAddress === request.data.from)
+    const [sendTransactionRequest] = request.data
+    const account = node.wallet
+      .listAccounts()
+      .find((a) => a.ethAddress === sendTransactionRequest.from)
     Assert.isNotUndefined(account, 'Account not found')
     AssertSpending(account)
 
@@ -63,21 +74,25 @@ registerEthRoute<typeof EthSendTransactionRequestSchema, EthSendTransactionRespo
         )
       : undefined
 
-    const nonce = request.data.nonce
-      ? BigInt(request.data.nonce)
+    const nonce = sendTransactionRequest.nonce
+      ? BigInt(sendTransactionRequest.nonce)
       : ethAccount?.nonce ?? BigInt(0)
 
-    const gas = request.data.gas ? BigInt(request.data.gas) : 1000000n
-    const gasPrice = request.data.gasPrice ? BigInt(request.data.gasPrice) : 0n
-    const value = request.data.value ? BigInt(request.data.value) : undefined
+    const gas = sendTransactionRequest.gas ? BigInt(sendTransactionRequest.gas) : 1000000n
+    const gasPrice = sendTransactionRequest.gasPrice
+      ? BigInt(sendTransactionRequest.gasPrice)
+      : 0n
+    const value = sendTransactionRequest.value
+      ? BigInt(sendTransactionRequest.value)
+      : undefined
 
     const ethTransaction = new LegacyTransaction({
       nonce: nonce,
-      to: request.data.to,
+      to: sendTransactionRequest.to,
       gasLimit: gas,
       gasPrice: gasPrice,
       value: value,
-      data: request.data.data,
+      data: sendTransactionRequest.data,
     })
 
     const signed = ethTransaction.sign(Buffer.from(account.spendingKey, 'hex'))
