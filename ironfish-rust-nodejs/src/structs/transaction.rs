@@ -5,7 +5,7 @@
 use std::cell::RefCell;
 
 use std::collections::BTreeMap;
-use std::convert::{identity, TryInto};
+use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
 use ironfish::frost::round1::SigningCommitments;
@@ -475,11 +475,11 @@ impl NativeUnsignedTransaction {
         let mut commitments = Vec::new();
 
         for (index, identity) in identities.iter().enumerate() {
-            let identity_bytes = hex_to_vec_bytes(&identity).map_err(to_napi_err)?;
+            let identity_bytes = hex_to_vec_bytes(identity).map_err(to_napi_err)?;
             let identity = Identity::deserialize_from(&identity_bytes[..]).map_err(to_napi_err)?;
 
             let raw_commitment = &raw_commitments[index];
-            let commitment_bytes = hex_to_vec_bytes(&raw_commitment).map_err(to_napi_err)?;
+            let commitment_bytes = hex_to_vec_bytes(raw_commitment).map_err(to_napi_err)?;
             let commitment =
                 SigningCommitments::deserialize(&commitment_bytes[..]).map_err(to_napi_err)?;
 
@@ -596,13 +596,13 @@ pub fn aggregate_raw_signature_shares(
     let mut frost_signature_shares = BTreeMap::<Identifier, FrostSignatureShare>::new();
     for (index, identity_str) in identities_arr.iter().enumerate() {
         let identity =
-            Identity::deserialize_from(&hex_to_vec_bytes(&identity_str).map_err(to_napi_err)?[..])
+            Identity::deserialize_from(&hex_to_vec_bytes(identity_str).map_err(to_napi_err)?[..])
                 .map_err(to_napi_err)?;
         let identifier = identity.to_frost_identifier();
 
         let frost_signature_share_str = &frost_signature_shares_arr[index];
         let frost_signature_share = FrostSignatureShare::deserialize(
-            &hex_to_vec_bytes(&frost_signature_share_str).map_err(to_napi_err)?[..],
+            &hex_to_vec_bytes(frost_signature_share_str).map_err(to_napi_err)?[..],
         )
         .map_err(to_napi_err)?;
         frost_signature_shares.insert(identifier, frost_signature_share);
