@@ -14,6 +14,7 @@ import { AsyncUtils } from '../../utils'
 import { Account } from '../account/account'
 import { EncryptedAccount } from '../account/encryptedAccount'
 import { AccountDecryptionFailedError } from '../errors'
+import { MasterKey } from '../masterKey'
 import { DecryptedAccountValue } from './accountValue'
 import { DecryptedNoteValue } from './decryptedNoteValue'
 
@@ -675,6 +676,7 @@ describe('WalletDB', () => {
       const node = (await nodeTest.createSetup()).node
       const walletDb = node.wallet.walletDb
       const passphrase = 'foobar'
+      const masterKey = MasterKey.generate(passphrase)
 
       await useAccountFixture(node.wallet, 'A')
 
@@ -690,7 +692,7 @@ describe('WalletDB', () => {
       }
       const account = new Account({ accountValue, walletDb })
 
-      await expect(walletDb.setEncryptedAccount(account, passphrase)).rejects.toThrow()
+      await expect(walletDb.setEncryptedAccount(account, masterKey)).rejects.toThrow()
     })
 
     it('saves the account', async () => {
@@ -713,45 +715,16 @@ describe('WalletDB', () => {
       }
       const account = new Account({ accountValue, walletDb })
 
-      await walletDb.setEncryptedAccount(account, passphrase)
+      await node.wallet.unlock(passphrase)
+      const masterKey = node.wallet['masterKey']
+      Assert.isNotNull(masterKey)
+
+      await walletDb.setEncryptedAccount(account, masterKey)
 
       expect(await walletDb.accounts.get(account.id)).not.toBeUndefined()
       expect(
         await walletDb.balances.get([account.prefix, Asset.nativeId()]),
       ).not.toBeUndefined()
-    })
-  })
-
-  describe('canDecryptAccounts', () => {
-    it('throws an error if the accounts are decrypted', async () => {
-      const node = (await nodeTest.createSetup()).node
-      const walletDb = node.wallet.walletDb
-
-      await useAccountFixture(node.wallet, 'A')
-
-      await expect(walletDb.canDecryptAccounts('invalid')).rejects.toThrow()
-    })
-
-    it('returns false if the passphrase is invalid', async () => {
-      const node = (await nodeTest.createSetup()).node
-      const walletDb = node.wallet.walletDb
-      const passphrase = 'foobar'
-
-      await useAccountFixture(node.wallet, 'A')
-      await walletDb.encryptAccounts(passphrase)
-
-      expect(await walletDb.canDecryptAccounts('invalid')).toBe(false)
-    })
-
-    it('returns true if the passphrase is valid', async () => {
-      const node = (await nodeTest.createSetup()).node
-      const walletDb = node.wallet.walletDb
-      const passphrase = 'foobar'
-
-      await useAccountFixture(node.wallet, 'A')
-      await walletDb.encryptAccounts(passphrase)
-
-      expect(await walletDb.canDecryptAccounts(passphrase)).toBe(true)
     })
   })
 })

@@ -10,37 +10,23 @@ export type MasterKeyValue = {
   salt: Buffer
 }
 
-export class NullableMasterKeyValueEncoding
-  implements IDatabaseEncoding<MasterKeyValue | null>
-{
-  serialize(value: MasterKeyValue | null): Buffer {
-    const bw = bufio.write(this.getSize(value))
-
-    if (value) {
-      bw.writeBytes(value.nonce)
-      bw.writeBytes(value.salt)
-    }
-
+export class MasterKeyValueEncoding implements IDatabaseEncoding<MasterKeyValue> {
+  serialize(value: MasterKeyValue): Buffer {
+    const bw = bufio.write(this.getSize())
+    bw.writeBytes(value.nonce)
+    bw.writeBytes(value.salt)
     return bw.render()
   }
 
-  deserialize(buffer: Buffer): MasterKeyValue | null {
+  deserialize(buffer: Buffer): MasterKeyValue {
     const reader = bufio.read(buffer, true)
 
-    if (reader.left()) {
-      const nonce = reader.readBytes(xchacha20poly1305.XNONCE_LENGTH)
-      const salt = reader.readBytes(xchacha20poly1305.XSALT_LENGTH)
-      return { nonce, salt }
-    }
-
-    return null
+    const nonce = reader.readBytes(xchacha20poly1305.XNONCE_LENGTH)
+    const salt = reader.readBytes(xchacha20poly1305.XSALT_LENGTH)
+    return { nonce, salt }
   }
 
-  getSize(value: MasterKeyValue | null): number {
-    if (!value) {
-      return 0
-    }
-
+  getSize(): number {
     return xchacha20poly1305.XNONCE_LENGTH + xchacha20poly1305.XSALT_LENGTH
   }
 }

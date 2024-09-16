@@ -1091,7 +1091,7 @@ describe('Wallet', () => {
       Assert.isTrue(accountValue.encrypted)
 
       const encryptedAccount = new EncryptedAccount({
-        data: accountValue.data,
+        accountValue,
         walletDb: node.wallet.walletDb,
       })
       const decryptedAccount = encryptedAccount.decrypt(passphrase)

@@ -90,4 +90,10 @@ export class MasterKey {
 
     return this.masterKey.deriveKey(salt, nonce)
   }
+
+  async destroy(): Promise<void> {
+    await this.lock()
+    this.nonce.fill(0)
+    this.salt.fill(0)
+  }
 }

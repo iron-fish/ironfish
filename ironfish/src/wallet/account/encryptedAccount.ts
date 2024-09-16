@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { decrypt, xchacha20poly1305 } from '@ironfish/rust-nodejs'
+import { xchacha20poly1305 } from '@ironfish/rust-nodejs'
 import { AccountDecryptionFailedError } from '../errors'
 import { AccountValueEncoding, EncryptedAccountValue } from '../walletdb/accountValue'
 import { WalletDB } from '../walletdb/walletdb'
@@ -13,16 +13,25 @@ export class EncryptedAccount {
   readonly nonce: Buffer
   readonly data: Buffer
 
-  constructor({ data, walletDb }: { data: Buffer; walletDb: WalletDB }) {
-    this.salt = Buffer.alloc(xchacha20poly1305.XSALT_LENGTH)
-    this.nonce = Buffer.alloc(xchacha20poly1305.XNONCE_LENGTH)
-    this.data = data
+  constructor({
+    accountValue,
+    walletDb,
+  }: {
+    accountValue: EncryptedAccountValue
+    walletDb: WalletDB
+  }) {
+    this.salt = accountValue.salt
+    this.nonce = accountValue.nonce
+    this.data = accountValue.data
     this.walletDb = walletDb
   }
 
-  decrypt(passphrase: string): Account {
+  decrypt(masterKey: xchacha20poly1305.XChaCha20Poly1305Key): Account {
     try {
-      const decryptedAccountValue = decrypt(this.data, passphrase)
+      const key = masterKey.deriveKey(this.salt, this.nonce)
+      const decryptedAccountValue = key.decrypt(this.data)
+      key.destroy()
+
       const encoder = new AccountValueEncoding()
       const accountValue = encoder.deserializeDecrypted(decryptedAccountValue)
 

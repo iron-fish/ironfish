@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { encrypt, multisig } from '@ironfish/rust-nodejs'
-import { Asset } from '@ironfish/rust-nodejs'
+import { Asset, multisig } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../../assert'
@@ -15,6 +14,7 @@ import { WithNonNull, WithRequired } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
 import { MultisigKeys, MultisigSigner } from '../interfaces/multisigKeys'
+import { MasterKey } from '../masterKey'
 import { AccountValueEncoding, DecryptedAccountValue } from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
 import { BalanceValue } from '../walletdb/balanceValue'
@@ -129,7 +129,7 @@ export class Account {
 
   async setName(
     name: string,
-    options?: { passphrase?: string },
+    masterKey: MasterKey | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     if (!name.trim()) {
@@ -141,8 +141,8 @@ export class Account {
     this.name = name
 
     if (walletEncrypted) {
-      Assert.isNotUndefined(options?.passphrase)
-      await this.walletDb.setEncryptedAccount(this, options.passphrase, tx)
+      Assert.isNotNull(masterKey)
+      await this.walletDb.setEncryptedAccount(this, masterKey, tx)
     } else {
       await this.walletDb.setAccount(this, tx)
     }
@@ -1330,13 +1330,19 @@ export class Account {
     return publicKeyPackage.identities()
   }
 
-  encrypt(passphrase: string): EncryptedAccount {
+  encrypt(masterKey: MasterKey): EncryptedAccount {
     const encoder = new AccountValueEncoding()
     const serialized = encoder.serialize(this.serialize())
-    const data = encrypt(serialized, passphrase)
+    const derivedKey = masterKey.deriveNewKey()
+    const data = derivedKey.encrypt(serialized)
 
     return new EncryptedAccount({
-      data,
+      accountValue: {
+        encrypted: true,
+        data,
+        salt: derivedKey.salt(),
+        nonce: derivedKey.nonce(),
+      },
       walletDb: this.walletDb,
     })
   }
