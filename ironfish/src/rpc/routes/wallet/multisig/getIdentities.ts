@@ -45,7 +45,7 @@ routes.register<typeof GetIdentitiesRequestSchema, GetIdentitiesResponse>(
     for await (const [
       identity,
       { name },
-    ] of context.wallet.walletDb.multisigSecrets.getAllIter()) {
+    ] of context.wallet.walletDb.multisigIdentities.getAllIter()) {
       identities.push({
         name,
         identity: identity.toString('hex'),

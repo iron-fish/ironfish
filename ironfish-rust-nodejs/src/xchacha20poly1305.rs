@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish::xchacha20poly1305::{
+ use ironfish::xchacha20poly1305::{
     self, EncryptOutput, XChaCha20Poly1305Key, KEY_LENGTH as KEY_SIZE, SALT_LENGTH as SALT_SIZE,
     XNONCE_LENGTH as XNONCE_SIZE,
 };
@@ -11,21 +11,21 @@ use napi_derive::napi;
 
 use crate::to_napi_err;
 
-#[napi]
-pub const XCHACHA20POLY1305_KEY_LENGTH: u32 = KEY_SIZE as u32;
+#[napi{namespace = "xchacha20poly1305"}]
+pub const XKEY_LENGTH: u32 = KEY_SIZE as u32;
 
-#[napi]
-pub const SALT_LENGTH: u32 = SALT_SIZE as u32;
+#[napi{namespace = "xchacha20poly1305"}]
+pub const XSALT_LENGTH: u32 = SALT_SIZE as u32;
 
-#[napi]
+#[napi{namespace = "xchacha20poly1305"}]
 pub const XNONCE_LENGTH: u32 = XNONCE_SIZE as u32;
 
-#[napi(js_name = "XChaCha20Poly1305Key")]
+#[napi(js_name = "XChaCha20Poly1305Key", namespace = "xchacha20poly1305")]
 pub struct NativeXChaCha20Poly1305Key {
     pub(crate) key: XChaCha20Poly1305Key,
 }
 
-#[napi]
+#[napi{namespace = "xchacha20poly1305"}]
 impl NativeXChaCha20Poly1305Key {
     #[napi(constructor)]
     pub fn generate(passphrase: String) -> Result<NativeXChaCha20Poly1305Key> {

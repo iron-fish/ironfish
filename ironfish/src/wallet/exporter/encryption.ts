@@ -33,7 +33,11 @@ export async function decryptEncodedAccount(
   if (encrypted.startsWith(BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX)) {
     const encoded = encrypted.slice(BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX.length)
 
-    for await (const { secret: secretBuffer } of wallet.walletDb.getMultisigSecrets()) {
+    for await (const { secret: secretBuffer } of wallet.walletDb.getMultisigIdentities()) {
+      if (secretBuffer === undefined) {
+        continue
+      }
+
       const secret = new multisig.ParticipantSecret(secretBuffer)
       const decrypted = decryptEncodedAccountWithMultisigSecret(encoded, secret)
 
@@ -59,7 +63,11 @@ export function decryptEncodedAccountWithMultisigSecret(
   try {
     return secret.decryptData(encoded).toString('utf8')
   } catch (e: unknown) {
-    return null
+    try {
+      return secret.decryptLegacyData(encoded).toString('utf8')
+    } catch (e: unknown) {
+      return null
+    }
   }
 }
 

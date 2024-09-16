@@ -450,14 +450,14 @@ describe('WalletDB', () => {
       const secret = multisig.ParticipantSecret.random()
       const serializedSecret = secret.serialize()
 
-      await walletDb.putMultisigSecret(secret.toIdentity().serialize(), {
+      await walletDb.putMultisigIdentity(secret.toIdentity().serialize(), {
         secret: serializedSecret,
         name,
       })
 
       const storedSecret = await walletDb.getMultisigSecretByName(name)
       Assert.isNotUndefined(storedSecret)
-      expect(storedSecret.secret).toEqualBuffer(serializedSecret)
+      expect(storedSecret).toEqualBuffer(serializedSecret)
     })
   })
 

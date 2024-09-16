@@ -249,6 +249,6 @@ describe('Route multisig/dkg/round3', () => {
         round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
         round2PublicPackages: round2Packages.map((pkg) => pkg.content.round2PublicPackage),
       }),
-    ).rejects.toThrow('decryption error: aead::Error')
+    ).rejects.toThrow('decryption error: ciphertext could not be decrypted')
   })
 })

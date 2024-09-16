@@ -6,9 +6,22 @@ import { multisig } from '@ironfish/rust-nodejs'
 export function createTrustedDealerKeyPackages(
   minSigners: number = 2,
   maxSigners: number = 2,
-): multisig.TrustedDealerKeyPackages {
-  const identities = Array.from({ length: maxSigners }, () =>
-    multisig.ParticipantSecret.random().toIdentity().serialize().toString('hex'),
-  )
-  return multisig.generateAndSplitKey(minSigners, identities)
+): {
+  dealer: multisig.TrustedDealerKeyPackages
+  identities: string[]
+  secrets: multisig.ParticipantSecret[]
+} {
+  const secrets = Array.from({ length: maxSigners }, () => multisig.ParticipantSecret.random())
+
+  const identities = secrets.map((secret) => {
+    return secret.toIdentity().serialize().toString('hex')
+  })
+
+  const dealer = multisig.generateAndSplitKey(minSigners, identities)
+
+  return {
+    dealer,
+    identities,
+    secrets,
+  }
 }

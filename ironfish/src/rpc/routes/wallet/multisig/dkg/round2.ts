@@ -51,7 +51,7 @@ routes.register<typeof DkgRound2RequestSchema, DkgRound2Response>(
       )
     }
 
-    const secret = multisigSecret.secret.toString('hex')
+    const secret = multisigSecret.toString('hex')
 
     const packages = multisig.dkgRound2(secret, round1SecretPackage, round1PublicPackages)
 

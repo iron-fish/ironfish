@@ -5,6 +5,7 @@ import { Config } from '../../../fileStores'
 import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { Account, Wallet } from '../../../wallet'
 import {
+  isMultisigHardwareSignerImport,
   isMultisigSignerImport,
   isMultisigSignerTrustedDealerImport,
   MultisigKeysImport,
@@ -104,6 +105,13 @@ export function deserializeRpcAccountMultisigKeys(
       publicKeyPackage: rpcMultisigKeys.publicKeyPackage,
       secret: rpcMultisigKeys.secret,
       keyPackage: rpcMultisigKeys.keyPackage,
+    }
+  }
+
+  if (isMultisigHardwareSignerImport(rpcMultisigKeys)) {
+    return {
+      publicKeyPackage: rpcMultisigKeys.publicKeyPackage,
+      identity: rpcMultisigKeys.identity,
     }
   }
 
