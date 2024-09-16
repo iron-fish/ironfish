@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
- use ironfish::xchacha20poly1305::{
+use ironfish::xchacha20poly1305::{
     self, EncryptOutput, XChaCha20Poly1305Key, KEY_LENGTH as KEY_SIZE, SALT_LENGTH as SALT_SIZE,
     XNONCE_LENGTH as XNONCE_SIZE,
 };
