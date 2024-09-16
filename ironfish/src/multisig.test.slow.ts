@@ -9,8 +9,8 @@ import {
   Note as NativeNote,
   verifyTransactions,
 } from '@ironfish/rust-nodejs'
-import { Note, RawTransaction } from '../primitives'
-import { Transaction, TransactionVersion } from '../primitives/transaction'
+import { Note, RawTransaction } from './primitives'
+import { Transaction, TransactionVersion } from './primitives/transaction'
 
 describe('multisig', () => {
   describe('dkg', () => {
