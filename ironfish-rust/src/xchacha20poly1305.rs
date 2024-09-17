@@ -4,8 +4,8 @@
 
 use std::io;
 
-use argon2::RECOMMENDED_SALT_LEN;
 use argon2::Argon2;
+use argon2::RECOMMENDED_SALT_LEN;
 use chacha20poly1305::aead::Aead;
 use chacha20poly1305::{Key, KeyInit, XChaCha20Poly1305, XNonce};
 use hkdf::Hkdf;
