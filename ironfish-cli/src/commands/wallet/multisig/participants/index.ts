@@ -18,15 +18,10 @@ export class MultisigParticipants extends IronfishCommand {
 
     const response = await client.wallet.multisig.getIdentities()
 
-    const participants: {
-      name: string
-      value: string
-      hasSecret: boolean
-    }[] = []
-    for (const { name, identity, hasSecret } of response.content.identities) {
+    const participants = []
+    for (const { name, identity } of response.content.identities) {
       participants.push({
         name,
-        hasSecret: hasSecret,
         value: identity,
       })
     }
@@ -40,10 +35,6 @@ export class MultisigParticipants extends IronfishCommand {
         name: {
           header: 'Participant Name',
           get: (p) => p.name,
-        },
-        hasSecret: {
-          header: 'Has Secret',
-          get: (p) => (p.hasSecret ? 'Yes' : 'No'),
         },
         identity: {
           header: 'Identity',
