@@ -2461,7 +2461,6 @@ describe('Wallet', () => {
 
       await node.wallet.unlock(passphrase)
       await node.wallet.resetAccount(account)
-      await node.wallet.lock()
 
       const newAccount = node.wallet.getAccountByName(account.name)
       Assert.isNotNull(newAccount)
@@ -2473,6 +2472,7 @@ describe('Wallet', () => {
       Assert.isNotNull(masterKey)
       const key = await masterKey.unlock(passphrase)
       const decryptedAccount = encryptedAccount.decrypt(key)
+      await node.wallet.lock()
 
       expect(decryptedAccount.name).toEqual(account.name)
       expect(decryptedAccount.spendingKey).toEqual(account.spendingKey)
