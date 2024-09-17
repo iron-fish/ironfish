@@ -54,6 +54,24 @@ describe('multisig', () => {
 
       const publicAddress = round3Packages[0].publicAddress
 
+      // Ensure that we can construct PublicKeyPackage from the raw frost public
+      // key package
+      for (const round3Package of round3Packages) {
+        const deserializedPublicKeyPackage = new multisig.PublicKeyPackage(
+          round3Package.publicKeyPackage,
+        )
+
+        const publicKeyPackage = multisig.PublicKeyPackage.fromFrost(
+          deserializedPublicKeyPackage.frostPublicKeyPackage(),
+          deserializedPublicKeyPackage.identities().map((i) => i.toString('hex')),
+          deserializedPublicKeyPackage.minSigners(),
+        )
+
+        expect(publicKeyPackage.serialize().toString('hex')).toEqual(
+          round3Package.publicKeyPackage,
+        )
+      }
+
       const raw = new RawTransaction(TransactionVersion.V1)
 
       const inNote = new NativeNote(

@@ -5,7 +5,10 @@
 use crate::{structs::NativeUnsignedTransaction, to_napi_err};
 use ironfish::{
     frost::{
-        frost::{round1::SigningCommitments, round2::SignatureShare as FrostSignatureShare},
+        frost::{
+            keys::PublicKeyPackage as FrostPublicKeyPackage, round1::SigningCommitments,
+            round2::SignatureShare as FrostSignatureShare,
+        },
         keys::KeyPackage,
         round2, Randomizer,
     },
@@ -351,6 +354,28 @@ impl NativePublicKeyPackage {
         Ok(NativePublicKeyPackage { public_key_package })
     }
 
+    #[napi(factory)]
+    pub fn from_frost(
+        frost_public_key_package: JsBuffer,
+        identities: Vec<String>,
+        min_signers: u16,
+    ) -> Result<NativePublicKeyPackage> {
+        let frost_public_key_package =
+            FrostPublicKeyPackage::deserialize(frost_public_key_package.into_value()?.as_ref())
+                .map_err(to_napi_err)?;
+        let identities = try_deserialize_identities(identities)?;
+
+        let public_key_package =
+            PublicKeyPackage::from_frost(frost_public_key_package, identities, min_signers);
+
+        Ok(NativePublicKeyPackage { public_key_package })
+    }
+
+    #[napi]
+    pub fn serialize(&self) -> Buffer {
+        Buffer::from(self.public_key_package.serialize())
+    }
+
     #[napi]
     pub fn identities(&self) -> Vec<Buffer> {
         self.public_key_package
@@ -358,6 +383,17 @@ impl NativePublicKeyPackage {
             .iter()
             .map(|identity| Buffer::from(&identity.serialize()[..]))
             .collect()
+    }
+
+    #[napi]
+    pub fn frost_public_key_package(&self) -> Result<Buffer> {
+        Ok(Buffer::from(
+            self.public_key_package
+                .frost_public_key_package()
+                .serialize()
+                .map_err(to_napi_err)?
+                .as_slice(),
+        ))
     }
 
     #[napi]
