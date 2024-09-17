@@ -138,6 +138,8 @@ import type {
   GetWorkersStatusRequest,
   GetWorkersStatusResponse,
   ImportAccountRequest,
+  ImportParticipantRequest,
+  ImportParticipantResponse,
   ImportResponse,
   IsValidPublicAddressRequest,
   IsValidPublicAddressResponse,
@@ -271,6 +273,15 @@ export abstract class RpcClient {
       ): Promise<RpcResponseEnded<CreateParticipantResponse>> => {
         return this.request<CreateParticipantResponse>(
           `${ApiNamespace.wallet}/multisig/createParticipant`,
+          params,
+        ).waitForEnd()
+      },
+
+      importParticipant: (
+        params: ImportParticipantRequest,
+      ): Promise<RpcResponseEnded<ImportParticipantResponse>> => {
+        return this.request<ImportParticipantResponse>(
+          `${ApiNamespace.wallet}/multisig/importParticipant`,
           params,
         ).waitForEnd()
       },

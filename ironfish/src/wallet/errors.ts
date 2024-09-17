@@ -52,6 +52,15 @@ export class DuplicateIdentityNameError extends Error {
   }
 }
 
+export class DuplicateIdentityError extends Error {
+  name = this.constructor.name
+
+  constructor(identity: string) {
+    super()
+    this.message = `Multisig participant already exists for the identity ${identity}`
+  }
+}
+
 export class DuplicateSpendingKeyError extends Error {
   name = this.constructor.name
 
