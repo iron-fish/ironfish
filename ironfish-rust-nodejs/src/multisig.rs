@@ -4,7 +4,9 @@
 
 use crate::{structs::NativeUnsignedTransaction, to_napi_err};
 use ironfish::{
-    frost::{keys::KeyPackage, round2, Randomizer},
+    frost::{
+        frost::round2::SignatureShare as FrostSignatureShare, keys::KeyPackage, round2, Randomizer,
+    },
     frost_utils::{
         account_keys::derive_account_keys, signing_package::SigningPackage,
         split_spender_key::split_spender_key,
@@ -134,6 +136,55 @@ pub fn create_signature_share(
     let bytes = signature_share.serialize();
 
     Ok(bytes_to_hex(&bytes[..]))
+}
+
+#[napi(js_name = "SignatureShare", namespace = "multisig")]
+pub struct NativeSignatureShare {
+    signature_share: SignatureShare,
+}
+
+#[napi(namespace = "multisig")]
+impl NativeSignatureShare {
+    #[napi(constructor)]
+    pub fn new(js_bytes: JsBuffer) -> Result<NativeSignatureShare> {
+        let bytes = js_bytes.into_value()?;
+        SignatureShare::deserialize_from(bytes.as_ref())
+            .map(|signature_share| NativeSignatureShare { signature_share })
+            .map_err(to_napi_err)
+    }
+
+    #[napi(factory)]
+    pub fn from_frost(
+        frost_signature_share: JsBuffer,
+        identity: JsBuffer,
+    ) -> Result<NativeSignatureShare> {
+        let frost_signature_share = frost_signature_share.into_value()?;
+        let frost_signature_share =
+            FrostSignatureShare::deserialize(frost_signature_share.as_ref())
+                .map_err(to_napi_err)?;
+
+        let identity = identity.into_value()?;
+        let identity = Identity::deserialize_from(&identity[..]).map_err(to_napi_err)?;
+
+        let signature_share = SignatureShare::from_frost(frost_signature_share, identity);
+
+        Ok(NativeSignatureShare { signature_share })
+    }
+
+    #[napi]
+    pub fn identity(&self) -> Buffer {
+        Buffer::from(self.signature_share.identity().serialize().as_slice())
+    }
+
+    #[napi]
+    pub fn frost_signature_share(&self) -> Buffer {
+        Buffer::from(
+            self.signature_share
+                .frost_signature_share()
+                .serialize()
+                .as_slice(),
+        )
+    }
 }
 
 #[napi(namespace = "multisig")]
@@ -334,6 +385,17 @@ impl NativeSigningCommitment {
     }
 
     #[napi]
+    pub fn raw_commitments(&self) -> Result<Buffer> {
+        Ok(Buffer::from(
+            self.signing_commitment
+                .raw_commitments()
+                .serialize()
+                .map_err(to_napi_err)?
+                .as_slice(),
+        ))
+    }
+
+    #[napi]
     pub fn verify_checksum(
         &self,
         transaction_hash: JsBuffer,
@@ -377,6 +439,17 @@ impl NativeSigningPackage {
             .iter()
             .map(|signer| Buffer::from(&signer.serialize()[..]))
             .collect()
+    }
+
+    #[napi]
+    pub fn frost_signing_package(&self) -> Result<Buffer> {
+        Ok(Buffer::from(
+            &self
+                .signing_package
+                .frost_signing_package
+                .serialize()
+                .map_err(to_napi_err)?[..],
+        ))
     }
 }
 
