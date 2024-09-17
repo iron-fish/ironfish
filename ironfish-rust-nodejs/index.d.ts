@@ -354,7 +354,10 @@ export namespace multisig {
   export type NativePublicKeyPackage = PublicKeyPackage
     export class PublicKeyPackage {
     constructor(value: string)
+    static fromFrost(frostPublicKeyPackage: Buffer, identities: Array<string>, minSigners: number): NativePublicKeyPackage
+    serialize(): Buffer
     identities(): Array<Buffer>
+    frostPublicKeyPackage(): Buffer
     minSigners(): number
   }
   export type NativeSigningCommitment = SigningCommitment
