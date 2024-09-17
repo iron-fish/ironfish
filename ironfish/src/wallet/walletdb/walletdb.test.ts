@@ -479,20 +479,22 @@ describe('WalletDB', () => {
           throw new Error('Unexpected behavior')
         }
 
-        encryptedAccountById.set(
-          id,
-          new EncryptedAccount({ data: accountValue.data, walletDb }),
-        )
+        encryptedAccountById.set(id, new EncryptedAccount({ accountValue, walletDb }))
       }
+
+      const masterKeyValue = await walletDb.loadMasterKey()
+      Assert.isNotNull(masterKeyValue)
+      const masterKey = new MasterKey(masterKeyValue)
+      const key = await masterKey.unlock(passphrase)
 
       const encryptedAccountA = encryptedAccountById.get(accountA.id)
       Assert.isNotUndefined(encryptedAccountA)
-      const decryptedAccountA = encryptedAccountA.decrypt(passphrase)
+      const decryptedAccountA = encryptedAccountA.decrypt(key)
       expect(accountA.serialize()).toMatchObject(decryptedAccountA.serialize())
 
       const encryptedAccountB = encryptedAccountById.get(accountB.id)
       Assert.isNotUndefined(encryptedAccountB)
-      const decryptedAccountB = encryptedAccountB.decrypt(passphrase)
+      const decryptedAccountB = encryptedAccountB.decrypt(key)
       expect(accountB.serialize()).toMatchObject(decryptedAccountB.serialize())
     })
   })
@@ -513,10 +515,7 @@ describe('WalletDB', () => {
           throw new Error('Unexpected behavior')
         }
 
-        encryptedAccountById.set(
-          id,
-          new EncryptedAccount({ data: accountValue.data, walletDb }),
-        )
+        encryptedAccountById.set(id, new EncryptedAccount({ accountValue, walletDb }))
       }
 
       const encryptedAccountA = encryptedAccountById.get(accountA.id)
@@ -561,10 +560,7 @@ describe('WalletDB', () => {
           throw new Error('Unexpected behavior')
         }
 
-        encryptedAccountById.set(
-          id,
-          new EncryptedAccount({ data: accountValue.data, walletDb }),
-        )
+        encryptedAccountById.set(id, new EncryptedAccount({ accountValue, walletDb }))
       }
 
       const encryptedAccountA = encryptedAccountById.get(accountA.id)
@@ -587,7 +583,10 @@ describe('WalletDB', () => {
       await useAccountFixture(node.wallet, 'A')
       const accountB = await useAccountFixture(node.wallet, 'B')
 
-      await walletDb.accounts.put(accountB.id, accountB.encrypt(passphrase).serialize())
+      const masterKey = MasterKey.generate(passphrase)
+      await masterKey.unlock(passphrase)
+
+      await walletDb.accounts.put(accountB.id, accountB.encrypt(masterKey).serialize())
 
       await expect(walletDb.accountsEncrypted()).rejects.toThrow()
     })
@@ -715,9 +714,10 @@ describe('WalletDB', () => {
       }
       const account = new Account({ accountValue, walletDb })
 
-      await node.wallet.unlock(passphrase)
-      const masterKey = node.wallet['masterKey']
-      Assert.isNotNull(masterKey)
+      const masterKeyValue = await walletDb.loadMasterKey()
+      Assert.isNotNull(masterKeyValue)
+      const masterKey = new MasterKey(masterKeyValue)
+      await masterKey.unlock(passphrase)
 
       await walletDb.setEncryptedAccount(account, masterKey)
 

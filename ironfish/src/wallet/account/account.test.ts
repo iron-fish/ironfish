@@ -17,6 +17,7 @@ import {
   useTxFixture,
 } from '../../testUtilities'
 import { AsyncUtils } from '../../utils/async'
+import { MasterKey } from '../masterKey'
 import { BalanceValue } from '../walletdb/balanceValue'
 import { Account } from './account'
 import { EncryptedAccount } from './encryptedAccount'
@@ -198,14 +199,14 @@ describe('Accounts', () => {
       await expect(account.setName('B')).rejects.toThrow()
     })
 
-    it('should throw an error if the passphrase is incorrect and the wallet is encrypted', async () => {
+    it('should throw an error if there is no master key and the wallet is encrypted', async () => {
       const { node } = nodeTest
       const passphrase = 'foo'
 
       const account = await useAccountFixture(node.wallet, 'accountA')
       await node.wallet.encrypt(passphrase)
 
-      await expect(account.setName('B', { passphrase: 'incorrect ' })).rejects.toThrow()
+      await expect(account.setName('B')).rejects.toThrow()
     })
 
     it('should save the encrypted account if the passphrase is correct and the wallet is encrypted', async () => {
@@ -216,17 +217,23 @@ describe('Accounts', () => {
       const account = await useAccountFixture(node.wallet, 'accountA')
       await node.wallet.encrypt(passphrase)
 
-      await account.setName(newName, { passphrase })
+      await node.wallet.unlock(passphrase)
+      await node.wallet.setName(account, newName)
+      await node.wallet.lock()
 
       const accountValue = await node.wallet.walletDb.accounts.get(account.id)
       Assert.isNotUndefined(accountValue)
       Assert.isTrue(accountValue.encrypted)
 
       const encryptedAccount = new EncryptedAccount({
-        data: accountValue.data,
+        accountValue,
         walletDb: node.wallet.walletDb,
       })
-      const decryptedAccount = encryptedAccount.decrypt(passphrase)
+
+      const masterKey = node.wallet['masterKey']
+      Assert.isNotNull(masterKey)
+      const key = await masterKey.unlock(passphrase)
+      const decryptedAccount = encryptedAccount.decrypt(key)
 
       expect(decryptedAccount.name).toEqual(newName)
     })
@@ -2668,8 +2675,11 @@ describe('Accounts', () => {
       const account = await useAccountFixture(node.wallet)
       const passphrase = 'foo'
 
-      const encryptedAccount = account.encrypt(passphrase)
-      const decryptedAccount = encryptedAccount.decrypt(passphrase)
+      const masterKey = MasterKey.generate(passphrase)
+      const key = await masterKey.unlock(passphrase)
+      const encryptedAccount = account.encrypt(masterKey)
+
+      const decryptedAccount = encryptedAccount.decrypt(key)
 
       expect(account.serialize()).toMatchObject(decryptedAccount.serialize())
     })

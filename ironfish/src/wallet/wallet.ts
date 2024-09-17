@@ -1566,7 +1566,7 @@ export class Wallet {
   }
 
   async setName(account: Account, name: string, tx?: IDatabaseTransaction): Promise<void> {
-    await account.setName(name, this.masterKey, tx)
+    await account.setName(name, { masterKey: this.masterKey }, tx)
   }
 
   get accounts(): Account[] {

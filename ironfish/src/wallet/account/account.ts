@@ -129,7 +129,7 @@ export class Account {
 
   async setName(
     name: string,
-    masterKey: MasterKey | null,
+    options?: { masterKey: MasterKey | null },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     if (!name.trim()) {
@@ -141,8 +141,9 @@ export class Account {
     this.name = name
 
     if (walletEncrypted) {
-      Assert.isNotNull(masterKey)
-      await this.walletDb.setEncryptedAccount(this, masterKey, tx)
+      Assert.isNotUndefined(options)
+      Assert.isNotNull(options?.masterKey)
+      await this.walletDb.setEncryptedAccount(this, options.masterKey, tx)
     } else {
       await this.walletDb.setAccount(this, tx)
     }
