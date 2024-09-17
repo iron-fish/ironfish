@@ -4,10 +4,15 @@
 import { generateKey, LanguageCode, multisig, spendingKeyToWords } from '@ironfish/rust-nodejs'
 import fs from 'fs'
 import path from 'path'
+import { Assert } from '../../../assert'
 import { createTrustedDealerKeyPackages, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { JsonEncoder } from '../../../wallet'
-import { isMultisigSignerImport } from '../../../wallet/exporter'
+import {
+  decodeAccountImport,
+  isMultisigHardwareSignerImport,
+  isMultisigSignerImport,
+} from '../../../wallet/exporter'
 import { AccountFormat, encodeAccountImport } from '../../../wallet/exporter/account'
 import { AccountImport } from '../../../wallet/exporter/accountImport'
 import { Bech32Encoder } from '../../../wallet/exporter/encoders/bech32'
@@ -322,6 +327,24 @@ describe('Route wallet/importAccount', () => {
         expect(response.content.name).not.toBeNull()
 
         await routeTest.client.wallet.removeAccount({ account: testCaseFile })
+
+        const account = decodeAccountImport(testCase, {
+          name: testCaseFile,
+        })
+
+        if (account.multisigKeys && isMultisigHardwareSignerImport(account.multisigKeys)) {
+          await routeTest.node.wallet.walletDb.deleteMultisigIdentity(
+            Buffer.from(account.multisigKeys.identity, 'hex'),
+          )
+        }
+
+        if (account.multisigKeys && isMultisigSignerImport(account.multisigKeys)) {
+          await routeTest.node.wallet.walletDb.deleteMultisigIdentity(
+            new multisig.ParticipantSecret(Buffer.from(account.multisigKeys.secret, 'hex'))
+              .toIdentity()
+              .serialize(),
+          )
+        }
       }
     })
 
@@ -442,7 +465,7 @@ describe('Route wallet/importAccount', () => {
     expect.assertions(2)
   })
 
-  it('should not import multisig account with duplicate identity name', async () => {
+  it('should not import multisig account with secret with the same identity name', async () => {
     const name = 'duplicateIdentityNameTest'
 
     const {
@@ -526,5 +549,97 @@ describe('Route wallet/importAccount', () => {
     expect(newIdentity?.name).toBe(name)
 
     expect.assertions(7)
+  })
+
+  it('should not import hardware multisig account with same identity name', async () => {
+    const name = 'duplicateIdentityNameTest'
+
+    const {
+      dealer: trustedDealerPackages,
+      secrets,
+      identities,
+    } = createTrustedDealerKeyPackages()
+
+    const identity = identities[0]
+    const nextIdentity = identities[1]
+
+    await routeTest.node.wallet.walletDb.putMultisigIdentity(Buffer.from(identity, 'hex'), {
+      secret: secrets[0].serialize(),
+      name,
+    })
+
+    const account: AccountImport = {
+      version: 1,
+      name,
+      viewKey: trustedDealerPackages.viewKey,
+      incomingViewKey: trustedDealerPackages.incomingViewKey,
+      outgoingViewKey: trustedDealerPackages.outgoingViewKey,
+      publicAddress: trustedDealerPackages.publicAddress,
+      proofAuthorizingKey: trustedDealerPackages.proofAuthorizingKey,
+      spendingKey: null,
+      createdAt: null,
+      multisigKeys: {
+        publicKeyPackage: trustedDealerPackages.publicKeyPackage,
+        identity: nextIdentity,
+      },
+    }
+
+    try {
+      await routeTest.client.wallet.importAccount({
+        account: new JsonEncoder().encode(account),
+        name,
+        rescan: false,
+      })
+    } catch (e: unknown) {
+      if (!(e instanceof RpcRequestError)) {
+        throw e
+      }
+
+      expect(e.status).toBe(400)
+      expect(e.code).toBe(RPC_ERROR_CODES.DUPLICATE_IDENTITY_NAME)
+    }
+
+    expect.assertions(2)
+  })
+
+  it('should not modify existing identity if a new one is being imported with a different name', async () => {
+    const { dealer: trustedDealerPackages, identities } = createTrustedDealerKeyPackages()
+
+    const identity = identities[0]
+
+    await routeTest.node.wallet.walletDb.putMultisigIdentity(Buffer.from(identity, 'hex'), {
+      name: 'existingIdentity',
+    })
+
+    const account: AccountImport = {
+      version: 1,
+      name: 'newIdentity',
+      viewKey: trustedDealerPackages.viewKey,
+      incomingViewKey: trustedDealerPackages.incomingViewKey,
+      outgoingViewKey: trustedDealerPackages.outgoingViewKey,
+      publicAddress: trustedDealerPackages.publicAddress,
+      proofAuthorizingKey: trustedDealerPackages.proofAuthorizingKey,
+      spendingKey: null,
+      createdAt: null,
+      multisigKeys: {
+        publicKeyPackage: trustedDealerPackages.publicKeyPackage,
+        identity: identity,
+      },
+    }
+
+    const response = await routeTest.client.wallet.importAccount({
+      account: new JsonEncoder().encode(account),
+      name: 'newIdentity',
+      rescan: false,
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.content.name).toEqual('newIdentity')
+
+    const existingIdentity = await routeTest.wallet.walletDb.getMultisigIdentity(
+      Buffer.from(identity, 'hex'),
+    )
+    Assert.isNotUndefined(existingIdentity)
+    expect(existingIdentity.name).toEqual('existingIdentity')
   })
 })

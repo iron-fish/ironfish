@@ -249,6 +249,7 @@ export class UnsignedTransaction {
   publicKeyRandomness(): string
   hash(): Buffer
   signingPackage(nativeIdentiferCommitments: Array<string>): string
+  signingPackageFromRaw(identities: Array<string>, rawCommitments: Array<string>): string
   sign(spenderHexKey: string): Buffer
   addSignature(signature: Buffer): Buffer
 }
@@ -331,6 +332,13 @@ export namespace multisig {
     proofAuthorizingKey: string
   }
   export function aggregateSignatureShares(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
+  export type NativeSignatureShare = SignatureShare
+    export class SignatureShare {
+    constructor(jsBytes: Buffer)
+    static fromFrost(frostSignatureShare: Buffer, identity: Buffer): NativeSignatureShare
+    identity(): Buffer
+    frostSignatureShare(): Buffer
+  }
   export class ParticipantSecret {
     constructor(jsBytes: Buffer)
     serialize(): Buffer
@@ -354,6 +362,7 @@ export namespace multisig {
     export class SigningCommitment {
     constructor(jsBytes: Buffer)
     identity(): Buffer
+    rawCommitments(): Buffer
     verifyChecksum(transactionHash: Buffer, signerIdentities: Array<string>): boolean
   }
   export type NativeSigningPackage = SigningPackage
@@ -361,6 +370,7 @@ export namespace multisig {
     constructor(jsBytes: Buffer)
     unsignedTransaction(): NativeUnsignedTransaction
     signers(): Array<Buffer>
+    frostSigningPackage(): Buffer
   }
 }
 export namespace xchacha20poly1305 {
