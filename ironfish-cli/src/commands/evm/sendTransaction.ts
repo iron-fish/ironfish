@@ -48,15 +48,17 @@ export class SendTransactionTestEvmCommand extends IronfishCommand {
       this.error('Account does not exist or have a ethereum public address')
     }
 
-    const response = await client.eth.sendTransaction({
-      from,
-      to: flags.to,
-      value: String(flags.value),
-      gas: '100000000',
-      nonce: String(flags.nonce),
-      gasPrice: String(0n),
-      data: flags.data,
-    })
+    const response = await client.eth.sendTransaction([
+      {
+        from,
+        to: flags.to,
+        value: String(flags.value),
+        gas: '100000000',
+        nonce: String(flags.nonce),
+        gasPrice: String(0n),
+        data: flags.data,
+      },
+    ])
     this.log(`Transaction hash: ${response.content.result}`)
   }
 }
