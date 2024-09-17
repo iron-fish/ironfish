@@ -675,29 +675,6 @@ describe('Wallet', () => {
       await expect(node.wallet.importAccount(accountValue)).rejects.toThrow()
     })
 
-    it('should throw an error when the wallet is encrypted and the passphrase is incorrect', async () => {
-      const { node } = await nodeTest.createSetup()
-      const passphrase = 'foo'
-
-      await useAccountFixture(node.wallet, 'A')
-      await node.wallet.encrypt(passphrase)
-
-      const key = generateKey()
-      const accountValue: DecryptedAccountValue = {
-        encrypted: false,
-        id: '0',
-        name: 'new-account',
-        version: 1,
-        createdAt: null,
-        scanningEnabled: false,
-        ...key,
-      }
-
-      await expect(
-        node.wallet.importAccount(accountValue, { passphrase: 'incorrect' }),
-      ).rejects.toThrow('Your passphrase is incorrect')
-    })
-
     it('should encrypt and store the account if the wallet is encrypted', async () => {
       const { node } = await nodeTest.createSetup()
       const passphrase = 'foo'
@@ -716,7 +693,10 @@ describe('Wallet', () => {
         ...key,
       }
 
-      const account = await node.wallet.importAccount(accountValue, { passphrase })
+      await node.wallet.unlock(passphrase)
+      const account = await node.wallet.importAccount(accountValue)
+      await node.wallet.lock()
+
       expect(account.name).toEqual(accountValue.name)
       expect(account.viewKey).toEqual(key.viewKey)
       expect(account.incomingViewKey).toEqual(key.incomingViewKey)
@@ -1065,18 +1045,6 @@ describe('Wallet', () => {
       await expect(node.wallet.createAccount('B')).rejects.toThrow()
     })
 
-    it('should throw an error if the wallet is encrypted and an incorrect passphrase is provided', async () => {
-      const { node } = await nodeTest.createSetup()
-      const passphrase = 'foo'
-
-      await useAccountFixture(node.wallet, 'A')
-      await node.wallet.encrypt(passphrase)
-
-      await expect(
-        node.wallet.createAccount('B', { passphrase: 'incorrect ' }),
-      ).rejects.toThrow()
-    })
-
     it('should save a new encrypted account with the correct passphrase', async () => {
       const { node } = await nodeTest.createSetup()
       const passphrase = 'foo'
@@ -1084,17 +1052,23 @@ describe('Wallet', () => {
       await useAccountFixture(node.wallet, 'A')
       await node.wallet.encrypt(passphrase)
 
-      const account = await node.wallet.createAccount('B', { passphrase })
+      await node.wallet.unlock(passphrase)
+      const account = await node.wallet.createAccount('B')
 
       const accountValue = await node.wallet.walletDb.accounts.get(account.id)
       Assert.isNotUndefined(accountValue)
       Assert.isTrue(accountValue.encrypted)
 
       const encryptedAccount = new EncryptedAccount({
-        data: accountValue.data,
+        accountValue,
         walletDb: node.wallet.walletDb,
       })
-      const decryptedAccount = encryptedAccount.decrypt(passphrase)
+
+      const masterKey = node.wallet['masterKey']
+      Assert.isNotNull(masterKey)
+      const key = await masterKey.unlock(passphrase)
+      const decryptedAccount = encryptedAccount.decrypt(key)
+      await node.wallet.lock()
 
       expect(decryptedAccount.spendingKey).toEqual(account.spendingKey)
       expect(decryptedAccount.name).toEqual(account.name)
@@ -2478,18 +2452,6 @@ describe('Wallet', () => {
       await expect(node.wallet.resetAccount(account)).rejects.toThrow()
     })
 
-    it('should throw an error if the wallet is encrypted and the passphrase is incorrect', async () => {
-      const { node } = await nodeTest.createSetup()
-      const passphrase = 'foo'
-
-      const account = await useAccountFixture(node.wallet, 'A')
-      await node.wallet.encrypt(passphrase)
-
-      await expect(
-        node.wallet.resetAccount(account, { passphrase: 'incorrect' }),
-      ).rejects.toThrow()
-    })
-
     it('save the encrypted account when the wallet is encrypted and passphrase is valid', async () => {
       const { node } = await nodeTest.createSetup()
       const passphrase = 'foo'
@@ -2497,7 +2459,8 @@ describe('Wallet', () => {
       const account = await useAccountFixture(node.wallet, 'A')
       await node.wallet.encrypt(passphrase)
 
-      await node.wallet.resetAccount(account, { passphrase })
+      await node.wallet.unlock(passphrase)
+      await node.wallet.resetAccount(account)
 
       const newAccount = node.wallet.getAccountByName(account.name)
       Assert.isNotNull(newAccount)
@@ -2505,7 +2468,12 @@ describe('Wallet', () => {
       const encryptedAccount = node.wallet.encryptedAccountById.get(newAccount.id)
       Assert.isNotUndefined(encryptedAccount)
 
-      const decryptedAccount = encryptedAccount.decrypt(passphrase)
+      const masterKey = node.wallet['masterKey']
+      Assert.isNotNull(masterKey)
+      const key = await masterKey.unlock(passphrase)
+      const decryptedAccount = encryptedAccount.decrypt(key)
+      await node.wallet.lock()
+
       expect(decryptedAccount.name).toEqual(account.name)
       expect(decryptedAccount.spendingKey).toEqual(account.spendingKey)
     })
@@ -2724,14 +2692,18 @@ describe('Wallet', () => {
       expect(node.wallet.accounts).toHaveLength(0)
       expect(node.wallet.encryptedAccounts).toHaveLength(2)
 
+      const masterKey = node.wallet['masterKey']
+      Assert.isNotNull(masterKey)
+      const key = await masterKey.unlock(passphrase)
+
       const encryptedAccountA = node.wallet.encryptedAccountById.get(accountA.id)
       Assert.isNotUndefined(encryptedAccountA)
-      const decryptedAccountA = encryptedAccountA.decrypt(passphrase)
+      const decryptedAccountA = encryptedAccountA.decrypt(key)
       expect(accountA.serialize()).toMatchObject(decryptedAccountA.serialize())
 
       const encryptedAccountB = node.wallet.encryptedAccountById.get(accountB.id)
       Assert.isNotUndefined(encryptedAccountB)
-      const decryptedAccountB = encryptedAccountB.decrypt(passphrase)
+      const decryptedAccountB = encryptedAccountB.decrypt(key)
       expect(accountB.serialize()).toMatchObject(decryptedAccountB.serialize())
     })
   })
@@ -2866,10 +2838,14 @@ describe('Wallet', () => {
       expect(node.wallet.encryptedAccounts).toHaveLength(2)
       expect(node.wallet.locked).toBe(false)
 
+      const masterKey = node.wallet['masterKey']
+      Assert.isNotNull(masterKey)
+      const key = await masterKey.unlock(passphrase)
+
       for (const [id, account] of node.wallet.accountById.entries()) {
         const encryptedAccount = node.wallet.encryptedAccountById.get(id)
         Assert.isNotUndefined(encryptedAccount)
-        const decryptedAccount = encryptedAccount.decrypt(passphrase)
+        const decryptedAccount = encryptedAccount.decrypt(key)
 
         expect(account.serialize()).toMatchObject(decryptedAccount.serialize())
       }

@@ -7,14 +7,13 @@ import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from './utils'
 
-export type RenameAccountRequest = { account: string; newName: string; passphrase?: string }
+export type RenameAccountRequest = { account: string; newName: string }
 export type RenameAccountResponse = undefined
 
 export const RenameAccountRequestSchema: yup.ObjectSchema<RenameAccountRequest> = yup
   .object({
     account: yup.string().defined(),
     newName: yup.string().defined(),
-    passphrase: yup.string().optional(),
   })
   .defined()
 
@@ -29,7 +28,7 @@ routes.register<typeof RenameAccountRequestSchema, RenameAccountResponse>(
     AssertHasRpcContext(request, context, 'wallet')
 
     const account = getAccount(context.wallet, request.data.account)
-    await account.setName(request.data.newName, { passphrase: request.data.passphrase })
+    await context.wallet.setName(account, request.data.newName)
     request.end()
   },
 )

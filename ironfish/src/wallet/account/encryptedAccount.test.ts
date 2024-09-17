@@ -4,6 +4,7 @@
 import { useAccountFixture } from '../../testUtilities/fixtures/account'
 import { createNodeTest } from '../../testUtilities/nodeTest'
 import { AccountDecryptionFailedError } from '../errors'
+import { MasterKey } from '../masterKey'
 
 describe('EncryptedAccount', () => {
   const nodeTest = createNodeTest()
@@ -13,8 +14,11 @@ describe('EncryptedAccount', () => {
     const { node } = nodeTest
     const account = await useAccountFixture(node.wallet)
 
-    const encryptedAccount = account.encrypt(passphrase)
-    const decryptedAccount = encryptedAccount.decrypt(passphrase)
+    const masterKey = MasterKey.generate(passphrase)
+    const key = await masterKey.unlock(passphrase)
+
+    const encryptedAccount = account.encrypt(masterKey)
+    const decryptedAccount = encryptedAccount.decrypt(key)
 
     expect(account.serialize()).toMatchObject(decryptedAccount.serialize())
   })
@@ -25,10 +29,13 @@ describe('EncryptedAccount', () => {
     const { node } = nodeTest
     const account = await useAccountFixture(node.wallet)
 
-    const encryptedAccount = account.encrypt(passphrase)
+    const masterKey = MasterKey.generate(passphrase)
+    const invalidMasterKey = MasterKey.generate(invalidPassphrase)
+    const invalidKey = await invalidMasterKey.unlock(passphrase)
 
-    expect(() => encryptedAccount.decrypt(invalidPassphrase)).toThrow(
-      AccountDecryptionFailedError,
-    )
+    await masterKey.unlock(passphrase)
+    const encryptedAccount = account.encrypt(masterKey)
+
+    expect(() => encryptedAccount.decrypt(invalidKey)).toThrow(AccountDecryptionFailedError)
   })
 })
