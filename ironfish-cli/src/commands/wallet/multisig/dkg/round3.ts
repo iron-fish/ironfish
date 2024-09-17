@@ -5,6 +5,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
+import { Ledger } from '../../../../utils/ledger'
 
 export class DkgRound3Command extends IronfishCommand {
   static description = 'Perform round3 of the DKG protocol for multisig account creation'
@@ -35,6 +36,11 @@ export class DkgRound3Command extends IronfishCommand {
       description:
         'The public package that a participant generated during DKG round 2 (may be specified multiple times for multiple participants). Your own round 2 public package is optional; if included, it will be ignored',
       multiple: true,
+    }),
+    ledger: Flags.boolean({
+      default: false,
+      description: 'Perform operation with a ledger device',
+      hidden: true,
     }),
   }
 
@@ -100,6 +106,11 @@ export class DkgRound3Command extends IronfishCommand {
     }
     round2PublicPackages = round2PublicPackages.map((i) => i.trim())
 
+    if (flags.ledger) {
+      await this.performRound3WithLedger()
+      return
+    }
+
     const response = await client.wallet.multisig.dkg.round3({
       participantName,
       accountName: flags.accountName,
@@ -112,5 +123,18 @@ export class DkgRound3Command extends IronfishCommand {
     this.log(
       `Account ${response.content.name} imported with public address: ${response.content.publicAddress}`,
     )
+  }
+
+  async performRound3WithLedger(): Promise<void> {
+    const ledger = new Ledger(this.logger)
+    try {
+      await ledger.connect()
+    } catch (e) {
+      if (e instanceof Error) {
+        this.error(e.message)
+      } else {
+        throw e
+      }
+    }
   }
 }
