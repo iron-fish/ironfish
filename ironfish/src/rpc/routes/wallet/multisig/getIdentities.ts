@@ -12,6 +12,7 @@ export type GetIdentitiesResponse = {
   identities: Array<{
     name: string
     identity: string
+    hasSecret: boolean
   }>
 }
 
@@ -27,6 +28,7 @@ export const GetIdentitiesResponseSchema: yup.ObjectSchema<GetIdentitiesResponse
           .object({
             name: yup.string().defined(),
             identity: yup.string().defined(),
+            hasSecret: yup.boolean().defined(),
           })
           .defined(),
       )
@@ -44,11 +46,12 @@ routes.register<typeof GetIdentitiesRequestSchema, GetIdentitiesResponse>(
 
     for await (const [
       identity,
-      { name },
+      { name, secret },
     ] of context.wallet.walletDb.multisigIdentities.getAllIter()) {
       identities.push({
         name,
         identity: identity.toString('hex'),
+        hasSecret: secret ? true : false,
       })
     }
 
