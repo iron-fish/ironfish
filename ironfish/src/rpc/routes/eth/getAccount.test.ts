@@ -4,7 +4,7 @@
 import { Account as EthAccount, Address } from '@ethereumjs/util'
 import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { CurrencyUtils } from '../../../utils'
+import { CurrencyUtils, EthUtils } from '../../../utils'
 
 describe('Route eth/getAccount', () => {
   const routeTest = createRouteTest(false)
@@ -26,10 +26,10 @@ describe('Route eth/getAccount', () => {
     expect(block2.header.stateCommitment).toBeDefined()
     await expect(node.chain).toAddBlock(block2)
 
-    const response = await routeTest.client.eth.getAccount({
-      address: address.toString(),
-      blockReference: '2',
-    })
+    const response = await routeTest.client.eth.getAccount([
+      address.toString(),
+      EthUtils.numToHex(EthUtils.ifToEthSequence(2)),
+    ])
 
     expect(response.status).toEqual(200)
     expect(response.content.balance).toEqual(CurrencyUtils.encode(ethAccount.balance))
@@ -64,10 +64,10 @@ describe('Route eth/getAccount', () => {
     expect(block3.header.stateCommitment).toBeDefined()
     await expect(node.chain).toAddBlock(block3)
 
-    const response = await routeTest.client.eth.getAccount({
-      address: address.toString(),
-      blockReference: '2',
-    })
+    const response = await routeTest.client.eth.getAccount([
+      address.toString(),
+      EthUtils.numToHex(EthUtils.ifToEthSequence(2)),
+    ])
 
     expect(response.status).toEqual(200)
     expect(response.content.balance).toEqual(CurrencyUtils.encode(ethAccount1.balance))
@@ -81,10 +81,10 @@ describe('Route eth/getAccount', () => {
     const account = await useAccountFixture(node.wallet, 'test3')
     const address = Address.fromPrivateKey(Buffer.from(account.spendingKey, 'hex'))
 
-    const response = await routeTest.client.eth.getAccount({
-      address: address.toString(),
-      blockReference: '1',
-    })
+    const response = await routeTest.client.eth.getAccount([
+      address.toString(),
+      EthUtils.numToHex(EthUtils.ifToEthSequence(1)),
+    ])
 
     expect(response.status).toEqual(200)
     expect(response.content.balance).toEqual('0')

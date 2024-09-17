@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { EthUtils } from '../../../utils'
 
 describe('Route eth/blockNumber', () => {
   const routeTest = createRouteTest()
@@ -13,7 +14,7 @@ describe('Route eth/blockNumber', () => {
 
     let response = await routeTest.client.eth.blockNumber()
     expect(response.content).toMatchObject({
-      number: '0x1',
+      number: EthUtils.numToHex(EthUtils.ifToEthSequence(1)),
     })
 
     let block = await useMinerBlockFixture(chain)
@@ -21,7 +22,7 @@ describe('Route eth/blockNumber', () => {
 
     response = await routeTest.client.eth.blockNumber()
     expect(response.content).toMatchObject({
-      number: '0x2',
+      number: EthUtils.numToHex(EthUtils.ifToEthSequence(2)),
     })
 
     block = await useMinerBlockFixture(chain)
@@ -29,7 +30,7 @@ describe('Route eth/blockNumber', () => {
 
     response = await routeTest.client.eth.blockNumber()
     expect(response.content).toMatchObject({
-      number: '0x3',
+      number: EthUtils.numToHex(EthUtils.ifToEthSequence(3)),
     })
   })
 })

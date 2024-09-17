@@ -13,7 +13,7 @@ import { RpcNotFoundError } from '../../adapters'
 import { registerEthRoute } from '../eth/ethRouter'
 import { ApiNamespace } from '../namespaces'
 import { EthRpcTransaction } from './types'
-import { blockTransactionToEthRpcTransaction } from './util'
+import { blockTransactionToEthRpcTransaction, ethBlockRefToBlock } from './util'
 
 export type GetBlockByNumberRequest = [string, boolean]
 
@@ -80,7 +80,8 @@ registerEthRoute<typeof GetBlockByNumberRequestSchema, GetBlockByNumberResponse>
 
     const [blockNumber, transactionDetailFlag] = request.data
 
-    const block: Block | null = await node.chain.getBlockAtSequence(parseInt(blockNumber))
+    const block = await ethBlockRefToBlock(blockNumber, node.chain)
+
     if (!block) {
       throw new RpcNotFoundError(`Block ${blockNumber} not found`)
     }
@@ -110,18 +111,26 @@ export const ethBlockResponse = (
   return {
     baseFeePerGas: '0x0',
     difficulty: '0x0',
-    extraData: '0x',
+    //mocked
+    extraData: '0xe4b883e5bda9e7a59ee4bb99e9b1bc000921',
     gasLimit: '0x0',
     gasUsed: '0x0',
     hash: EthUtils.prefix0x(blockHeader.hash.toString('hex')),
-    logsBloom: '0x',
-    miner: '0x',
-    mixHash: '0x',
-    nonce: '0x',
-    number: EthUtils.numToHex(blockHeader.sequence),
+    // mocked
+    logsBloom:
+      '0x00af00124b82093253a6960ab5a003170000318c0a00c18d418505009c10c905810e05d4a4511044b6245a062122010233958626c80039250781851410a468418101040c0100f178088a4e89000140e00001880c1c601413ac47bc5882854701180b9404422202202521584000808843030a552488a80e60c804c8d8004d0480422585320e068028d2e190508130022600024a51c116151a07612040081000088ba5c891064920a846b36288a40280820212b20940280056b233060818988945f33460426105024024040923447ad1102000028b8f0e001e810021031840a2801831a0113b003a5485843004c10c4c10d6a04060a84d88500038ab10875a382c',
+    // mocked
+    miner: '0x829bd824b016326a401d083b33d092293333a830',
+    //mocked
+    mixHash: '0x7d416c4a24dc3b43898040ea788922d8563d44a5193e6c4a1d9c70990775c879',
+    //mocked
+    nonce: '0x7bb9369dcbaec019',
+    number: EthUtils.numToHex(EthUtils.ifToEthSequence(blockHeader.sequence)),
     parentHash: EthUtils.prefix0x(blockHeader.previousBlockHash.toString('hex')),
-    receiptsRoot: '0x',
-    sha3Uncles: '0x',
+    //mocked
+    receiptsRoot: '0x7eadd994da137c7720fe2bf2935220409ed23a06ec6470ffd2d478e41af0255b',
+    //mocked
+    sha3Uncles: '0x7d9ce61d799ddcb5dfe1644ec7224ae7018f24ecb682f077b4c477da192e8553',
     size: EthUtils.numToHex(getBlockSize(block)),
     stateRoot: EthUtils.prefix0x(
       blockHeader.stateCommitment ? blockHeader.stateCommitment.toString('hex') : '0x',

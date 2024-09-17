@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '@ironfish/sdk'
+import { Assert, EthUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -37,23 +37,20 @@ export class EvmBalanceCommand extends IronfishCommand {
 
     const status = await client.wallet.getNodeStatus()
 
-    const headSequence = status.content.blockchain.head.sequence
+    const headSequence = EthUtils.ifToEthSequence(status.content.blockchain.head.sequence)
 
     const confirmations = flags.confirmations ?? this.sdk.config.get('confirmations')
 
-    const unconfirmed = await client.eth.getAccount({
-      address,
-      blockReference: String(headSequence),
-    })
+    const unconfirmed = await client.eth.getAccount([address, String(headSequence)])
 
     if (!unconfirmed) {
       this.error(`No account found with address ${address}`)
     }
 
-    const confirmed = await client.eth.getAccount({
+    const confirmed = await client.eth.getAccount([
       address,
-      blockReference: String(headSequence - confirmations),
-    })
+      String(headSequence - confirmations),
+    ])
 
     this.log(`EVM Address:         ${address}`)
     this.log(`Unconfirmed Balance: ${unconfirmed.content.balance}`)

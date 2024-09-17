@@ -56,12 +56,12 @@ describe('Route eth/getTransactionByHash', () => {
     expect(result.status).toEqual(200)
     expect(result.content).toMatchObject({
       blockHash: EthUtils.prefix0x(block1.header.hash.toString('hex')),
-      blockNumber: '0x2',
+      blockNumber: EthUtils.numToHex(EthUtils.ifToEthSequence(2)),
       from: EthUtils.prefix0x(evmSenderAddress.toString()),
       gas: '0x3b9aca00',
       gasPrice: '0x0',
-      maxFeePerGas: '0x',
-      maxPriorityFeePerGas: '0x',
+      maxFeePerGas: '0x0',
+      maxPriorityFeePerGas: '0x0',
       hash: EthUtils.prefix0x(Buffer.from(ethHash).toString('hex')),
       input: '0x',
       nonce: '0x0',

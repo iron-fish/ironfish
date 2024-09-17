@@ -117,15 +117,17 @@ export class UnshieldCommand extends IronfishCommand {
       data = contract.encodeFunctionData('unshield', [amount])
     }
 
-    const txDetails: EthSendTransactionRequest = {
-      nonce: nonce ? String(nonce) : undefined,
-      to: contractAddress,
-      from: publicAddress,
-      value: '0',
-      gas: String(1000000),
-      gasPrice: String(0),
-      data,
-    }
+    const txDetails: EthSendTransactionRequest = [
+      {
+        nonce: nonce ? String(nonce) : undefined,
+        to: contractAddress,
+        from: publicAddress,
+        value: '0',
+        gas: String(1000000),
+        gasPrice: String(0),
+        data,
+      },
+    ]
 
     const hash = await client.eth.sendTransaction(txDetails)
     this.log('Transaction hash:', hash.content.result)

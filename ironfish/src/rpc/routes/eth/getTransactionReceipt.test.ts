@@ -78,14 +78,14 @@ describe('Route eth/getTransactionReceipt', () => {
     await expect(chain).toAddBlock(block1)
 
     const ethHash = evmDescriptionToLegacyTransaction(transaction.evm!).hash()
-    const result = await routeTest.client.eth.getTransactionReceipt(bytesToHex(ethHash))
+    const result = await routeTest.client.eth.getTransactionReceipt([bytesToHex(ethHash)])
 
     expect(result.status).toEqual(200)
     expect(result.content).toMatchObject({
       transactionHash: bytesToHex(ethHash),
       transactionIndex: '0x1',
       blockHash: EthUtils.prefix0x(block1.header.hash.toString('hex')),
-      blockNumber: '0x3',
+      blockNumber: EthUtils.numToHex(EthUtils.ifToEthSequence(3)),
       from: EthUtils.prefix0x(account.ethAddress),
       to: EthUtils.prefix0x('f'.repeat(40)),
       cumulativeGasUsed: '0x7a1a',
@@ -97,8 +97,12 @@ describe('Route eth/getTransactionReceipt', () => {
           transactionHash: bytesToHex(ethHash),
           transactionIndex: '0x1',
           blockHash: EthUtils.prefix0x(block1.header.hash.toString('hex')),
-          blockNumber: '0x3',
+          blockNumber: EthUtils.numToHex(EthUtils.ifToEthSequence(3)),
           address: EthUtils.prefix0x('f'.repeat(40)),
+          logIndex: '0x0',
+          removed: false,
+          topics: ['0xac7fb4669ee6bcb4e65d1a3ed26d30037ba448f57ef727751be6c72f66fc4281'],
+          data: '0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000077359400',
         }),
       ],
       logsBloom: bytesToHex(runTxResult.bloom.bitvector),

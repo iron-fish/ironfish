@@ -85,15 +85,17 @@ export class ShieldCommand extends IronfishCommand {
       data = contract.encodeFunctionData('shield', [EthUtils.prefix0x(to), amount])
     }
     // TODO: should we unhardcode gas limit and gas price?
-    const hash = await client.eth.sendTransaction({
-      to: contractAddress,
-      from: publicAddress,
-      value: isIron ? String(amount) : undefined,
-      nonce: nonce ? String(nonce) : undefined,
-      gas: String(1000000),
-      gasPrice: String(0),
-      data,
-    })
+    const hash = await client.eth.sendTransaction([
+      {
+        to: contractAddress,
+        from: publicAddress,
+        value: isIron ? String(amount) : undefined,
+        nonce: nonce ? String(nonce) : undefined,
+        gas: String(1000000),
+        gasPrice: String(0),
+        data,
+      },
+    ])
     this.log('Transaction hash:', hash.content.result)
   }
 }

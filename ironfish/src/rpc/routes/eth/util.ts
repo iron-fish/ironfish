@@ -4,7 +4,7 @@
 import { bytesToHex } from '@ethereumjs/util'
 import { Blockchain } from '../../../blockchain'
 import { EvmReceiptValue } from '../../../blockchain/database/evmReceiptValue'
-import { BlockHeader, Transaction } from '../../../primitives'
+import { Block, BlockHeader, Transaction } from '../../../primitives'
 import { evmDescriptionToLegacyTransaction } from '../../../primitives/evmDescription'
 import { EthUtils } from '../../../utils'
 import { EthRpcLog, EthRpcTransaction } from './types'
@@ -21,13 +21,13 @@ export function blockTransactionToEthRpcTransaction(
 
   return {
     blockHash: EthUtils.prefix0x(blockHeader.hash.toString('hex')),
-    blockNumber: EthUtils.numToHex(blockHeader.sequence),
+    blockNumber: EthUtils.numToHex(EthUtils.ifToEthSequence(blockHeader.sequence)),
     transactionIndex: EthUtils.numToHex(index),
     from: ethTransaction.getSenderAddress().toString(),
     gas: EthUtils.numToHex(ethTransaction.gasLimit),
     gasPrice: EthUtils.numToHex(ethTransaction.gasPrice),
-    maxFeePerGas: '0x',
-    maxPriorityFeePerGas: '0x',
+    maxFeePerGas: '0x0',
+    maxPriorityFeePerGas: '0x0',
     hash: EthUtils.prefix0x(Buffer.from(ethTransaction.hash()).toString('hex')),
     input: EthUtils.prefix0x(Buffer.from(ethTransaction.data).toString('hex')),
     nonce: EthUtils.numToHex(ethTransaction.nonce),
@@ -57,7 +57,7 @@ export function getEthRpcLogs(
   const ethTransaction = evmDescriptionToLegacyTransaction(transaction.evm)
   const transactionHash = bytesToHex(ethTransaction.hash())
   const transactionIndex = EthUtils.numToHex(index)
-  const blockNumber = EthUtils.numToHex(blockHeader.sequence)
+  const blockNumber = EthUtils.numToHex(EthUtils.ifToEthSequence(blockHeader.sequence))
   const blockHash = bytesToHex(blockHeader.hash)
   for (const [i, [address, topics, data]] of receipt.logs.entries()) {
     logs.push({
@@ -76,7 +76,7 @@ export function getEthRpcLogs(
   return logs
 }
 
-export async function blockNumberToBlockHeader(
+export async function ethBlockRefToHeader(
   blockNumber: string,
   chain: Blockchain,
 ): Promise<BlockHeader | null> {
@@ -85,5 +85,13 @@ export async function blockNumberToBlockHeader(
     return Promise.resolve(chain.latest)
   }
 
-  return chain.getHeaderAtSequence(Number(blockNumber))
+  return chain.getHeaderAtSequence(EthUtils.ethToIFSequence(Number(blockNumber)))
+}
+
+export async function ethBlockRefToBlock(
+  blockRef: string,
+  chain: Blockchain,
+): Promise<Block | null> {
+  const header = await ethBlockRefToHeader(blockRef, chain)
+  return header && chain.getBlock(header)
 }

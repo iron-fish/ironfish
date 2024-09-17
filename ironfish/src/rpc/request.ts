@@ -15,7 +15,11 @@ export function isJsonRcpRequest(body?: string): boolean {
     return false
   }
 
-  return data instanceof Object && 'jsonrpc' in data
+  const isSingle = data instanceof Object && 'jsonrpc' in data
+  const isBatch =
+    Array.isArray(data) && data.every((req) => req instanceof Object && 'jsonrpc' in req)
+
+  return isSingle || isBatch
 }
 
 export class RpcRequest<TRequest = unknown, TResponse = unknown> {

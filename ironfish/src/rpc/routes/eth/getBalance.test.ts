@@ -4,6 +4,7 @@
 import { Account as EthAccount, Address } from '@ethereumjs/util'
 import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { EthUtils } from '../../../utils'
 
 describe('Route eth/getBalance', () => {
   const routeTest = createRouteTest(false)
@@ -25,10 +26,7 @@ describe('Route eth/getBalance', () => {
     expect(block2.header.stateCommitment).toBeDefined()
     await expect(node.chain).toAddBlock(block2)
 
-    const response = await routeTest.client.eth.getBalance({
-      address: address.toString(),
-      blockNumber: 'latest',
-    })
+    const response = await routeTest.client.eth.getBalance([address.toString(), 'latest'])
 
     expect(response.status).toEqual(200)
     expect(response.content).toEqual('0xa') // 10 in hex
@@ -62,10 +60,10 @@ describe('Route eth/getBalance', () => {
     expect(block3.header.stateCommitment).toBeDefined()
     await expect(node.chain).toAddBlock(block3)
 
-    const response = await routeTest.client.eth.getBalance({
-      address: address.toString(),
-      blockNumber: '0x2',
-    })
+    const response = await routeTest.client.eth.getBalance([
+      address.toString(),
+      EthUtils.numToHex(EthUtils.ifToEthSequence(2)),
+    ])
 
     expect(response.status).toEqual(200)
     expect(response.content).toEqual('0xa') // 10 in hex, balance at block 2

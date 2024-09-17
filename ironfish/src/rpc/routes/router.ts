@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../assert'
-import { YupSchema, YupSchemaResult, YupUtils } from '../../utils'
+import { PromiseUtils, YupSchema, YupSchemaResult, YupUtils } from '../../utils'
 import { StrEnumUtils } from '../../utils/enums'
 import { RPC_ERROR_CODES } from '../adapters'
 import { RpcResponseError, RpcValidationError } from '../adapters/errors'
@@ -45,7 +45,35 @@ export class Router {
     this.server = server
   }
 
+  async routeBatch(route: string, request: RpcRequest): Promise<void> {
+    const results: unknown[] = []
+    const [promise, res] = PromiseUtils.split()
+    for (const subRequestData of request.data as unknown[]) {
+      const subRequest = new RpcRequest(
+        subRequestData,
+        route,
+        (status: number, data?: unknown) => {
+          results.push(data)
+          if (results.length === (request.data as unknown[]).length) {
+            res(null)
+          }
+        },
+        () => {},
+      )
+
+      await this.route(route, subRequest)
+    }
+
+    await promise.then(() => {
+      request.end(results)
+    })
+  }
+
   async route(route: string, request: RpcRequest): Promise<void> {
+    if (route === 'eth/ethRouter' && Array.isArray(request.data)) {
+      return this.routeBatch(route, request)
+    }
+
     const [namespace, ...rest] = route.split('/')
     const method = rest.join('/')
     const methodRoute = this.routes.get(namespace, method)

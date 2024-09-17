@@ -57,9 +57,9 @@ describe('Route eth/getCode', () => {
     await expect(routeTest.node.chain).toAddBlock(block1)
     await routeTest.node.wallet.scan()
 
-    const receipt = await routeTest.client.eth.getTransactionReceipt(
+    const receipt = await routeTest.client.eth.getTransactionReceipt([
       bytesToHex(evmDescriptionToLegacyTransaction(transaction.evm!).hash()),
-    )
+    ])
     Assert.isTruthy(receipt.content.contractAddress)
     const result = await routeTest.client.eth.getCode([
       receipt.content.contractAddress,

@@ -12,7 +12,7 @@ import { RpcNotFoundError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { registerEthRoute } from './ethRouter'
 import { EthRpcLog, EthRpcLogSchema } from './types'
-import { blockNumberToBlockHeader, getEthRpcLogs } from './util'
+import { ethBlockRefToHeader, getEthRpcLogs } from './util'
 
 export type GetLogsRequest = {
   fromBlock?: string
@@ -84,7 +84,7 @@ registerEthRoute<typeof GetLogsRequestSchema, GetLogsResponse>(
       if (!request.data.fromBlock) {
         throw new RpcValidationError(`Missing parameter 'fromBlock'`)
       }
-      const from = await blockNumberToBlockHeader(request.data.fromBlock, node.chain)
+      const from = await ethBlockRefToHeader(request.data.fromBlock, node.chain)
 
       if (!from) {
         throw new RpcNotFoundError(`No block found for 'fromBlock' ${request.data.fromBlock}`)
@@ -93,7 +93,7 @@ registerEthRoute<typeof GetLogsRequestSchema, GetLogsResponse>(
       if (!request.data.toBlock) {
         throw new RpcValidationError(`Missing parameter 'toBlock'`)
       }
-      const to = await blockNumberToBlockHeader(request.data.toBlock, node.chain)
+      const to = await ethBlockRefToHeader(request.data.toBlock, node.chain)
 
       if (!to) {
         throw new RpcNotFoundError(`No block found for 'toBlock' ${request.data.toBlock}`)

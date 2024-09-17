@@ -32,12 +32,14 @@ describe('Route eth/sendRawTransaction', () => {
     )
     Assert.isNotUndefined(evmAccount)
 
-    const response = await routeTest.client.eth.sendTransaction({
-      nonce: '0x0',
-      to: evmSenderAddress.toString(),
-      from: evmSenderAddress.toString(),
-      value: '0xEE6B280', // 250000000
-    })
+    const response = await routeTest.client.eth.sendTransaction([
+      {
+        nonce: '0x0',
+        to: evmSenderAddress.toString(),
+        from: evmSenderAddress.toString(),
+        value: '0xEE6B280', // 250000000
+      },
+    ])
 
     expect(response.status).toEqual(200)
   })
@@ -53,11 +55,13 @@ describe('Route eth/sendRawTransaction', () => {
       500n,
     ])
 
-    const response = await routeTest.client.eth.sendTransaction({
-      to: GLOBAL_CONTRACT_ADDRESS.toString(),
-      from: ifReceivingAccount.ethAddress!.toString(),
-      data: encodedFunctionData,
-    })
+    const response = await routeTest.client.eth.sendTransaction([
+      {
+        to: GLOBAL_CONTRACT_ADDRESS.toString(),
+        from: ifReceivingAccount.ethAddress!.toString(),
+        data: encodedFunctionData,
+      },
+    ])
 
     expect(response.status).toEqual(200)
   })
@@ -67,10 +71,12 @@ describe('Route eth/sendRawTransaction', () => {
 
     const ifReceivingAccount = await useAccountFixture(wallet, 'ifReceivingAccount')
 
-    const response = await routeTest.client.eth.sendTransaction({
-      to: GLOBAL_CONTRACT_ADDRESS.toString(),
-      from: ifReceivingAccount.ethAddress!.toString(),
-    })
+    const response = await routeTest.client.eth.sendTransaction([
+      {
+        to: GLOBAL_CONTRACT_ADDRESS.toString(),
+        from: ifReceivingAccount.ethAddress!.toString(),
+      },
+    ])
 
     expect(response.status).toEqual(200)
   })
