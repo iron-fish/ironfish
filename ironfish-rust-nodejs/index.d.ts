@@ -249,7 +249,6 @@ export class UnsignedTransaction {
   publicKeyRandomness(): string
   hash(): Buffer
   signingPackage(nativeIdentiferCommitments: Array<string>): string
-  signingPackageFromRaw(identities: Array<string>, rawCommitments: Array<string>): string
   sign(spenderHexKey: string): Buffer
   addSignature(signature: Buffer): Buffer
 }
@@ -361,6 +360,8 @@ export namespace multisig {
   export type NativeSigningCommitment = SigningCommitment
     export class SigningCommitment {
     constructor(jsBytes: Buffer)
+    static fromRaw(identity: string, rawCommitments: Buffer, transactionHash: Buffer, signers: Array<string>): NativeSigningCommitment
+    serialize(): Buffer
     identity(): Buffer
     rawCommitments(): Buffer
     verifyChecksum(transactionHash: Buffer, signerIdentities: Array<string>): boolean

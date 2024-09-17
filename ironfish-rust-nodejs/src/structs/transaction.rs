@@ -12,7 +12,6 @@ use ironfish::frost::round1::SigningCommitments;
 use ironfish::frost::round2::SignatureShare as FrostSignatureShare;
 use ironfish::frost::Identifier;
 use ironfish::frost_utils::signing_package::SigningPackage;
-use ironfish::participant::Identity;
 use ironfish::serializing::bytes_to_hex;
 use ironfish::serializing::fr::FrSerializable;
 use ironfish::serializing::hex_to_vec_bytes;
@@ -443,37 +442,6 @@ impl NativeUnsignedTransaction {
             );
 
             commitments.push((signing_commitment.identity().clone(), commitment));
-        }
-
-        let signing_package = self
-            .transaction
-            .signing_package(commitments)
-            .map_err(to_napi_err)?;
-
-        let mut vec: Vec<u8> = vec![];
-        signing_package.write(&mut vec).map_err(to_napi_err)?;
-
-        Ok(bytes_to_hex(&vec))
-    }
-
-    #[napi]
-    pub fn signing_package_from_raw(
-        &self,
-        identities: Vec<String>,
-        raw_commitments: Vec<String>,
-    ) -> Result<String> {
-        let mut commitments = Vec::new();
-
-        for (index, identity) in identities.iter().enumerate() {
-            let identity_bytes = hex_to_vec_bytes(identity).map_err(to_napi_err)?;
-            let identity = Identity::deserialize_from(&identity_bytes[..]).map_err(to_napi_err)?;
-
-            let raw_commitment = &raw_commitments[index];
-            let commitment_bytes = hex_to_vec_bytes(raw_commitment).map_err(to_napi_err)?;
-            let commitment =
-                SigningCommitments::deserialize(&commitment_bytes[..]).map_err(to_napi_err)?;
-
-            commitments.push((identity, commitment));
         }
 
         let signing_package = self
