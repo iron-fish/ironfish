@@ -110,18 +110,23 @@ describe('multisig', () => {
 
       // Simulates receiving raw commitments from Ledger
       // Ledger app generates raw commitments, not wrapped SigningCommitment
-      const commitmentIdentities: string[] = []
-      const rawCommitments: string[] = []
+      const signingCommitments: string[] = []
       for (const commitment of commitments) {
-        const signingCommitment = new multisig.SigningCommitment(Buffer.from(commitment, 'hex'))
-        commitmentIdentities.push(signingCommitment.identity().toString('hex'))
-        rawCommitments.push(signingCommitment.rawCommitments().toString('hex'))
+        const deserializedSigningCommitment = new multisig.SigningCommitment(
+          Buffer.from(commitment, 'hex'),
+        )
+
+        const signingCommitment = multisig.SigningCommitment.fromRaw(
+          deserializedSigningCommitment.identity().toString('hex'),
+          deserializedSigningCommitment.rawCommitments(),
+          transactionHash,
+          identities,
+        )
+
+        signingCommitments.push(signingCommitment.serialize().toString('hex'))
       }
 
-      const signingPackage = unsignedTransaction.signingPackageFromRaw(
-        commitmentIdentities,
-        rawCommitments,
-      )
+      const signingPackage = unsignedTransaction.signingPackage(signingCommitments)
 
       // Ensure that we can extract deserialize and extract frost signing package
       // Ledger app needs frost signing package to generate signature shares

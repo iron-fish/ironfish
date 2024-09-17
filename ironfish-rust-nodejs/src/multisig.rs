@@ -5,7 +5,9 @@
 use crate::{structs::NativeUnsignedTransaction, to_napi_err};
 use ironfish::{
     frost::{
-        frost::round2::SignatureShare as FrostSignatureShare, keys::KeyPackage, round2, Randomizer,
+        frost::{round1::SigningCommitments, round2::SignatureShare as FrostSignatureShare},
+        keys::KeyPackage,
+        round2, Randomizer,
     },
     frost_utils::{
         account_keys::derive_account_keys, signing_package::SigningPackage,
@@ -377,6 +379,39 @@ impl NativeSigningCommitment {
         SigningCommitment::deserialize_from(bytes.as_ref())
             .map(|signing_commitment| NativeSigningCommitment { signing_commitment })
             .map_err(to_napi_err)
+    }
+
+    #[napi(factory)]
+    pub fn from_raw(
+        identity: String,
+        raw_commitments: JsBuffer,
+        transaction_hash: JsBuffer,
+        signers: Vec<String>,
+    ) -> Result<NativeSigningCommitment> {
+        let identity =
+            Identity::deserialize_from(&hex_to_vec_bytes(&identity).map_err(to_napi_err)?[..])
+                .map_err(to_napi_err)?;
+
+        let raw_commitments =
+            SigningCommitments::deserialize(raw_commitments.into_value()?.as_ref())
+                .map_err(to_napi_err)?;
+
+        let signers = try_deserialize_identities(signers)?;
+
+        let signing_commitment = SigningCommitment::from_raw(
+            raw_commitments,
+            identity,
+            transaction_hash.into_value()?.as_ref(),
+            &signers[..],
+        )
+        .map_err(to_napi_err)?;
+
+        Ok(NativeSigningCommitment { signing_commitment })
+    }
+
+    #[napi]
+    pub fn serialize(&self) -> Buffer {
+        Buffer::from(self.signing_commitment.serialize().as_slice())
     }
 
     #[napi]
