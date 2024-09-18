@@ -28,9 +28,7 @@ describe('Route wallet/multisig/importParticipant', () => {
     ).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
-          `Multisig participant already exists for the identity ${identity
-            .serialize()
-            .toString('hex')}`,
+          `Multisig identity ${identity.serialize().toString('hex')} already exists`,
         ),
         status: 400,
       }),

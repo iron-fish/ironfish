@@ -2,11 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import {
-  DuplicateAccountNameError,
-  DuplicateIdentityError,
-  DuplicateIdentityNameError,
-} from '../../../../wallet/errors'
+import { RPC_ERROR_CODES, RpcValidationError } from '../../../adapters'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
@@ -42,7 +38,11 @@ routes.register<typeof ImportParticipantRequestSchema, ImportParticipantResponse
     AssertHasRpcContext(request, context, 'wallet')
 
     if (await context.wallet.walletDb.hasMultisigSecretName(request.data.name)) {
-      throw new DuplicateIdentityNameError(request.data.name)
+      throw new RpcValidationError(
+        `Multisig identity already exists with the name ${request.data.name}`,
+        400,
+        RPC_ERROR_CODES.DUPLICATE_IDENTITY_NAME,
+      )
     }
 
     if (
@@ -50,11 +50,18 @@ routes.register<typeof ImportParticipantRequestSchema, ImportParticipantResponse
         Buffer.from(request.data.identity, 'hex'),
       )
     ) {
-      throw new DuplicateIdentityError(request.data.identity)
+      throw new RpcValidationError(
+        `Multisig identity ${request.data.identity} already exists`,
+        400,
+      )
     }
 
     if (context.wallet.getAccountByName(request.data.name)) {
-      throw new DuplicateAccountNameError(request.data.name)
+      throw new RpcValidationError(
+        `Account already exists with the name ${request.data.name}`,
+        400,
+        RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME,
+      )
     }
 
     await context.wallet.walletDb.putMultisigIdentity(
