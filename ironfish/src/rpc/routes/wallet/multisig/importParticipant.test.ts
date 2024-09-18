@@ -22,13 +22,13 @@ describe('Route wallet/multisig/importParticipant', () => {
     await expect(
       routeTest.client.wallet.multisig.importParticipant({
         identity: identity.serialize().toString('hex'),
-        name,
+        name: 'new-name',
         secret: secret.serialize().toString('hex'),
       }),
     ).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
-          `Multisig participant already exists for identity ${identity
+          `Multisig participant already exists for the identity ${identity
             .serialize()
             .toString('hex')}`,
         ),
