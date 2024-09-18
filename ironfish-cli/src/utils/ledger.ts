@@ -8,6 +8,7 @@ import IronfishApp, {
   IronfishKeys,
   KeyResponse,
   ResponseAddress,
+  ResponseIdentity,
   ResponseProofGenKey,
   ResponseSign,
   ResponseViewKey,
@@ -45,26 +46,29 @@ export class Ledger {
     }
   }
 
-  connect = async () => {
+  connect = async (dkg = false) => {
     const transport = await TransportNodeHid.create(3000, 3000)
 
     if (transport.deviceModel) {
       this.logger.debug(`${transport.deviceModel.productName} found.`)
     }
 
-    const app = new IronfishApp(transport, false)
+    const app = new IronfishApp(transport, dkg)
 
-    const appInfo = await this.tryInstruction(app.appInfo())
+    // TODO: remove this condition if appInfo is available in the DKG app
+    if (!dkg) {
+      const appInfo = await this.tryInstruction(app.appInfo())
 
-    this.logger.debug(appInfo.appName ?? 'no app name')
-
-    if (appInfo.appName !== 'Ironfish') {
       this.logger.debug(appInfo.appName ?? 'no app name')
-      throw new Error('Please open the Iron Fish app on your ledger device.')
-    }
 
-    if (appInfo.appVersion) {
-      this.logger.debug(`Ironfish App Version: ${appInfo.appVersion}`)
+      if (appInfo.appName !== 'Ironfish') {
+        this.logger.debug(appInfo.appName ?? 'no app name')
+        throw new Error('Please open the Iron Fish app on your ledger device.')
+      }
+
+      if (appInfo.appVersion) {
+        this.logger.debug(`Ironfish App Version: ${appInfo.appVersion}`)
+      }
     }
 
     this.app = app
@@ -151,6 +155,18 @@ export class Ledger {
     const response: ResponseSign = await this.tryInstruction(this.app.sign(this.PATH, buffer))
 
     return response.signature
+  }
+
+  dkgGetIdentity = async (index: number): Promise<Buffer> => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    this.logger.log('Please approve the request on your ledger device.')
+
+    const response: ResponseIdentity = await this.tryInstruction(this.app.dkgGetIdentity(index))
+
+    return response.identity
   }
 }
 
