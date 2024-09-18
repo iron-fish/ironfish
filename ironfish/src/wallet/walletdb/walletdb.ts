@@ -1456,6 +1456,19 @@ export class WalletDB {
     await this.multisigIdentities.del(identity, tx)
   }
 
+  async getMultisigIdentityByName(
+    name: string,
+    tx?: IDatabaseTransaction,
+  ): Promise<Buffer | undefined> {
+    for await (const [identity, value] of this.multisigIdentities.getAllIter(tx)) {
+      if (value.name === name) {
+        return identity
+      }
+    }
+
+    return undefined
+  }
+
   async getMultisigSecretByName(
     name: string,
     tx?: IDatabaseTransaction,
@@ -1470,7 +1483,7 @@ export class WalletDB {
   }
 
   async hasMultisigSecretName(name: string, tx?: IDatabaseTransaction): Promise<boolean> {
-    return (await this.getMultisigSecretByName(name, tx)) !== undefined
+    return (await this.getMultisigIdentityByName(name, tx)) !== undefined
   }
 
   async *getMultisigIdentities(
