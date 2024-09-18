@@ -7,6 +7,8 @@ import { VerifiedAssetsCacheStore } from '../fileStores/verifiedAssets'
 import { NodeFileProvider } from '../fileSystems'
 import { AssetsVerifier } from './assetsVerifier'
 
+const apiUrl = 'https://example.com/endpoint'
+
 /* eslint-disable jest/no-standalone-expect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const assetData1 = {
@@ -58,7 +60,7 @@ describe('AssetsVerifier', () => {
   })
 
   it('does not refresh when not started', () => {
-    const assetsVerifier = new AssetsVerifier({ files })
+    const assetsVerifier = new AssetsVerifier({ files, apiUrl })
     const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
 
     jest.runOnlyPendingTimers()
@@ -191,7 +193,7 @@ describe('AssetsVerifier', () => {
 
   describe('verify', () => {
     it("returns 'unknown' when not started", () => {
-      const assetsVerifier = new AssetsVerifier({ files })
+      const assetsVerifier = new AssetsVerifier({ files, apiUrl })
 
       expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'unknown' })
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unknown' })
