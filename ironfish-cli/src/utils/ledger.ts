@@ -279,6 +279,18 @@ export class Ledger {
 
     return response.publicPackage
   }
+
+  dkgGetCommitments = async (transactionHash: string): Promise<Buffer> => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    const { commitments } = await this.tryInstruction(
+      this.app.dkgGetCommitments(transactionHash),
+    )
+
+    return commitments
+  }
 }
 
 function isResponseAddress(response: KeyResponse): response is ResponseAddress {

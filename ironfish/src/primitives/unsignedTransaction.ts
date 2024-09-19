@@ -164,4 +164,10 @@ export class UnsignedTransaction {
 
     return result
   }
+
+  hash(): Buffer {
+    const hash = this.takeReference().hash()
+    this.returnReference()
+    return hash
+  }
 }
