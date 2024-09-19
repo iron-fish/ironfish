@@ -24,7 +24,7 @@ routes.register<typeof StopNodeRequestSchema, StopNodeResponse>(
   async (request, context): Promise<void> => {
     AssertHasRpcContext(request, context, 'shutdown', 'logger')
 
-    context.logger.withTag('stopnode').info('Shutting down')
+    context.logger.withTag('stopnode').debug('Shutting down')
     request.end()
     await context.shutdown()
   },

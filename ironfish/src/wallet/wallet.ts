@@ -280,6 +280,12 @@ export class Wallet {
   }
 
   async stop(): Promise<void> {
+    if (this.masterKey) {
+      await this.masterKey.destroy()
+    }
+
+    this.stopUnlockTimeout()
+
     if (!this.isStarted) {
       return
     }
@@ -288,12 +294,6 @@ export class Wallet {
     if (this.eventLoopTimeout) {
       clearTimeout(this.eventLoopTimeout)
     }
-
-    if (this.masterKey) {
-      await this.masterKey.destroy()
-    }
-
-    this.stopUnlockTimeout()
 
     await this.scanner.abort()
     this.eventLoopAbortController.abort()
