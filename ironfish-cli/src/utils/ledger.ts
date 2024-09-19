@@ -9,6 +9,7 @@ import IronfishApp, {
   KeyResponse,
   ResponseAddress,
   ResponseDkgRound1,
+  ResponseDkgRound2,
   ResponseIdentity,
   ResponseProofGenKey,
   ResponseSign,
@@ -182,6 +183,22 @@ export class Ledger {
     this.logger.log('Please approve the request on your ledger device.')
 
     return this.tryInstruction(this.app.dkgRound1(index, identities, minSigners))
+  }
+
+  dkgRound2 = async (
+    index: number,
+    round1PublicPackages: string[],
+    round1SecretPackage: string,
+  ): Promise<ResponseDkgRound2> => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    this.logger.log('Please approve the request on your ledger device.')
+
+    return this.tryInstruction(
+      this.app.dkgRound2(index, round1PublicPackages, round1SecretPackage),
+    )
   }
 }
 
