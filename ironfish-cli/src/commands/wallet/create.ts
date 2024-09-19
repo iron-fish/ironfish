@@ -23,14 +23,15 @@ export class CreateCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(CreateCommand)
+
+    const client = await this.connectRpc()
+    await checkWalletUnlocked(client)
+    
     let name = args.name
 
     if (!name) {
       name = await inputPrompt('Enter the name of the account', true)
     }
-
-    const client = await this.connectRpc()
-    await checkWalletUnlocked(client)
 
     this.log(`Creating account ${name}`)
     const result = await client.wallet.createAccount({ name })
@@ -44,5 +45,7 @@ export class CreateCommand extends IronfishCommand {
     } else {
       this.log(`Run "ironfish wallet:use ${name}" to set the account as default`)
     }
+
+    this.exit(0)
   }
 }

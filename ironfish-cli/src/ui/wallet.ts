@@ -14,5 +14,5 @@ export async function checkWalletUnlocked(client: Pick<RpcClient, 'wallet'>): Pr
     password: true,
   })
 
-  await client.wallet.unlock({ passphrase })
+  await client.wallet.unlock({ passphrase, timeout: -1 })
 }
