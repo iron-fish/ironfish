@@ -308,18 +308,20 @@ export class Wallet {
     const [promise, resolve] = PromiseUtils.split<void>()
     this.eventLoopPromise = promise
 
-    if (!this.scanner.running) {
-      void this.scan()
-    }
+    if (!this.locked) {
+      if (!this.scanner.running) {
+        void this.scan()
+      }
 
-    void this.syncTransactionGossip()
-    await this.cleanupDeletedAccounts()
+      void this.syncTransactionGossip()
+      await this.cleanupDeletedAccounts()
 
-    const head = await this.getLatestHead()
+      const head = await this.getLatestHead()
 
-    if (head) {
-      await this.expireTransactions(head.sequence)
-      await this.rebroadcastTransactions(head.sequence)
+      if (head) {
+        await this.expireTransactions(head.sequence)
+        await this.rebroadcastTransactions(head.sequence)
+      }
     }
 
     if (this.isStarted) {
