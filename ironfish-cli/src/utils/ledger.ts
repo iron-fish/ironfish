@@ -210,6 +210,8 @@ export class Ledger {
       throw new Error('Connect to Ledger first')
     }
 
+    this.logger.log('Please approve the request on your ledger device.')
+
     return this.tryInstruction(
       this.app.dkgRound3Min(
         index,
@@ -241,8 +243,6 @@ export class Ledger {
       throw new Error(`No public address returned.`)
     }
 
-    this.logger.log('Please confirm the request on your ledger device.')
-
     const responseViewKey = await this.tryInstruction(
       this.app.dkgRetrieveKeys(IronfishKeys.ViewKey),
     )
@@ -272,8 +272,6 @@ export class Ledger {
     if (!this.app) {
       throw new Error('Connect to Ledger first')
     }
-
-    this.logger.log('Please approve the request on your ledger device.')
 
     const response = await this.tryInstruction(this.app.dkgGetPublicPackage())
 
