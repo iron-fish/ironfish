@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset } from '@ironfish/rust-nodejs'
 import {
   CreateTransactionRequest,
   CurrencyUtils,
+  MAINNET,
   RawTransaction,
   RawTransactionSerde,
   RpcAsset,
@@ -84,7 +84,7 @@ export class BridgeCommand extends IronfishCommand {
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
-    if (networkId !== TESTNET.id) {
+    if (networkId !== TESTNET.id && networkId !== MAINNET.id) {
       this.error(`Chainport transactions are only available on testnet.`)
     }
 
@@ -184,22 +184,31 @@ export class BridgeCommand extends IronfishCommand {
 
     const tokens = await fetchChainportVerifiedTokens(networkId)
 
-    if (assetId == null) {
+    const tokenNames = tokens.map(
+      (t, index) => `${index + 1}. ${t.name} (${t.symbol}) - ${t.web3_address}`,
+    )
+
+    if (!assetId) {
       const asset = await ui.assetPrompt(client, from, {
         action: 'send',
         showNativeAsset: true,
         showNonCreatorAsset: true,
-        showSingleAssetChoice: false,
+        showSingleAssetChoice: true,
         filter: (asset) => {
           return tokens.some((t) => t.web3_address === asset.id)
         },
       })
 
-      assetId = asset?.id
-
-      if (!assetId) {
-        assetId = Asset.nativeId().toString('hex')
+      if (!asset) {
+        this.logger.error(
+          `No supported Chainport asset found for this account. Here are the supported tokens: \n\n${tokenNames.join(
+            '\n',
+          )}\n`,
+        )
+        this.exit(1)
       }
+
+      assetId = asset.id
     }
 
     const asset: ChainportVerifiedToken | undefined = tokens.find(
@@ -207,15 +216,12 @@ export class BridgeCommand extends IronfishCommand {
     )
 
     if (!asset) {
-      const names = tokens.map(
-        (t, index) => `${index + 1}. ${t.name} (${t.symbol}) - ${t.web3_address}`,
-      )
-
-      this.error(
-        `Asset ${assetId} not supported by Chainport. Here are the supported tokens: \n\n${names.join(
+      this.logger.error(
+        `Asset ${assetId} not supported by Chainport. Here are the supported tokens: \n\n${tokenNames.join(
           '\n',
         )}\n`,
       )
+      this.exit(1)
     }
 
     const targetNetworks = asset.target_networks
