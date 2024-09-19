@@ -337,6 +337,7 @@ export namespace multisig {
     static fromFrost(frostSignatureShare: Buffer, identity: Buffer): NativeSignatureShare
     identity(): Buffer
     frostSignatureShare(): Buffer
+    serialize(): Buffer
   }
   export class ParticipantSecret {
     constructor(jsBytes: Buffer)
