@@ -1,13 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createRootLogger, Logger } from '@ironfish/sdk'
-import { AccountImport } from '@ironfish/sdk/src/wallet/exporter'
+import { AccountImport, createRootLogger, Logger } from '@ironfish/sdk'
 import TransportNodeHid from '@ledgerhq/hw-transport-node-hid'
 import IronfishApp, {
   IronfishKeys,
   KeyResponse,
   ResponseAddress,
+  ResponseDkgRound1,
+  ResponseDkgRound2,
+  ResponseIdentity,
   ResponseProofGenKey,
   ResponseSign,
   ResponseViewKey,
@@ -45,26 +47,29 @@ export class Ledger {
     }
   }
 
-  connect = async () => {
+  connect = async (dkg = false) => {
     const transport = await TransportNodeHid.create(3000, 3000)
 
     if (transport.deviceModel) {
       this.logger.debug(`${transport.deviceModel.productName} found.`)
     }
 
-    const app = new IronfishApp(transport, false)
+    const app = new IronfishApp(transport, dkg)
 
-    const appInfo = await this.tryInstruction(app.appInfo())
+    // TODO: remove this condition if appInfo is available in the DKG app
+    if (!dkg) {
+      const appInfo = await this.tryInstruction(app.appInfo())
 
-    this.logger.debug(appInfo.appName ?? 'no app name')
-
-    if (appInfo.appName !== 'Ironfish') {
       this.logger.debug(appInfo.appName ?? 'no app name')
-      throw new Error('Please open the Iron Fish app on your ledger device.')
-    }
 
-    if (appInfo.appVersion) {
-      this.logger.debug(`Ironfish App Version: ${appInfo.appVersion}`)
+      if (appInfo.appName !== 'Ironfish') {
+        this.logger.debug(appInfo.appName ?? 'no app name')
+        throw new Error('Please open the Iron Fish app on your ledger device.')
+      }
+
+      if (appInfo.appVersion) {
+        this.logger.debug(`Ironfish App Version: ${appInfo.appVersion}`)
+      }
     }
 
     this.app = app
@@ -88,7 +93,7 @@ export class Ledger {
     }
   }
 
-  importAccount = async () => {
+  importAccount = async (): Promise<AccountImport> => {
     if (!this.app) {
       throw new Error('Connect to Ledger first')
     }
@@ -100,8 +105,6 @@ export class Ledger {
     if (!isResponseAddress(responseAddress)) {
       throw new Error(`No public address returned.`)
     }
-
-    this.logger.log('Please confirm the request on your ledger device.')
 
     const responseViewKey = await this.tryInstruction(
       this.app.retrieveKeys(this.PATH, IronfishKeys.ViewKey, true),
@@ -151,6 +154,130 @@ export class Ledger {
     const response: ResponseSign = await this.tryInstruction(this.app.sign(this.PATH, buffer))
 
     return response.signature
+  }
+
+  dkgGetIdentity = async (index: number): Promise<Buffer> => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    this.logger.log('Please approve the request on your ledger device.')
+
+    const response: ResponseIdentity = await this.tryInstruction(this.app.dkgGetIdentity(index))
+
+    return response.identity
+  }
+
+  dkgRound1 = async (
+    index: number,
+    identities: string[],
+    minSigners: number,
+  ): Promise<ResponseDkgRound1> => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    this.logger.log('Please approve the request on your ledger device.')
+
+    return this.tryInstruction(this.app.dkgRound1(index, identities, minSigners))
+  }
+
+  dkgRound2 = async (
+    index: number,
+    round1PublicPackages: string[],
+    round1SecretPackage: string,
+  ): Promise<ResponseDkgRound2> => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    this.logger.log('Please approve the request on your ledger device.')
+
+    return this.tryInstruction(
+      this.app.dkgRound2(index, round1PublicPackages, round1SecretPackage),
+    )
+  }
+
+  dkgRound3 = async (
+    index: number,
+    participants: string[],
+    round1PublicPackages: string[],
+    round2PublicPackages: string[],
+    round2SecretPackage: string,
+    gskBytes: string[],
+  ): Promise<void> => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    return this.tryInstruction(
+      this.app.dkgRound3Min(
+        index,
+        participants,
+        round1PublicPackages,
+        round2PublicPackages,
+        round2SecretPackage,
+        gskBytes,
+      ),
+    )
+  }
+
+  dkgRetrieveKeys = async (): Promise<{
+    publicAddress: string
+    viewKey: string
+    incomingViewKey: string
+    outgoingViewKey: string
+    proofAuthorizingKey: string
+  }> => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    const responseAddress: KeyResponse = await this.tryInstruction(
+      this.app.dkgRetrieveKeys(IronfishKeys.PublicAddress),
+    )
+
+    if (!isResponseAddress(responseAddress)) {
+      throw new Error(`No public address returned.`)
+    }
+
+    this.logger.log('Please confirm the request on your ledger device.')
+
+    const responseViewKey = await this.tryInstruction(
+      this.app.dkgRetrieveKeys(IronfishKeys.ViewKey),
+    )
+
+    if (!isResponseViewKey(responseViewKey)) {
+      throw new Error(`No view key returned.`)
+    }
+
+    const responsePGK: KeyResponse = await this.tryInstruction(
+      this.app.dkgRetrieveKeys(IronfishKeys.ProofGenerationKey),
+    )
+
+    if (!isResponseProofGenKey(responsePGK)) {
+      throw new Error(`No proof authorizing key returned.`)
+    }
+
+    return {
+      publicAddress: responseAddress.publicAddress.toString('hex'),
+      viewKey: responseViewKey.viewKey.toString('hex'),
+      incomingViewKey: responseViewKey.ivk.toString('hex'),
+      outgoingViewKey: responseViewKey.ovk.toString('hex'),
+      proofAuthorizingKey: responsePGK.nsk.toString('hex'),
+    }
+  }
+
+  dkgGetPublicPackage = async (): Promise<Buffer> => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    this.logger.log('Please approve the request on your ledger device.')
+
+    const response = await this.tryInstruction(this.app.dkgGetPublicPackage())
+
+    return response.publicPackage
   }
 }
 
