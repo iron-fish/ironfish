@@ -1,6 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import {
+  deserializePublicPackage,
+  deserializeRound2CombinedPublicPackage,
+} from '@ironfish/rust-nodejs'
+import { AccountFormat, encodeAccountImport, RpcClient } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
@@ -107,7 +112,13 @@ export class DkgRound3Command extends IronfishCommand {
     round2PublicPackages = round2PublicPackages.map((i) => i.trim())
 
     if (flags.ledger) {
-      await this.performRound3WithLedger()
+      await this.performRound3WithLedger(
+        client,
+        participantName,
+        round1PublicPackages,
+        round2PublicPackages,
+        round2SecretPackage,
+      )
       return
     }
 
@@ -125,10 +136,16 @@ export class DkgRound3Command extends IronfishCommand {
     )
   }
 
-  async performRound3WithLedger(): Promise<void> {
+  async performRound3WithLedger(
+    client: RpcClient,
+    participantName: string,
+    round1PublicPackagesStr: string[],
+    round2PublicPackagesStr: string[],
+    round2SecretPackage: string,
+  ): Promise<void> {
     const ledger = new Ledger(this.logger)
     try {
-      await ledger.connect()
+      await ledger.connect(true)
     } catch (e) {
       if (e instanceof Error) {
         this.error(e.message)
@@ -136,5 +153,76 @@ export class DkgRound3Command extends IronfishCommand {
         throw e
       }
     }
+
+    const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
+    const identity = identityResponse.content.identity
+
+    // Sort packages by identity
+    const round1PublicPackages = round1PublicPackagesStr
+      .map(deserializePublicPackage)
+      .sort((a, b) => a.identity.localeCompare(b.identity))
+
+    // Filter out packages not intended for participant and sort by sender identity
+    const round2CombinedPublicPackages = round2PublicPackagesStr.map(
+      deserializeRound2CombinedPublicPackage,
+    )
+    const round2PublicPackages = round2CombinedPublicPackages
+      .flatMap((combined) =>
+        combined.packages.filter((pkg) => pkg.recipientIdentity === identity),
+      )
+      .sort((a, b) => a.senderIdentity.localeCompare(b.senderIdentity))
+
+    // Extract raw parts from round1 and round2 public packages
+    const participants = []
+    const round1FrostPackages = []
+    const gskBytes = []
+    for (const pkg of round1PublicPackages) {
+      // Exclude participant's own identity and round1 public package
+      if (pkg.identity !== identity) {
+        participants.push(pkg.identity)
+        round1FrostPackages.push(pkg.frostPackage)
+      }
+
+      gskBytes.push(pkg.groupSecretKeyShardEncrypted)
+    }
+
+    const round2FrostPackages = round2PublicPackages.map((pkg) => pkg.frostPackage)
+
+    // Perform round3 with Ledger
+    await ledger.dkgRound3(
+      0,
+      participants,
+      round1FrostPackages,
+      round2FrostPackages,
+      round2SecretPackage,
+      gskBytes,
+    )
+
+    // Retrieve all multisig account keys and publicKeyPackage
+    const dkgKeys = await ledger.dkgRetrieveKeys()
+
+    const publicKeyPackage = await ledger.dkgGetPublicPackage()
+
+    const accountImport = {
+      ...dkgKeys,
+      multisigKeys: {
+        publicKeyPackage: publicKeyPackage.toString('hex'),
+        identity,
+      },
+      version: 4,
+      name: participantName,
+      spendingKey: null,
+      createdAt: null,
+    }
+
+    // Import multisig account
+    const response = await client.wallet.importAccount({
+      account: encodeAccountImport(accountImport, AccountFormat.Base64Json),
+    })
+
+    this.log()
+    this.log(
+      `Account ${response.content.name} imported with public address: ${dkgKeys.publicAddress}`,
+    )
   }
 }
