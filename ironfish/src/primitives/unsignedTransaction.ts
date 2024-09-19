@@ -170,4 +170,10 @@ export class UnsignedTransaction {
     this.returnReference()
     return hash
   }
+
+  publicKeyRandomness(): string {
+    const publicKeyRandomness = this.takeReference().publicKeyRandomness()
+    this.returnReference()
+    return publicKeyRandomness
+  }
 }

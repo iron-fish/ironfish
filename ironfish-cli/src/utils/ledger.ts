@@ -291,6 +291,22 @@ export class Ledger {
 
     return commitments
   }
+
+  dkgSign = async (
+    randomness: string,
+    frostSigningPackage: string,
+    transactionHash: string,
+  ): Promise<Buffer> => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    const { signature } = await this.tryInstruction(
+      this.app.dkgSign(randomness, frostSigningPackage, transactionHash),
+    )
+
+    return signature
+  }
 }
 
 function isResponseAddress(response: KeyResponse): response is ResponseAddress {
