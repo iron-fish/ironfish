@@ -84,6 +84,6 @@ export class AccountDecryptionFailedError extends Error {
 
   constructor() {
     super()
-    this.message = 'Failed to decrypt account'
+    this.message = 'Failed to decrypt wallet'
   }
 }

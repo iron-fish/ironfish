@@ -42,7 +42,7 @@ describe('Route wallet/unlock', () => {
 
     await expect(
       routeTest.client.wallet.unlock({ passphrase: invalidPassphrase }),
-    ).rejects.toThrow('Request failed (400) error: Failed to decrypt account')
+    ).rejects.toThrow('Request failed (400) error: Failed to decrypt wallet')
 
     status = await routeTest.client.wallet.getAccountsStatus()
     expect(status.content.encrypted).toBe(true)
