@@ -157,10 +157,9 @@ export class DkgRound3Command extends IronfishCommand {
     const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
     const identity = identityResponse.content.identity
 
-    // Filter out participant's own package and sort by identity
+    // Sort packages by identity
     const round1PublicPackages = round1PublicPackagesStr
       .map(deserializePublicPackage)
-      .filter((pkg) => pkg.identity !== identity)
       .sort((a, b) => a.identity.localeCompare(b.identity))
 
     // Filter out packages not intended for participant and sort by sender identity
@@ -178,8 +177,12 @@ export class DkgRound3Command extends IronfishCommand {
     const round1FrostPackages = []
     const gskBytes = []
     for (const pkg of round1PublicPackages) {
-      participants.push(pkg.identity)
-      round1FrostPackages.push(pkg.frostPackage)
+      // Exclude participant's own identity and round1 public package
+      if (pkg.identity !== identity) {
+        participants.push(pkg.identity)
+        round1FrostPackages.push(pkg.frostPackage)
+      }
+
       gskBytes.push(pkg.groupSecretKeyShardEncrypted)
     }
 
