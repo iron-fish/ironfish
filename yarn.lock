@@ -3902,8 +3902,9 @@
   dependencies:
     argparse "^2.0.1"
 
-"@zondax/ledger-ironfish@file:../../Zondax/ledger-ironfish-js":
+"@zondax/ledger-ironfish@https://github.com/iron-fish/ledger-ironfish-js.git#dev":
   version "0.0.0"
+  resolved "https://github.com/iron-fish/ledger-ironfish-js.git#c45e2bc57b4acd5168af9d3c3dbf080e6f7318c5"
   dependencies:
     "@zondax/ledger-js" "^1.0.1"
 
