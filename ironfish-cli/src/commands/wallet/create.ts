@@ -43,5 +43,7 @@ export class CreateCommand extends IronfishCommand {
     } else {
       this.log(`Run "ironfish wallet:use ${name}" to set the account as default`)
     }
+
+    this.exit(0)
   }
 }
