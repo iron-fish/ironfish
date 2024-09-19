@@ -37,7 +37,7 @@ export class MultisigIdentityCreate extends IronfishCommand {
 
     let identity
     if (flags.ledger) {
-      identity = await this.createParticipantWithLedger()
+      identity = await this.getIdentityFromLedger()
     }
 
     let response
@@ -70,7 +70,7 @@ export class MultisigIdentityCreate extends IronfishCommand {
     this.log(response.content.identity)
   }
 
-  async createParticipantWithLedger(): Promise<Buffer> {
+  async getIdentityFromLedger(): Promise<Buffer> {
     const ledger = new Ledger(this.logger)
     try {
       await ledger.connect(true)
