@@ -28,7 +28,7 @@ routes.register<typeof SetScanningRequestSchema, SetScanningResponse>(
     AssertHasRpcContext(request, context, 'wallet')
 
     const account = getAccount(context.wallet, request.data.account)
-    await account.updateScanningEnabled(request.data.enabled)
+    await context.wallet.setScanningEnabled(account, request.data.enabled)
     request.end()
   },
 )

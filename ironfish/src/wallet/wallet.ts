@@ -1571,6 +1571,14 @@ export class Wallet {
     await account.setName(name, { masterKey: this.masterKey }, tx)
   }
 
+  async setScanningEnabled(
+    account: Account,
+    enabled: boolean,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await account.updateScanningEnabled(enabled, { masterKey: this.masterKey }, tx)
+  }
+
   get accounts(): Account[] {
     return Array.from(this.accountById.values())
   }

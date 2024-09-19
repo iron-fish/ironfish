@@ -1299,10 +1299,20 @@ export class Account {
 
   async updateScanningEnabled(
     scanningEnabled: boolean,
+    options?: { masterKey: MasterKey | null },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
+    const walletEncrypted = await this.walletDb.accountsEncrypted(tx)
+
     this.scanningEnabled = scanningEnabled
-    await this.walletDb.setAccount(this, tx)
+
+    if (walletEncrypted) {
+      Assert.isNotUndefined(options)
+      Assert.isNotNull(options?.masterKey)
+      await this.walletDb.setEncryptedAccount(this, options.masterKey, tx)
+    } else {
+      await this.walletDb.setAccount(this, tx)
+    }
   }
 
   async getTransactionNotes(
