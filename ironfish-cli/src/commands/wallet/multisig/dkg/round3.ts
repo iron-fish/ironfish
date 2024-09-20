@@ -224,5 +224,20 @@ export class DkgRound3Command extends IronfishCommand {
     this.log(
       `Account ${response.content.name} imported with public address: ${dkgKeys.publicAddress}`,
     )
+
+    this.log()
+    this.log('Creating an encrypted backup of multisig keys from your Ledger device...')
+    this.log()
+
+    const encryptedKeys = await ledger.dkgBackupKeys()
+
+    this.log()
+    this.log('Encrypted Ledger Multisig Backup:')
+    this.log(encryptedKeys.toString('hex'))
+    this.log()
+    this.log('Please save the encrypted keys show above.')
+    this.log(
+      'Use `ironfish wallet:multisig:ledger:restore` if you need to restore the keys to your Ledger.',
+    )
   }
 }
