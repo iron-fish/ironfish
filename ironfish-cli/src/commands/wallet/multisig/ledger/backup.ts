@@ -5,7 +5,7 @@ import { IronfishCommand } from '../../../../command'
 import { Ledger } from '../../../../utils/ledger'
 
 export class MultisigLedgerBackup extends IronfishCommand {
-  static description = `Backup encrypted multisig keys from a Ledger device`
+  static description = `show encrypted multisig keys from a Ledger device`
 
   async start(): Promise<void> {
     const ledger = new Ledger(this.logger)
@@ -24,5 +24,8 @@ export class MultisigLedgerBackup extends IronfishCommand {
     this.log()
     this.log('Encrypted Ledger Multisig Backup:')
     this.log(encryptedKeys.toString('hex'))
+    this.log()
+    this.log('Please save the encrypted keys show above.')
+    this.log('Use `ironfish wallet:multisig:ledger:restore` if you need to restore the keys to your Ledger.')
   }
 }
