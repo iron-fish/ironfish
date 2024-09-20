@@ -305,6 +305,28 @@ export class Ledger {
 
     return signature
   }
+
+  dkgBackupKeys = async (): Promise<Buffer> => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    this.logger.log('Please approve the request on your ledger device.')
+
+    const { encryptedKeys } = await this.tryInstruction(this.app.dkgBackupKeys())
+
+    return encryptedKeys
+  }
+
+  dkgRestoreKeys = async (encryptedKeys: string): Promise<void> => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    this.logger.log('Please approve the request on your ledger device.')
+
+    await this.tryInstruction(this.app.dkgRestoreKeys(encryptedKeys))
+  }
 }
 
 function isResponseAddress(response: KeyResponse): response is ResponseAddress {
