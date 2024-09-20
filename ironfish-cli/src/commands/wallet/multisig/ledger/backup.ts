@@ -26,6 +26,8 @@ export class MultisigLedgerBackup extends IronfishCommand {
     this.log(encryptedKeys.toString('hex'))
     this.log()
     this.log('Please save the encrypted keys show above.')
-    this.log('Use `ironfish wallet:multisig:ledger:restore` if you need to restore the keys to your Ledger.')
+    this.log(
+      'Use `ironfish wallet:multisig:ledger:restore` if you need to restore the keys to your Ledger.',
+    )
   }
 }
