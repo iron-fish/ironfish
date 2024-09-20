@@ -5,7 +5,7 @@ import {
   deserializePublicPackage,
   deserializeRound2CombinedPublicPackage,
 } from '@ironfish/rust-nodejs'
-import { AccountImport, Logger, createRootLogger } from '@ironfish/sdk'
+import { AccountImport, createRootLogger, Logger } from '@ironfish/sdk'
 import TransportNodeHid from '@ledgerhq/hw-transport-node-hid'
 import IronfishApp, {
   IronfishKeys,
@@ -20,13 +20,21 @@ import IronfishApp, {
 } from '@zondax/ledger-ironfish'
 import { ResponseError } from '@zondax/ledger-js'
 
-export const initializeLedger = async (dkg: boolean, logger?: Logger) => {
+export const initializeLedger = async (
+  dkg: boolean,
+  onError: (message: string) => {},
+  logger?: Logger,
+) => {
   const ledger = new Ledger(logger)
   try {
     await ledger.connect(dkg)
   } catch (e) {
     if (e instanceof Error) {
-      throw new Error(e.message)
+      if (onError) {
+        onError(e.message)
+      } else {
+        throw new Error(e.message)
+      }
     } else {
       throw e
     }

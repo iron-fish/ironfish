@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { AccountFormat, RpcClient, encodeAccountImport } from '@ironfish/sdk'
+import { AccountFormat, encodeAccountImport, RpcClient } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
@@ -139,7 +139,7 @@ export class DkgRound3Command extends IronfishCommand {
     round2PublicPackagesStr: string[],
     round2SecretPackage: string,
   ): Promise<void> {
-    const ledger = await initializeLedger(true, this.logger)
+    const ledger = await initializeLedger(true, this.error, this.logger)
 
     const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
     const identity = identityResponse.content.identity

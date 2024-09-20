@@ -359,7 +359,7 @@ export class Send extends IronfishCommand {
     watch: boolean,
     confirm: boolean,
   ): Promise<void> {
-    const ledger = await initializeLedger(false, this.logger)
+    const ledger = await initializeLedger(false, this.error, this.logger)
 
     const publicKey = (await client.wallet.getAccountPublicKey({ account: from })).content
       .publicKey

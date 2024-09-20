@@ -100,7 +100,7 @@ export class DkgRound1Command extends IronfishCommand {
     identities: string[],
     minSigners: number,
   ): Promise<void> {
-    const ledger = await initializeLedger(true, this.logger)
+    const ledger = await initializeLedger(true, this.error, this.logger)
 
     const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
     const identity = identityResponse.content.identity

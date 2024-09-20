@@ -97,7 +97,7 @@ export class DkgRound2Command extends IronfishCommand {
     round1PublicPackages: string[],
     round1SecretPackage: string,
   ): Promise<void> {
-    const ledger = await initializeLedger(true, this.logger)
+    const ledger = await initializeLedger(true, this.error, this.logger)
 
     // TODO(hughy): determine how to handle multiple identities using index
     const { publicPackage, secretPackage } = await ledger.dkgRound2(

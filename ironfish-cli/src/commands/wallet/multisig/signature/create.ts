@@ -120,7 +120,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     unsignedTransaction: UnsignedTransaction,
     frostSigningPackage: string,
   ): Promise<void> {
-    const ledger = await initializeLedger(true, this.logger)
+    const ledger = await initializeLedger(true, this.error, this.logger)
 
     const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
     const identity = identityResponse.content.identity

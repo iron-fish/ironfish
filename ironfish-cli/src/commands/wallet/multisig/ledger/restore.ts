@@ -26,7 +26,7 @@ export class MultisigLedgerRestore extends IronfishCommand {
       )
     }
 
-    const ledger = await initializeLedger(true, this.logger)
+    const ledger = await initializeLedger(true, this.error, this.logger)
 
     await ledger.dkgRestoreKeys(encryptedKeys)
 

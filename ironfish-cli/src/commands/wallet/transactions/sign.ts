@@ -109,7 +109,7 @@ export class TransactionsSignCommand extends IronfishCommand {
   }
 
   private async signWithLedger(client: RpcClient, unsignedTransaction: string) {
-    const ledger = await initializeLedger(false, this.logger)
+    const ledger = await initializeLedger(false, this.error, this.logger)
 
     const signature = (await ledger.sign(unsignedTransaction)).toString('hex')
 

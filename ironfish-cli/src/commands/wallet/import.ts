@@ -155,7 +155,7 @@ export class ImportCommand extends IronfishCommand {
   }
 
   async importLedger(): Promise<string> {
-    const ledger = await initializeLedger(false, this.logger)
+    const ledger = await initializeLedger(false, this.error, this.logger)
 
     try {
       const account = await ledger.importAccount()
