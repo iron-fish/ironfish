@@ -10,6 +10,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
+import { importAccount } from '../../../../utils'
 import { Ledger } from '../../../../utils/ledger'
 
 export class DkgRound3Command extends IronfishCommand {
@@ -216,14 +217,14 @@ export class DkgRound3Command extends IronfishCommand {
     }
 
     // Import multisig account
-    const response = await client.wallet.importAccount({
-      account: encodeAccountImport(accountImport, AccountFormat.Base64Json),
-    })
+    const { name } = await importAccount(
+      client,
+      encodeAccountImport(accountImport, AccountFormat.Base64Json),
+      this.logger,
+    )
 
     this.log()
-    this.log(
-      `Account ${response.content.name} imported with public address: ${dkgKeys.publicAddress}`,
-    )
+    this.log(`Account ${name} imported with public address: ${dkgKeys.publicAddress}`)
 
     this.log()
     this.log('Creating an encrypted backup of multisig keys from your Ledger device...')
