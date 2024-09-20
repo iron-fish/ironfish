@@ -7,7 +7,7 @@ import * as ui from '../../../../ui'
 import { Ledger } from '../../../../utils/ledger'
 
 export class MultisigLedgerRestore extends IronfishCommand {
-  static description = `Restore encrypted multisig keys to a Ledger device`
+  static description = `restore encrypted multisig keys to a Ledger device`
 
   static flags = {
     backup: Flags.string({
