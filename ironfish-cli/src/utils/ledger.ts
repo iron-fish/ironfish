@@ -1,7 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { AccountImport, createRootLogger, Logger } from '@ironfish/sdk'
+import {
+  deserializePublicPackage,
+  deserializeRound2CombinedPublicPackage,
+} from '@ironfish/rust-nodejs'
+import { AccountImport, Logger, createRootLogger } from '@ironfish/sdk'
 import TransportNodeHid from '@ledgerhq/hw-transport-node-hid'
 import IronfishApp, {
   IronfishKeys,
@@ -15,6 +19,21 @@ import IronfishApp, {
   ResponseViewKey,
 } from '@zondax/ledger-ironfish'
 import { ResponseError } from '@zondax/ledger-js'
+
+export const initializeLedger = async (dkg: boolean, logger?: Logger) => {
+  const ledger = new Ledger(logger)
+  try {
+    await ledger.connect(dkg)
+  } catch (e) {
+    if (e instanceof Error) {
+      throw new Error(e.message)
+    } else {
+      throw e
+    }
+  }
+
+  return ledger
+}
 
 export class Ledger {
   app: IronfishApp | undefined
@@ -200,28 +219,77 @@ export class Ledger {
 
   dkgRound3 = async (
     index: number,
-    participants: string[],
-    round1PublicPackages: string[],
-    round2PublicPackages: string[],
+    identity: string,
+    round1PublicPackagesStr: string[],
+    round2PublicPackagesStr: string[],
     round2SecretPackage: string,
-    gskBytes: string[],
-  ): Promise<void> => {
+  ): Promise<{
+    dkgKeys: {
+      publicAddress: string
+      viewKey: string
+      incomingViewKey: string
+      outgoingViewKey: string
+      proofAuthorizingKey: string
+    }
+    publicKeyPackage: Buffer
+  }> => {
     if (!this.app) {
       throw new Error('Connect to Ledger first')
     }
 
+    // Sort packages by identity
+    const round1PublicPackages = round1PublicPackagesStr
+      .map(deserializePublicPackage)
+      .sort((a, b) => a.identity.localeCompare(b.identity))
+
+    // Filter out packages not intended for participant and sort by sender identity
+    const round2CombinedPublicPackages = round2PublicPackagesStr.map(
+      deserializeRound2CombinedPublicPackage,
+    )
+    const round2PublicPackages = round2CombinedPublicPackages
+      .flatMap((combined) =>
+        combined.packages.filter((pkg) => pkg.recipientIdentity === identity),
+      )
+      .sort((a, b) => a.senderIdentity.localeCompare(b.senderIdentity))
+
+    // Extract raw parts from round1 and round2 public packages
+    const participants = []
+    const round1FrostPackages = []
+    const gskBytes = []
+    for (const pkg of round1PublicPackages) {
+      // Exclude participant's own identity and round1 public package
+      if (pkg.identity !== identity) {
+        participants.push(pkg.identity)
+        round1FrostPackages.push(pkg.frostPackage)
+      }
+
+      gskBytes.push(pkg.groupSecretKeyShardEncrypted)
+    }
+
+    const round2FrostPackages = round2PublicPackages.map((pkg) => pkg.frostPackage)
+
     this.logger.log('Please approve the request on your ledger device.')
 
-    return this.tryInstruction(
+    await this.tryInstruction(
       this.app.dkgRound3Min(
         index,
         participants,
-        round1PublicPackages,
-        round2PublicPackages,
+        round1FrostPackages,
+        round2FrostPackages,
         round2SecretPackage,
         gskBytes,
       ),
     )
+
+    // Retrieve all multisig account keys and publicKeyPackage
+    const dkgKeys = await this.dkgRetrieveKeys()
+
+    const publicKeyPackage = await this.dkgGetPublicPackage()
+
+    return {
+      dkgKeys,
+      publicKeyPackage,
+    }
   }
 
   dkgRetrieveKeys = async (): Promise<{

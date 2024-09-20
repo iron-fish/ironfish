@@ -6,7 +6,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
-import { Ledger } from '../../../../utils/ledger'
+import { initializeLedger } from '../../../../utils/ledger'
 
 export class DkgRound1Command extends IronfishCommand {
   static description = 'Perform round1 of the DKG protocol for multisig account creation'
@@ -100,16 +100,7 @@ export class DkgRound1Command extends IronfishCommand {
     identities: string[],
     minSigners: number,
   ): Promise<void> {
-    const ledger = new Ledger(this.logger)
-    try {
-      await ledger.connect(true)
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
+    const ledger = await initializeLedger(true, this.logger)
 
     const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
     const identity = identityResponse.content.identity

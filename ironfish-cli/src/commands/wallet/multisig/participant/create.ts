@@ -6,7 +6,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
-import { Ledger } from '../../../../utils/ledger'
+import { initializeLedger } from '../../../../utils/ledger'
 
 export class MultisigIdentityCreate extends IronfishCommand {
   static description = `Create a multisig participant identity`
@@ -71,16 +71,7 @@ export class MultisigIdentityCreate extends IronfishCommand {
   }
 
   async getIdentityFromLedger(): Promise<Buffer> {
-    const ledger = new Ledger(this.logger)
-    try {
-      await ledger.connect(true)
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
+    const ledger = await initializeLedger(true, this.logger)
 
     // TODO(hughy): support multiple identities using index
     return ledger.dkgGetIdentity(0)

@@ -2,22 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { IronfishCommand } from '../../../../command'
-import { Ledger } from '../../../../utils/ledger'
+import { initializeLedger } from '../../../../utils/ledger'
 
 export class MultisigLedgerBackup extends IronfishCommand {
   static description = `show encrypted multisig keys from a Ledger device`
 
   async start(): Promise<void> {
-    const ledger = new Ledger(this.logger)
-    try {
-      await ledger.connect(true)
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
+    const ledger = await initializeLedger(true, this.logger)
 
     const encryptedKeys = await ledger.dkgBackupKeys()
 

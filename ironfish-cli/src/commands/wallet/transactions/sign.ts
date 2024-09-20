@@ -7,7 +7,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import * as ui from '../../../ui'
-import { Ledger } from '../../../utils/ledger'
+import { initializeLedger } from '../../../utils/ledger'
 import { renderTransactionDetails, watchTransaction } from '../../../utils/transaction'
 
 export class TransactionsSignCommand extends IronfishCommand {
@@ -109,16 +109,7 @@ export class TransactionsSignCommand extends IronfishCommand {
   }
 
   private async signWithLedger(client: RpcClient, unsignedTransaction: string) {
-    const ledger = new Ledger(this.logger)
-    try {
-      await ledger.connect()
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
+    const ledger = await initializeLedger(false, this.logger)
 
     const signature = (await ledger.sign(unsignedTransaction)).toString('hex')
 

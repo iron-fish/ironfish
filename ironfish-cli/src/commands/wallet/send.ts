@@ -21,7 +21,7 @@ import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
-import { Ledger } from '../../utils/ledger'
+import { initializeLedger } from '../../utils/ledger'
 import { getSpendPostTimeInMs, updateSpendPostTimeInMs } from '../../utils/spendPostTime'
 import {
   displayTransactionSummary,
@@ -359,16 +359,7 @@ export class Send extends IronfishCommand {
     watch: boolean,
     confirm: boolean,
   ): Promise<void> {
-    const ledger = new Ledger(this.logger)
-    try {
-      await ledger.connect()
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
+    const ledger = await initializeLedger(false, this.logger)
 
     const publicKey = (await client.wallet.getAccountPublicKey({ account: from })).content
       .publicKey
