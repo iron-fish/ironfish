@@ -3902,10 +3902,10 @@
   dependencies:
     argparse "^2.0.1"
 
-"@zondax/ledger-ironfish@0.3.0":
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/@zondax/ledger-ironfish/-/ledger-ironfish-0.3.0.tgz#8855a63ab56a28f99c55be1a73c47e61b6d5d917"
-  integrity sha512-R7T0GWCZDxfOPZPn66i0rGKsNAeJuzrd1hnsbutKdQ4bWJLiAJch0uUAjJYOTqt5mM2uYF9JWYsFEjsDkyMxDQ==
+"@zondax/ledger-ironfish@0.4.0":
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/@zondax/ledger-ironfish/-/ledger-ironfish-0.4.0.tgz#424d213a73688f8ec33035325d45cb0f0d7915da"
+  integrity sha512-ifZPJl0WKKvTxAZCGRPARRJJv+qssU6PJYZEJTPHe+Vy2GSbcpfwbIzoyLqKI1vlPBQ1InbZYBP5BOmU1zRWnQ==
   dependencies:
     "@zondax/ledger-js" "^1.0.1"
 

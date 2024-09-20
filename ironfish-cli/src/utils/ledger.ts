@@ -161,9 +161,11 @@ export class Ledger {
       throw new Error('Connect to Ledger first')
     }
 
-    this.logger.log('Approve identity request on ledger device.')
+    this.logger.log('Retrieving identity from ledger device.')
 
-    const response: ResponseIdentity = await this.tryInstruction(this.app.dkgGetIdentity(index))
+    const response: ResponseIdentity = await this.tryInstruction(
+      this.app.dkgGetIdentity(index, false),
+    )
 
     return response.identity
   }
