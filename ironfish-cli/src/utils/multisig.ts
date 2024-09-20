@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { FileSystem, RpcClient, YupUtils } from '@ironfish/sdk'
-import inquirer from 'inquirer'
+import { FileSystem, YupUtils } from '@ironfish/sdk'
 import * as yup from 'yup'
 
 export type MultisigTransactionOptions = {
@@ -68,31 +67,4 @@ function resolveFlags(
 export const MultisigTransactionJson = {
   load,
   resolveFlags,
-}
-
-export async function selectSecret(client: Pick<RpcClient, 'wallet'>): Promise<string> {
-  const identitiesResponse = await client.wallet.multisig.getIdentities()
-
-  const choices = []
-  for (const { name } of identitiesResponse.content.identities) {
-    choices.push({
-      name,
-      value: name,
-    })
-  }
-
-  choices.sort((a, b) => a.name.localeCompare(b.name))
-
-  const selection = await inquirer.prompt<{
-    name: string
-  }>([
-    {
-      name: 'name',
-      message: 'Select participant secret name',
-      type: 'list',
-      choices,
-    },
-  ])
-
-  return selection.name
 }

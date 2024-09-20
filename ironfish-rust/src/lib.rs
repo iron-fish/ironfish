@@ -20,6 +20,8 @@ pub mod signal_catcher;
 pub mod transaction;
 pub mod util;
 pub mod witness;
+pub mod xchacha20poly1305;
+
 pub use {
     ironfish_frost::frost,
     ironfish_frost::participant,

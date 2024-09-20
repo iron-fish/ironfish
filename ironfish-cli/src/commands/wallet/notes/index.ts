@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CurrencyUtils, RpcAsset } from '@ironfish/sdk'
-import { Args, Flags } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { table, TableFlags } from '../../../ui'
+import * as ui from '../../../ui'
+import { useAccount } from '../../../utils'
 import { TableCols } from '../../../utils/table'
 
-const { sort: _, ...tableFlags } = TableFlags
+const { sort: _, ...tableFlags } = ui.TableFlags
 export class NotesCommand extends IronfishCommand {
-  static description = `Display the account notes`
+  static description = `list the account's notes`
 
   static flags = {
     ...RemoteFlags,
@@ -21,21 +22,15 @@ export class NotesCommand extends IronfishCommand {
     }),
   }
 
-  static args = {
-    account: Args.string({
-      required: false,
-      description: 'Name of the account to get notes for. DEPRECATED: use --account flag',
-    }),
-  }
-
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(NotesCommand)
-    // TODO: remove account arg
-    const account = flags.account ? flags.account : args.account
+    const { flags } = await this.parse(NotesCommand)
 
     const assetLookup: Map<string, RpcAsset> = new Map()
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
+    const account = await useAccount(client, flags.account)
 
     const response = client.wallet.getAccountNotesStream({ account })
 
@@ -49,7 +44,7 @@ export class NotesCommand extends IronfishCommand {
         )
       }
 
-      table(
+      ui.table(
         [note],
         {
           memo: {

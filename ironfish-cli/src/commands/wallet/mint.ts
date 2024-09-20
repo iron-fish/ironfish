@@ -18,7 +18,7 @@ import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import * as ui from '../../ui'
-import { selectAsset } from '../../utils/asset'
+import { useAccount } from '../../utils'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
@@ -26,7 +26,9 @@ import { selectFee } from '../../utils/fees'
 import { watchTransaction } from '../../utils/transaction'
 
 export class Mint extends IronfishCommand {
-  static description = 'Mint tokens and increase supply for a given asset'
+  static description = `create a transaction to mint tokens
+
+This will create tokens and increase supply for a given asset.`
 
   static examples = [
     '$ ironfish wallet:mint --metadata "see more here" --name mycoin --amount 1000',
@@ -39,50 +41,39 @@ export class Mint extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
-      char: 'f',
-      description: 'The account to mint from',
+      char: 'a',
+      description: 'Name of the account to mint from',
     }),
     fee: IronFlag({
-      char: 'o',
       description: 'The fee amount in IRON',
       minimum: 1n,
       flagName: 'fee',
     }),
     feeRate: IronFlag({
-      char: 'r',
       description: 'The fee rate amount in IRON/Kilobyte',
       minimum: 1n,
       flagName: 'fee rate',
     }),
     amount: ValueFlag({
-      char: 'a',
       description: 'Amount of coins to mint in the major denomination',
       flagName: 'amount',
     }),
     assetId: Flags.string({
-      char: 'i',
       description: 'Identifier for the asset',
-      required: false,
     }),
     metadata: Flags.string({
-      char: 'm',
       description: 'Metadata for the asset',
-      required: false,
     }),
     name: Flags.string({
-      char: 'n',
       description: 'Name for the asset',
-      required: false,
     }),
     confirm: Flags.boolean({
       default: false,
       description: 'Confirm without asking',
     }),
     confirmations: Flags.integer({
-      char: 'c',
       description:
         'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
-      required: false,
     }),
     rawTransaction: Flags.boolean({
       default: false,
@@ -104,7 +95,6 @@ export class Mint extends IronfishCommand {
     }),
     transferOwnershipTo: Flags.string({
       description: 'The public address of the account to transfer ownership of this asset to.',
-      required: false,
     }),
     unsignedTransaction: Flags.boolean({
       default: false,
@@ -117,6 +107,7 @@ export class Mint extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(Mint)
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     if (!flags.offline) {
       const status = await client.wallet.getNodeStatus()
@@ -128,19 +119,7 @@ export class Mint extends IronfishCommand {
       }
     }
 
-    let account = flags.account
-    if (!account) {
-      const response = await client.wallet.getDefaultAccount()
-
-      if (!response.content.account) {
-        this.error(
-          `No account is currently active.
-           Use ironfish wallet:create <name> to first create an account`,
-        )
-      }
-
-      account = response.content.account.name
-    }
+    const account = await useAccount(client, flags.account)
 
     const publicKeyResponse = await client.wallet.getAccountPublicKey({ account })
     const accountPublicKey = publicKeyResponse.content.publicKey
@@ -168,7 +147,7 @@ export class Mint extends IronfishCommand {
       const newAsset = new Asset(accountPublicKey, name, metadata)
       assetId = newAsset.id().toString('hex')
     } else if (!assetId) {
-      const asset = await selectAsset(client, account, {
+      const asset = await ui.assetPrompt(client, account, {
         action: 'mint',
         showNativeAsset: false,
         showNonCreatorAsset: false,

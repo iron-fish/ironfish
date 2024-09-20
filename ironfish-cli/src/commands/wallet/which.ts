@@ -4,9 +4,10 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { checkWalletUnlocked } from '../../ui'
 
 export class WhichCommand extends IronfishCommand {
-  static description = `Show the account currently used.
+  static description = `show the default wallet account
 
   By default all commands will use this account when deciding what
   keys to use. If no account is specified as the default, you must
@@ -24,6 +25,13 @@ export class WhichCommand extends IronfishCommand {
     const { flags } = await this.parse(WhichCommand)
 
     const client = await this.connectRpc()
+    await checkWalletUnlocked(client)
+
+    const response = await client.wallet.getAccountsStatus()
+    if (response.content.locked) {
+      this.log('Your wallet is locked. Unlock the wallet to access your accounts')
+      this.exit(0)
+    }
 
     const {
       content: {

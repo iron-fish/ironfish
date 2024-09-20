@@ -15,7 +15,7 @@ const writeFileAsync = promisify(writeFile)
 const readFileAsync = promisify(readFile)
 
 export class EditCommand extends IronfishCommand {
-  static description = `Edit the config in your configured editor
+  static description = `interactively edit your config
 
   Set the editor in either EDITOR environment variable, or set 'editor' in your ironfish config`
 

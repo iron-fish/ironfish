@@ -4,9 +4,8 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { inputPrompt } from '../../../../ui'
-import { longPrompt } from '../../../../utils/input'
-import { selectSecret } from '../../../../utils/multisig'
+import * as ui from '../../../../ui'
+import { Ledger } from '../../../../utils/ledger'
 
 export class DkgRound3Command extends IronfishCommand {
   static description = 'Perform round3 of the DKG protocol for multisig account creation'
@@ -38,21 +37,27 @@ export class DkgRound3Command extends IronfishCommand {
         'The public package that a participant generated during DKG round 2 (may be specified multiple times for multiple participants). Your own round 2 public package is optional; if included, it will be ignored',
       multiple: true,
     }),
+    ledger: Flags.boolean({
+      default: false,
+      description: 'Perform operation with a ledger device',
+      hidden: true,
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(DkgRound3Command)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     let participantName = flags.participantName
     if (!participantName) {
-      participantName = await selectSecret(client)
+      participantName = await ui.multisigSecretPrompt(client)
     }
 
     let round2SecretPackage = flags.round2SecretPackage
     if (!round2SecretPackage) {
-      round2SecretPackage = await inputPrompt(
+      round2SecretPackage = await ui.inputPrompt(
         `Enter the round 2 encrypted secret package for participant ${participantName}`,
         true,
       )
@@ -60,7 +65,7 @@ export class DkgRound3Command extends IronfishCommand {
 
     let round1PublicPackages = flags.round1PublicPackages
     if (!round1PublicPackages || round1PublicPackages.length < 2) {
-      const input = await longPrompt(
+      const input = await ui.longPrompt(
         'Enter round 1 public packages, separated by commas, one for each participant',
         {
           required: true,
@@ -78,7 +83,7 @@ export class DkgRound3Command extends IronfishCommand {
 
     let round2PublicPackages = flags.round2PublicPackages
     if (!round2PublicPackages) {
-      const input = await longPrompt(
+      const input = await ui.longPrompt(
         'Enter round 2 public packages, separated by commas, one for each participant',
         {
           required: true,
@@ -101,6 +106,11 @@ export class DkgRound3Command extends IronfishCommand {
     }
     round2PublicPackages = round2PublicPackages.map((i) => i.trim())
 
+    if (flags.ledger) {
+      await this.performRound3WithLedger()
+      return
+    }
+
     const response = await client.wallet.multisig.dkg.round3({
       participantName,
       accountName: flags.accountName,
@@ -113,5 +123,18 @@ export class DkgRound3Command extends IronfishCommand {
     this.log(
       `Account ${response.content.name} imported with public address: ${response.content.publicAddress}`,
     )
+  }
+
+  async performRound3WithLedger(): Promise<void> {
+    const ledger = new Ledger(this.logger)
+    try {
+      await ledger.connect()
+    } catch (e) {
+      if (e instanceof Error) {
+        this.error(e.message)
+      } else {
+        throw e
+      }
+    }
   }
 }

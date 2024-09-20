@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, multisig } from '@ironfish/rust-nodejs'
+import { Asset, generateKey, multisig } from '@ironfish/rust-nodejs'
 import { randomBytes } from 'crypto'
 import { Assert } from '../../assert'
 import {
@@ -11,6 +11,11 @@ import {
   useTxFixture,
 } from '../../testUtilities'
 import { AsyncUtils } from '../../utils'
+import { Account } from '../account/account'
+import { EncryptedAccount } from '../account/encryptedAccount'
+import { AccountDecryptionFailedError } from '../errors'
+import { MasterKey } from '../masterKey'
+import { DecryptedAccountValue } from './accountValue'
 import { DecryptedNoteValue } from './decryptedNoteValue'
 
 describe('WalletDB', () => {
@@ -446,14 +451,280 @@ describe('WalletDB', () => {
       const secret = multisig.ParticipantSecret.random()
       const serializedSecret = secret.serialize()
 
-      await walletDb.putMultisigSecret(secret.toIdentity().serialize(), {
+      await walletDb.putMultisigIdentity(secret.toIdentity().serialize(), {
         secret: serializedSecret,
         name,
       })
 
       const storedSecret = await walletDb.getMultisigSecretByName(name)
       Assert.isNotUndefined(storedSecret)
-      expect(storedSecret.secret).toEqualBuffer(serializedSecret)
+      expect(storedSecret).toEqualBuffer(serializedSecret)
+    })
+  })
+
+  describe('encryptAccounts', () => {
+    it('stores encrypted accounts', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const passphrase = 'test'
+
+      const accountA = await useAccountFixture(node.wallet, 'A')
+      const accountB = await useAccountFixture(node.wallet, 'B')
+
+      await walletDb.encryptAccounts(passphrase)
+
+      const encryptedAccountById = new Map<string, EncryptedAccount>()
+      for await (const [id, accountValue] of walletDb.loadAccounts()) {
+        if (!accountValue.encrypted) {
+          throw new Error('Unexpected behavior')
+        }
+
+        encryptedAccountById.set(id, new EncryptedAccount({ accountValue, walletDb }))
+      }
+
+      const masterKeyValue = await walletDb.loadMasterKey()
+      Assert.isNotNull(masterKeyValue)
+      const masterKey = new MasterKey(masterKeyValue)
+      const key = await masterKey.unlock(passphrase)
+
+      const encryptedAccountA = encryptedAccountById.get(accountA.id)
+      Assert.isNotUndefined(encryptedAccountA)
+      const decryptedAccountA = encryptedAccountA.decrypt(key)
+      expect(accountA.serialize()).toMatchObject(decryptedAccountA.serialize())
+
+      const encryptedAccountB = encryptedAccountById.get(accountB.id)
+      Assert.isNotUndefined(encryptedAccountB)
+      const decryptedAccountB = encryptedAccountB.decrypt(key)
+      expect(accountB.serialize()).toMatchObject(decryptedAccountB.serialize())
+    })
+  })
+
+  describe('decryptAccounts', () => {
+    it('stores decrypted accounts', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const passphrase = 'test'
+
+      const accountA = await useAccountFixture(node.wallet, 'A')
+      const accountB = await useAccountFixture(node.wallet, 'B')
+      await walletDb.encryptAccounts(passphrase)
+
+      const encryptedAccountById = new Map<string, EncryptedAccount>()
+      for await (const [id, accountValue] of walletDb.loadAccounts()) {
+        if (!accountValue.encrypted) {
+          throw new Error('Unexpected behavior')
+        }
+
+        encryptedAccountById.set(id, new EncryptedAccount({ accountValue, walletDb }))
+      }
+
+      const encryptedAccountA = encryptedAccountById.get(accountA.id)
+      Assert.isNotUndefined(encryptedAccountA)
+      const encryptedAccountB = encryptedAccountById.get(accountB.id)
+      Assert.isNotUndefined(encryptedAccountB)
+
+      await walletDb.decryptAccounts(passphrase)
+
+      const accountById = new Map<string, Account>()
+      for await (const [id, accountValue] of walletDb.loadAccounts()) {
+        if (accountValue.encrypted) {
+          throw new Error('Unexpected behavior')
+        }
+
+        accountById.set(id, new Account({ accountValue, walletDb }))
+      }
+
+      const decryptedAccountA = accountById.get(accountA.id)
+      Assert.isNotUndefined(decryptedAccountA)
+      expect(accountA.serialize()).toMatchObject(decryptedAccountA.serialize())
+
+      const decryptedAccountB = accountById.get(accountB.id)
+      Assert.isNotUndefined(decryptedAccountB)
+      expect(accountB.serialize()).toMatchObject(decryptedAccountB.serialize())
+    })
+
+    it('throws an error with an invalid passphrase', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const passphrase = 'test'
+      const invalidPassphrase = 'foo'
+
+      const accountA = await useAccountFixture(node.wallet, 'A')
+      const accountB = await useAccountFixture(node.wallet, 'B')
+
+      await walletDb.encryptAccounts(passphrase)
+
+      const encryptedAccountById = new Map<string, EncryptedAccount>()
+      for await (const [id, accountValue] of walletDb.loadAccounts()) {
+        if (!accountValue.encrypted) {
+          throw new Error('Unexpected behavior')
+        }
+
+        encryptedAccountById.set(id, new EncryptedAccount({ accountValue, walletDb }))
+      }
+
+      const encryptedAccountA = encryptedAccountById.get(accountA.id)
+      Assert.isNotUndefined(encryptedAccountA)
+      const encryptedAccountB = encryptedAccountById.get(accountB.id)
+      Assert.isNotUndefined(encryptedAccountB)
+
+      await expect(walletDb.decryptAccounts(invalidPassphrase)).rejects.toThrow(
+        AccountDecryptionFailedError,
+      )
+    })
+  })
+
+  describe('accountsEncrypted', () => {
+    it('throws an exception if the encrypted flag is inconsistent', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const passphrase = 'test'
+
+      await useAccountFixture(node.wallet, 'A')
+      const accountB = await useAccountFixture(node.wallet, 'B')
+
+      const masterKey = MasterKey.generate(passphrase)
+      await masterKey.unlock(passphrase)
+
+      await walletDb.accounts.put(accountB.id, accountB.encrypt(masterKey).serialize())
+
+      await expect(walletDb.accountsEncrypted()).rejects.toThrow()
+    })
+
+    it('returns true if the accounts are encrypted', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const passphrase = 'test'
+
+      await useAccountFixture(node.wallet, 'A')
+      await useAccountFixture(node.wallet, 'B')
+      await walletDb.encryptAccounts(passphrase)
+
+      expect(await walletDb.accountsEncrypted()).toBe(true)
+    })
+
+    it('returns false if the accounts are not encrypted', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+
+      await useAccountFixture(node.wallet, 'A')
+      await useAccountFixture(node.wallet, 'B')
+
+      expect(await walletDb.accountsEncrypted()).toBe(false)
+    })
+
+    it('returns false if there are no accounts', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+
+      expect(await walletDb.accountsEncrypted()).toBe(false)
+    })
+  })
+
+  describe('setAccount', () => {
+    it('throws an error if existing accounts are encrypted', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const passphrase = 'foobar'
+
+      await useAccountFixture(node.wallet, 'A')
+      await walletDb.encryptAccounts(passphrase)
+
+      const key = generateKey()
+      const accountValue: DecryptedAccountValue = {
+        encrypted: false,
+        id: '0',
+        name: 'new-account',
+        version: 1,
+        createdAt: null,
+        scanningEnabled: false,
+        ...key,
+      }
+      const account = new Account({ accountValue, walletDb })
+
+      await expect(walletDb.setAccount(account)).rejects.toThrow()
+    })
+
+    it('saves the account', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+
+      const key = generateKey()
+      const accountValue: DecryptedAccountValue = {
+        encrypted: false,
+        id: '1',
+        name: 'new-account',
+        version: 1,
+        createdAt: null,
+        scanningEnabled: false,
+        ...key,
+      }
+      const account = new Account({ accountValue, walletDb })
+
+      await walletDb.setAccount(account)
+
+      expect(await walletDb.accounts.get(account.id)).not.toBeUndefined()
+      expect(
+        await walletDb.balances.get([account.prefix, Asset.nativeId()]),
+      ).not.toBeUndefined()
+    })
+  })
+
+  describe('setEncryptedAccount', () => {
+    it('throws an error if existing accounts are decrypted', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const passphrase = 'foobar'
+      const masterKey = MasterKey.generate(passphrase)
+
+      await useAccountFixture(node.wallet, 'A')
+
+      const key = generateKey()
+      const accountValue: DecryptedAccountValue = {
+        encrypted: false,
+        id: '0',
+        name: 'new-account',
+        version: 1,
+        createdAt: null,
+        scanningEnabled: false,
+        ...key,
+      }
+      const account = new Account({ accountValue, walletDb })
+
+      await expect(walletDb.setEncryptedAccount(account, masterKey)).rejects.toThrow()
+    })
+
+    it('saves the account', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const passphrase = 'foobar'
+
+      await useAccountFixture(node.wallet, 'A')
+      await walletDb.encryptAccounts(passphrase)
+
+      const key = generateKey()
+      const accountValue: DecryptedAccountValue = {
+        encrypted: false,
+        id: '1',
+        name: 'new-account',
+        version: 1,
+        createdAt: null,
+        scanningEnabled: false,
+        ...key,
+      }
+      const account = new Account({ accountValue, walletDb })
+
+      const masterKeyValue = await walletDb.loadMasterKey()
+      Assert.isNotNull(masterKeyValue)
+      const masterKey = new MasterKey(masterKeyValue)
+      await masterKey.unlock(passphrase)
+
+      await walletDb.setEncryptedAccount(account, masterKey)
+
+      expect(await walletDb.accounts.get(account.id)).not.toBeUndefined()
+      expect(
+        await walletDb.balances.get([account.prefix, Asset.nativeId()]),
+      ).not.toBeUndefined()
     })
   })
 })

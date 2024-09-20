@@ -3,17 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { ColorFlag, ColorFlagKey } from '../../flags'
+import { JsonFlags } from '../../flags'
 import { RemoteFlags } from '../../flags'
 import * as ui from '../../ui'
 
 export class ShowCommand extends IronfishCommand {
-  static description = `Print out the entire config`
+  static description = "show the node's config"
   static enableJsonFlag = true
 
   static flags = {
     ...RemoteFlags,
-    [ColorFlagKey]: ColorFlag,
+    ...JsonFlags,
     user: Flags.boolean({
       description: 'Only show config from the users datadir and not overrides',
     }),

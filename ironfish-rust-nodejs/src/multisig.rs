@@ -4,7 +4,14 @@
 
 use crate::{structs::NativeUnsignedTransaction, to_napi_err};
 use ironfish::{
-    frost::{keys::KeyPackage, round2, Randomizer},
+    frost::{
+        frost::{
+            keys::PublicKeyPackage as FrostPublicKeyPackage, round1::SigningCommitments,
+            round2::SignatureShare as FrostSignatureShare,
+        },
+        keys::KeyPackage,
+        round2, Randomizer,
+    },
     frost_utils::{
         account_keys::derive_account_keys, signing_package::SigningPackage,
         split_spender_key::split_spender_key,
@@ -14,13 +21,16 @@ use ironfish::{
     SaplingKey,
 };
 use ironfish_frost::{
-    dkg, keys::PublicKeyPackage, multienc, nonces::deterministic_signing_nonces,
-    signature_share::SignatureShare, signing_commitment::SigningCommitment,
+    dkg::{self, round3::PublicKeyPackage},
+    multienc,
+    nonces::deterministic_signing_nonces,
+    signature_share::SignatureShare,
+    signing_commitment::SigningCommitment,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
-use std::io;
+use std::fmt::Display;
 use std::ops::Deref;
 
 #[napi(namespace = "multisig")]
@@ -29,11 +39,12 @@ pub const IDENTITY_LEN: u32 = ironfish::frost_utils::IDENTITY_LEN as u32;
 #[napi(namespace = "multisig")]
 pub const SECRET_LEN: u32 = ironfish_frost::participant::SECRET_LEN as u32;
 
-fn try_deserialize<I, S, F, T>(items: I, deserialize_item: F) -> Result<Vec<T>>
+fn try_deserialize<I, S, F, T, E>(items: I, deserialize_item: F) -> Result<Vec<T>>
 where
     I: IntoIterator<Item = S>,
     S: Deref<Target = str>,
-    F: for<'a> Fn(&'a [u8]) -> io::Result<T>,
+    E: Display,
+    F: for<'a> Fn(&'a [u8]) -> std::result::Result<T, E>,
 {
     items
         .into_iter()
@@ -76,7 +87,8 @@ pub fn create_signing_commitment(
         key_package.signing_share(),
         &transaction_hash,
         &signers,
-    );
+    )
+    .map_err(to_napi_err)?;
 
     let bytes = signing_commitment.serialize();
     Ok(bytes_to_hex(&bytes[..]))
@@ -131,6 +143,55 @@ pub fn create_signature_share(
     Ok(bytes_to_hex(&bytes[..]))
 }
 
+#[napi(js_name = "SignatureShare", namespace = "multisig")]
+pub struct NativeSignatureShare {
+    signature_share: SignatureShare,
+}
+
+#[napi(namespace = "multisig")]
+impl NativeSignatureShare {
+    #[napi(constructor)]
+    pub fn new(js_bytes: JsBuffer) -> Result<NativeSignatureShare> {
+        let bytes = js_bytes.into_value()?;
+        SignatureShare::deserialize_from(bytes.as_ref())
+            .map(|signature_share| NativeSignatureShare { signature_share })
+            .map_err(to_napi_err)
+    }
+
+    #[napi(factory)]
+    pub fn from_frost(
+        frost_signature_share: JsBuffer,
+        identity: JsBuffer,
+    ) -> Result<NativeSignatureShare> {
+        let frost_signature_share = frost_signature_share.into_value()?;
+        let frost_signature_share =
+            FrostSignatureShare::deserialize(frost_signature_share.as_ref())
+                .map_err(to_napi_err)?;
+
+        let identity = identity.into_value()?;
+        let identity = Identity::deserialize_from(&identity[..]).map_err(to_napi_err)?;
+
+        let signature_share = SignatureShare::from_frost(frost_signature_share, identity);
+
+        Ok(NativeSignatureShare { signature_share })
+    }
+
+    #[napi]
+    pub fn identity(&self) -> Buffer {
+        Buffer::from(self.signature_share.identity().serialize().as_slice())
+    }
+
+    #[napi]
+    pub fn frost_signature_share(&self) -> Buffer {
+        Buffer::from(
+            self.signature_share
+                .frost_signature_share()
+                .serialize()
+                .as_slice(),
+        )
+    }
+}
+
 #[napi(namespace = "multisig")]
 pub struct ParticipantSecret {
     secret: Secret,
@@ -166,9 +227,17 @@ impl ParticipantSecret {
     #[napi]
     pub fn decrypt_data(&self, js_bytes: JsBuffer) -> Result<Buffer> {
         let bytes = js_bytes.into_value()?;
+        multienc::decrypt(&self.secret, &bytes)
+            .map(Buffer::from)
+            .map_err(to_napi_err)
+    }
+
+    #[napi]
+    pub fn decrypt_legacy_data(&self, js_bytes: JsBuffer) -> Result<Buffer> {
+        let bytes = js_bytes.into_value()?;
         let encrypted_blob =
             multienc::MultiRecipientBlob::deserialize_from(bytes.as_ref()).map_err(to_napi_err)?;
-        multienc::decrypt(&self.secret, &encrypted_blob)
+        multienc::decrypt_legacy(&self.secret, &encrypted_blob)
             .map(Buffer::from)
             .map_err(to_napi_err)
     }
@@ -197,11 +266,11 @@ impl ParticipantIdentity {
     #[napi]
     pub fn encrypt_data(&self, js_bytes: JsBuffer) -> Result<Buffer> {
         let bytes = js_bytes.into_value()?;
-        let encrypted_blob = multienc::encrypt(&bytes, [&self.identity], thread_rng());
-        encrypted_blob
-            .serialize()
-            .map(Buffer::from)
-            .map_err(to_napi_err)
+        Ok(Buffer::from(multienc::encrypt(
+            &bytes,
+            [&self.identity],
+            thread_rng(),
+        )))
     }
 }
 
@@ -285,6 +354,28 @@ impl NativePublicKeyPackage {
         Ok(NativePublicKeyPackage { public_key_package })
     }
 
+    #[napi(factory)]
+    pub fn from_frost(
+        frost_public_key_package: JsBuffer,
+        identities: Vec<String>,
+        min_signers: u16,
+    ) -> Result<NativePublicKeyPackage> {
+        let frost_public_key_package =
+            FrostPublicKeyPackage::deserialize(frost_public_key_package.into_value()?.as_ref())
+                .map_err(to_napi_err)?;
+        let identities = try_deserialize_identities(identities)?;
+
+        let public_key_package =
+            PublicKeyPackage::from_frost(frost_public_key_package, identities, min_signers);
+
+        Ok(NativePublicKeyPackage { public_key_package })
+    }
+
+    #[napi]
+    pub fn serialize(&self) -> Buffer {
+        Buffer::from(self.public_key_package.serialize())
+    }
+
     #[napi]
     pub fn identities(&self) -> Vec<Buffer> {
         self.public_key_package
@@ -292,6 +383,17 @@ impl NativePublicKeyPackage {
             .iter()
             .map(|identity| Buffer::from(&identity.serialize()[..]))
             .collect()
+    }
+
+    #[napi]
+    pub fn frost_public_key_package(&self) -> Result<Buffer> {
+        Ok(Buffer::from(
+            self.public_key_package
+                .frost_public_key_package()
+                .serialize()
+                .map_err(to_napi_err)?
+                .as_slice(),
+        ))
     }
 
     #[napi]
@@ -315,9 +417,53 @@ impl NativeSigningCommitment {
             .map_err(to_napi_err)
     }
 
+    #[napi(factory)]
+    pub fn from_raw(
+        identity: String,
+        raw_commitments: JsBuffer,
+        transaction_hash: JsBuffer,
+        signers: Vec<String>,
+    ) -> Result<NativeSigningCommitment> {
+        let identity =
+            Identity::deserialize_from(&hex_to_vec_bytes(&identity).map_err(to_napi_err)?[..])
+                .map_err(to_napi_err)?;
+
+        let raw_commitments =
+            SigningCommitments::deserialize(raw_commitments.into_value()?.as_ref())
+                .map_err(to_napi_err)?;
+
+        let signers = try_deserialize_identities(signers)?;
+
+        let signing_commitment = SigningCommitment::from_raw(
+            raw_commitments,
+            identity,
+            transaction_hash.into_value()?.as_ref(),
+            &signers[..],
+        )
+        .map_err(to_napi_err)?;
+
+        Ok(NativeSigningCommitment { signing_commitment })
+    }
+
+    #[napi]
+    pub fn serialize(&self) -> Buffer {
+        Buffer::from(self.signing_commitment.serialize().as_slice())
+    }
+
     #[napi]
     pub fn identity(&self) -> Buffer {
         Buffer::from(self.signing_commitment.identity().serialize().as_slice())
+    }
+
+    #[napi]
+    pub fn raw_commitments(&self) -> Result<Buffer> {
+        Ok(Buffer::from(
+            self.signing_commitment
+                .raw_commitments()
+                .serialize()
+                .map_err(to_napi_err)?
+                .as_slice(),
+        ))
     }
 
     #[napi]
@@ -364,6 +510,17 @@ impl NativeSigningPackage {
             .iter()
             .map(|signer| Buffer::from(&signer.serialize()[..]))
             .collect()
+    }
+
+    #[napi]
+    pub fn frost_signing_package(&self) -> Result<Buffer> {
+        Ok(Buffer::from(
+            &self
+                .signing_package
+                .frost_signing_package
+                .serialize()
+                .map_err(to_napi_err)?[..],
+        ))
     }
 }
 
@@ -429,7 +586,7 @@ pub struct DkgRound2Packages {
     pub round2_public_package: String,
 }
 
-#[napi(object, namespace = "multisig")]
+#[napi(namespace = "multisig")]
 pub fn dkg_round3(
     secret: &ParticipantSecret,
     round2_secret_package: String,
@@ -452,7 +609,8 @@ pub fn dkg_round3(
     )
     .map_err(to_napi_err)?;
 
-    let account_keys = derive_account_keys(public_key_package.verifying_key(), &group_secret_key);
+    let account_keys = derive_account_keys(public_key_package.verifying_key(), &group_secret_key)
+        .map_err(to_napi_err)?;
 
     Ok(DkgRound3Packages {
         public_address: account_keys.public_address.hex_public_address(),
@@ -465,6 +623,67 @@ pub fn dkg_round3(
     })
 }
 
+#[napi(object)]
+pub struct PublicPackage {
+    pub identity: String,
+    pub frost_package: String,
+    pub group_secret_key_shard_encrypted: String,
+    pub checksum: String,
+}
+
+#[napi]
+pub fn deserialize_public_package(round1_public_package: String) -> Result<PublicPackage> {
+    let serialized_item = hex_to_vec_bytes(&round1_public_package).map_err(to_napi_err)?;
+    let pkg =
+        dkg::round1::PublicPackage::deserialize_from(&serialized_item[..]).map_err(to_napi_err)?;
+
+    Ok(PublicPackage {
+        identity: pkg.identity().to_string(),
+        frost_package: bytes_to_hex(&pkg.frost_package().serialize().map_err(to_napi_err)?),
+        group_secret_key_shard_encrypted: bytes_to_hex(pkg.group_secret_key_shard_encrypted()),
+        checksum: pkg.checksum().to_string(),
+    })
+}
+
+#[napi(object)]
+pub struct Round2PublicPackage {
+    pub sender_identity: String,
+    pub recipient_identity: String,
+    pub frost_package: String,
+    pub checksum: String,
+}
+
+#[napi(object)]
+pub struct Round2CombinedPublicPackage {
+    pub packages: Vec<Round2PublicPackage>,
+}
+
+#[napi]
+pub fn deserialize_round2_combined_public_package(
+    round2_combined_public_package: String,
+) -> Result<Round2CombinedPublicPackage> {
+    let serialized_item = hex_to_vec_bytes(&round2_combined_public_package).map_err(to_napi_err)?;
+    let pkg = dkg::round2::CombinedPublicPackage::deserialize_from(&serialized_item[..])
+        .map_err(to_napi_err)?;
+
+    let mut packages: Vec<Round2PublicPackage> = Vec::new();
+
+    for round2_public_package in pkg.packages() {
+        packages.push(Round2PublicPackage {
+            sender_identity: round2_public_package.sender_identity().to_string(),
+            recipient_identity: round2_public_package.recipient_identity().to_string(),
+            frost_package: bytes_to_hex(
+                &round2_public_package
+                    .frost_package()
+                    .serialize()
+                    .map_err(to_napi_err)?,
+            ),
+            checksum: round2_public_package.checksum().to_string(),
+        })
+    }
+
+    Ok(Round2CombinedPublicPackage { packages })
+}
 #[napi(object, namespace = "multisig")]
 pub struct DkgRound3Packages {
     pub public_address: String,

@@ -4,9 +4,8 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { inputPrompt } from '../../../../ui'
-import { longPrompt } from '../../../../utils/input'
-import { selectSecret } from '../../../../utils/multisig'
+import * as ui from '../../../../ui'
+import { Ledger } from '../../../../utils/ledger'
 
 export class DkgRound1Command extends IronfishCommand {
   static description = 'Perform round1 of the DKG protocol for multisig account creation'
@@ -28,21 +27,27 @@ export class DkgRound1Command extends IronfishCommand {
       char: 'm',
       description: 'Minimum number of signers to meet signing threshold',
     }),
+    ledger: Flags.boolean({
+      default: false,
+      description: 'Perform operation with a ledger device',
+      hidden: true,
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(DkgRound1Command)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     let participantName = flags.participantName
     if (!participantName) {
-      participantName = await selectSecret(client)
+      participantName = await ui.multisigSecretPrompt(client)
     }
 
     let identities = flags.identity
     if (!identities || identities.length < 2) {
-      const input = await longPrompt(
+      const input = await ui.longPrompt(
         'Enter the identities of all participants, separated by commas',
         {
           required: true,
@@ -58,11 +63,16 @@ export class DkgRound1Command extends IronfishCommand {
 
     let minSigners = flags.minSigners
     if (!minSigners) {
-      const input = await inputPrompt('Enter the number of minimum signers', true)
+      const input = await ui.inputPrompt('Enter the number of minimum signers', true)
       minSigners = parseInt(input)
       if (isNaN(minSigners) || minSigners < 2) {
         this.error('Minimum number of signers must be at least 2')
       }
+    }
+
+    if (flags.ledger) {
+      await this.performRound1WithLedger()
+      return
     }
 
     const response = await client.wallet.multisig.dkg.round1({
@@ -81,5 +91,18 @@ export class DkgRound1Command extends IronfishCommand {
 
     this.log('Next step:')
     this.log('Send the round 1 public package to each participant')
+  }
+
+  async performRound1WithLedger(): Promise<void> {
+    const ledger = new Ledger(this.logger)
+    try {
+      await ledger.connect()
+    } catch (e) {
+      if (e instanceof Error) {
+        this.error(e.message)
+      } else {
+        throw e
+      }
+    }
   }
 }

@@ -6,7 +6,9 @@ use crate::{
     errors::IronfishError, IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey,
 };
 use group::GroupEncoding;
-use ironfish_frost::{frost::keys::KeyPackage, keys::PublicKeyPackage, participant::Identity};
+use ironfish_frost::{
+    dkg::round3::PublicKeyPackage, frost::keys::KeyPackage, participant::Identity,
+};
 use rand::thread_rng;
 use std::collections::HashMap;
 
@@ -33,7 +35,7 @@ pub fn split_spender_key(
         split_secret(spender_key, identities, min_signers, thread_rng())?;
 
     assert_eq!(
-        public_key_package.verifying_key().serialize(),
+        public_key_package.verifying_key().serialize()?,
         spender_key.view_key().authorizing_key.to_bytes()
     );
 

@@ -5,13 +5,15 @@ import { GetWorkersStatusResponse, PromiseUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+import { JsonFlags, RemoteFlags } from '../../flags'
 
 export default class Status extends IronfishCommand {
-  static description = 'Show the status of the worker pool'
+  static description = "show worker pool's status"
+  static enableJsonFlag = true
 
   static flags = {
     ...RemoteFlags,
+    ...JsonFlags,
     follow: Flags.boolean({
       char: 'f',
       default: false,
@@ -19,14 +21,15 @@ export default class Status extends IronfishCommand {
     }),
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<unknown> {
     const { flags } = await this.parse(Status)
 
     if (!flags.follow) {
       const client = await this.connectRpc()
       const response = await client.worker.getWorkersStatus()
       this.log(renderStatus(response.content))
-      this.exit(0)
+
+      return response.content
     }
 
     // Console log will create display issues with Blessed

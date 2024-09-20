@@ -4,12 +4,20 @@
 import { BufferUtils } from '@ironfish/sdk'
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
-import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../../flags'
+import { JsonFlags, RemoteFlags } from '../../../flags'
 import * as ui from '../../../ui'
 
 export default class AssetInfo extends IronfishCommand {
   static description = 'show asset information'
   static enableJsonFlag = true
+
+  static examples = [
+    {
+      description: 'show the native $IRON asset info',
+      command:
+        'ironfish chain:assets:info 51f33a2f14f92735e562dc658a5639279ddca3d5079a6d1242b2a588a9cbf44c',
+    },
+  ]
 
   static args = {
     id: Args.string({
@@ -20,7 +28,7 @@ export default class AssetInfo extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    [ColorFlagKey]: ColorFlag,
+    ...JsonFlags,
   }
 
   async start(): Promise<unknown> {

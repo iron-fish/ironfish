@@ -16,7 +16,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import * as ui from '../../ui'
-import { selectAsset } from '../../utils/asset'
+import { useAccount } from '../../utils'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
@@ -30,7 +30,7 @@ import {
 } from '../../utils/transaction'
 
 export class Send extends IronfishCommand {
-  static description = `Send coins to another account`
+  static description = `create a transaction to send coins`
 
   static examples = [
     '$ ironfish wallet:send --amount 2.003 --fee 0.00000001 --to 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed',
@@ -41,32 +41,27 @@ export class Send extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
-      char: 'f',
-      description: 'The account to send money from',
+      char: 'a',
+      description: 'Name of the account to send money from',
     }),
     amount: ValueFlag({
-      char: 'a',
       description: 'The amount to send in the major denomination',
       flagName: 'amount',
     }),
     to: Flags.string({
-      char: 't',
       description: 'The public address of the recipient',
     }),
     fee: IronFlag({
-      char: 'o',
       description: 'The fee amount in IRON',
       minimum: 1n,
       flagName: 'fee',
     }),
     feeRate: IronFlag({
-      char: 'r',
       description: 'The fee rate amount in IRON/Kilobyte',
       minimum: 1n,
       flagName: 'fee rate',
     }),
     memo: Flags.string({
-      char: 'm',
       description: 'The memo of transaction',
     }),
     confirm: Flags.boolean({
@@ -83,10 +78,8 @@ export class Send extends IronfishCommand {
         'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
     }),
     confirmations: Flags.integer({
-      char: 'c',
       description:
         'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
-      required: false,
     }),
     assetId: HexFlag({
       char: 'i',
@@ -122,9 +115,9 @@ export class Send extends IronfishCommand {
     const { flags } = await this.parse(Send)
     let assetId = flags.assetId
     let to = flags.to
-    let from = flags.account
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     if (!flags.offline) {
       const status = await client.wallet.getNodeStatus()
@@ -136,8 +129,10 @@ export class Send extends IronfishCommand {
       }
     }
 
+    const from = await useAccount(client, flags.account, 'Select an account to send from')
+
     if (assetId == null) {
-      const asset = await selectAsset(client, from, {
+      const asset = await ui.assetPrompt(client, from, {
         action: 'send',
         showNativeAsset: true,
         showNonCreatorAsset: true,
@@ -189,19 +184,6 @@ export class Send extends IronfishCommand {
           confirmations: flags.confirmations,
         },
       })
-    }
-
-    if (!from) {
-      const response = await client.wallet.getDefaultAccount()
-
-      if (!response.content.account) {
-        this.error(
-          `No account is currently active.
-           Use ironfish wallet:create <name> to first create an account`,
-        )
-      }
-
-      from = response.content.account.name
     }
 
     if (!to) {

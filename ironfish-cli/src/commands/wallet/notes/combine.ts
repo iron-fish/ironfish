@@ -16,8 +16,8 @@ import { Flags } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags } from '../../../flags'
-import { confirmOrQuit, inputPrompt, table } from '../../../ui'
-import { getAssetsByIDs, selectAsset } from '../../../utils'
+import * as ui from '../../../ui'
+import { getAssetsByIDs } from '../../../utils'
 import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
 import { fetchNotes } from '../../../utils/note'
@@ -70,7 +70,7 @@ export class CombineNotesCommand extends IronfishCommand {
     }),
     account: Flags.string({
       char: 'f',
-      description: 'The account to send money from',
+      description: 'Name of the account to send money from',
     }),
     benchmark: Flags.boolean({
       hidden: true,
@@ -132,7 +132,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const result = await inputPrompt('Enter the number of notes', true)
+      const result = await ui.inputPrompt('Enter the number of notes', true)
 
       const notesToCombine = parseInt(result)
 
@@ -219,6 +219,7 @@ export class CombineNotesCommand extends IronfishCommand {
     const { flags } = await this.parse(CombineNotesCommand)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     let to = flags.to
     let from = flags.account
@@ -246,7 +247,7 @@ export class CombineNotesCommand extends IronfishCommand {
     }
 
     if (!assetId) {
-      const asset = await selectAsset(client, from, {
+      const asset = await ui.assetPrompt(client, from, {
         action: 'combine notes for',
         showNativeAsset: true,
         showNonCreatorAsset: true,
@@ -286,7 +287,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const totalAmount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
 
-    const memo = flags.memo ?? (await inputPrompt('Enter the memo (or leave blank)'))
+    const memo = flags.memo ?? (await ui.inputPrompt('Enter the memo (or leave blank)'))
 
     const expiration = await this.calculateExpiration(client, spendPostTime, numberOfNotes)
 
@@ -356,7 +357,7 @@ export class CombineNotesCommand extends IronfishCommand {
       })}`,
     )
 
-    await confirmOrQuit('', flags.confirm)
+    await ui.confirmOrQuit('', flags.confirm)
 
     transactionTimer.start()
 
@@ -449,7 +450,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     if (resultingNotes) {
       this.log('')
-      table(
+      ui.table(
         resultingNotes,
         {
           hash: {

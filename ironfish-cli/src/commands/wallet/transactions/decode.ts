@@ -5,29 +5,28 @@ import {
   ErrorUtils,
   RawTransaction,
   RawTransactionSerde,
-  RpcClient,
   Transaction,
   UnsignedTransaction,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
-import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { longPrompt } from '../../../utils/input'
+import * as ui from '../../../ui'
 import {
   renderRawTransactionDetails,
   renderTransactionDetails,
   renderUnsignedTransactionDetails,
 } from '../../../utils/transaction'
 
-export class TransactionViewCommand extends IronfishCommand {
-  static description = `View transaction details`
+export class TransactionsDecodeCommand extends IronfishCommand {
+  static description = `show an encoded transaction's details`
+  static hiddenAliases = ['wallet:transaction:view']
 
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
       char: 'f',
-      description: 'The name of the account to use to for viewing transaction details',
+      description: 'Name of the account to use to for viewing transaction details',
     }),
     transaction: Flags.string({
       char: 't',
@@ -37,15 +36,16 @@ export class TransactionViewCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(TransactionViewCommand)
+    const { flags } = await this.parse(TransactionsDecodeCommand)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
-    const account = flags.account ?? (await this.selectAccount(client))
+    const account = flags.account ?? (await ui.accountPrompt(client))
 
     let transactionString = flags.transaction
     if (!transactionString) {
-      transactionString = await longPrompt(
+      transactionString = await ui.longPrompt(
         'Enter the hex-encoded transaction, raw transaction, or unsigned transaction to view',
         {
           required: true,
@@ -74,33 +74,6 @@ export class TransactionViewCommand extends IronfishCommand {
     }
 
     this.error('Unable to deserialize transaction input')
-  }
-
-  async selectAccount(client: Pick<RpcClient, 'wallet'>): Promise<string> {
-    const accountsResponse = await client.wallet.getAccounts()
-
-    const choices = []
-    for (const account of accountsResponse.content.accounts) {
-      choices.push({
-        account,
-        value: account,
-      })
-    }
-
-    choices.sort((a, b) => a.account.localeCompare(b.account))
-
-    const selection = await inquirer.prompt<{
-      account: string
-    }>([
-      {
-        name: 'account',
-        message: 'Select account',
-        type: 'list',
-        choices,
-      },
-    ])
-
-    return selection.account
   }
 
   tryDeserializeRawTransaction(transaction: string): RawTransaction | undefined {

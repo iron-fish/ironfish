@@ -26,6 +26,7 @@ pub mod nacl;
 pub mod rolling_filter;
 pub mod signal_catcher;
 pub mod structs;
+pub mod xchacha20poly1305;
 
 #[cfg(feature = "stats")]
 pub mod stats;

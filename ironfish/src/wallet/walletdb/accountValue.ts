@@ -1,19 +1,25 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
+import { KEY_LENGTH, PUBLIC_ADDRESS_LENGTH, xchacha20poly1305 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
-import { ACCOUNT_KEY_LENGTH } from '../account/account'
 import { MultisigKeys } from '../interfaces/multisigKeys'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { MultisigKeysEncoding } from './multisigKeys'
 
-export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
 export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
-export interface AccountValue {
+export type EncryptedAccountValue = {
+  encrypted: true
+  salt: Buffer
+  nonce: Buffer
+  data: Buffer
+}
+
+export type DecryptedAccountValue = {
+  encrypted: false
   version: number
   id: string
   name: string
@@ -28,8 +34,30 @@ export interface AccountValue {
   proofAuthorizingKey: string | null
 }
 
+export type AccountValue = EncryptedAccountValue | DecryptedAccountValue
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   serialize(value: AccountValue): Buffer {
+    if (value.encrypted) {
+      return this.serializeEncrypted(value)
+    } else {
+      return this.serializeDecrypted(value)
+    }
+  }
+
+  serializeEncrypted(value: EncryptedAccountValue): Buffer {
+    const bw = bufio.write(this.getSize(value))
+
+    let flags = 0
+    flags |= Number(!!value.encrypted) << 5
+    bw.writeU8(flags)
+    bw.writeBytes(value.salt)
+    bw.writeBytes(value.nonce)
+    bw.writeVarBytes(value.data)
+
+    return bw.render()
+  }
+
+  serializeDecrypted(value: DecryptedAccountValue): Buffer {
     const bw = bufio.write(this.getSize(value))
     let flags = 0
     flags |= Number(!!value.spendingKey) << 0
@@ -37,6 +65,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     flags |= Number(!!value.multisigKeys) << 2
     flags |= Number(!!value.proofAuthorizingKey) << 3
     flags |= Number(!!value.scanningEnabled) << 4
+    flags |= Number(!!value.encrypted) << 5
+
     bw.writeU8(flags)
     bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
@@ -72,6 +102,35 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   deserialize(buffer: Buffer): AccountValue {
     const reader = bufio.read(buffer, true)
     const flags = reader.readU8()
+    const encrypted = Boolean(flags & (1 << 5))
+
+    if (encrypted) {
+      return this.deserializeEncrypted(buffer)
+    } else {
+      return this.deserializeDecrypted(buffer)
+    }
+  }
+
+  deserializeEncrypted(buffer: Buffer): EncryptedAccountValue {
+    const reader = bufio.read(buffer, true)
+
+    // Skip flags
+    reader.readU8()
+
+    const salt = reader.readBytes(xchacha20poly1305.XSALT_LENGTH)
+    const nonce = reader.readBytes(xchacha20poly1305.XNONCE_LENGTH)
+    const data = reader.readVarBytes()
+    return {
+      encrypted: true,
+      nonce,
+      salt,
+      data,
+    }
+  }
+
+  deserializeDecrypted(buffer: Buffer): DecryptedAccountValue {
+    const reader = bufio.read(buffer, true)
+    const flags = reader.readU8()
     const version = reader.readU16()
     const hasSpendingKey = flags & (1 << 0)
     const hasCreatedAt = flags & (1 << 1)
@@ -104,6 +163,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       : null
 
     return {
+      encrypted: false,
       version,
       id,
       name,
@@ -120,6 +180,23 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   }
 
   getSize(value: AccountValue): number {
+    if (value.encrypted) {
+      return this.getSizeEncrypted(value)
+    } else {
+      return this.getSizeDecrypted(value)
+    }
+  }
+
+  getSizeEncrypted(value: EncryptedAccountValue): number {
+    let size = 0
+    size += 1 // flags
+    size += xchacha20poly1305.XSALT_LENGTH
+    size += xchacha20poly1305.XNONCE_LENGTH
+    size += bufio.sizeVarBytes(value.data)
+    return size
+  }
+
+  getSizeDecrypted(value: DecryptedAccountValue): number {
     let size = 0
     size += 1 // flags
     size += VERSION_LENGTH

@@ -5,7 +5,7 @@ import { CurrencyUtils, Transaction } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { longPrompt } from '../../../../utils/input'
+import * as ui from '../../../../ui'
 import { MultisigTransactionJson } from '../../../../utils/multisig'
 import { watchTransaction } from '../../../../utils/transaction'
 
@@ -15,9 +15,8 @@ export class MultisigSign extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
-      char: 'f',
-      description: 'Account to use when aggregating signature shares',
-      required: false,
+      char: 'a',
+      description: 'Name of the account to use when aggregating signature shares',
     }),
     signingPackage: Flags.string({
       char: 'p',
@@ -48,14 +47,17 @@ export class MultisigSign extends IronfishCommand {
     const loaded = await MultisigTransactionJson.load(this.sdk.fileSystem, flags.path)
     const options = MultisigTransactionJson.resolveFlags(flags, loaded)
 
+    const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
     let signingPackage = options.signingPackage
     if (!signingPackage) {
-      signingPackage = await longPrompt('Enter the signing package', { required: true })
+      signingPackage = await ui.longPrompt('Enter the signing package', { required: true })
     }
 
     let signatureShares = options.signatureShare
     if (!signatureShares) {
-      const input = await longPrompt('Enter the signature shares, separated by commas', {
+      const input = await ui.longPrompt('Enter the signature shares, separated by commas', {
         required: true,
       })
       signatureShares = input.split(',')
@@ -63,8 +65,6 @@ export class MultisigSign extends IronfishCommand {
     signatureShares = signatureShares.map((s) => s.trim())
 
     ux.action.start('Signing the multisig transaction')
-
-    const client = await this.connectRpc()
 
     const response = await client.wallet.multisig.aggregateSignatureShares({
       account: flags.account,

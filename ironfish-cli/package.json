@@ -1,6 +1,6 @@
 {
   "name": "ironfish",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "CLI for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
@@ -59,11 +59,10 @@
     "oclif:version": "oclif readme && git add README.md"
   },
   "dependencies": {
-    "@ironfish/rust-nodejs": "2.5.0",
-    "@ironfish/sdk": "2.5.0",
+    "@ironfish/rust-nodejs": "2.6.0",
+    "@ironfish/sdk": "2.6.0",
     "@ledgerhq/hw-transport-node-hid": "6.29.1",
     "@oclif/core": "4.0.11",
-    "@oclif/plugin-autocomplete": "3.1.6",
     "@oclif/plugin-help": "6.2.5",
     "@oclif/plugin-not-found": "3.2.10",
     "@oclif/plugin-warn-if-update-available": "3.1.8",
@@ -98,18 +97,47 @@
     "plugins": [
       "@oclif/plugin-help",
       "@oclif/plugin-not-found",
-      "@oclif/plugin-warn-if-update-available",
-      "@oclif/plugin-autocomplete"
+      "@oclif/plugin-warn-if-update-available"
     ],
     "topics": {
-      "wallet:scanning": {
-        "description": "Turn on or off scanning for accounts"
+      "chain": {
+        "description": "commands for the blockchain"
       },
       "chain:blocks": {
         "description": "commands to look at blocks"
       },
       "chain:assets": {
         "description": "commands to look at assets"
+      },
+      "chain:transactions": {
+        "description": "commands to look at transactions"
+      },
+      "rpc": {
+        "description": "commands for the RPC server"
+      },
+      "miners": {
+        "description": "commands for mining"
+      },
+      "mempool": {
+        "description": "commands for the mempool"
+      },
+      "wallet": {
+        "description": "commands for the wallet"
+      },
+      "wallet:multisig": {
+        "description": "commands for multisig accounts"
+      },
+      "wallet:notes": {
+        "description": "commands for account notes"
+      },
+      "wallet:scanning": {
+        "description": "commands for managing scanning"
+      },
+      "wallet:transactions": {
+        "description": "commands for account transactions"
+      },
+      "workers": {
+        "description": "commands for the worker pool"
       }
     }
   },

@@ -25,6 +25,10 @@ on:
         description: 'AWS:{GIT_SHA}'
         type: boolean
         default: false
+      aws_tag_git_branch:
+        description: 'AWS:{BRANCH}'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -112,6 +116,13 @@ jobs:
       # This is only executed when deploying a new release to mainnet
       - name: Deploy Node Image to AWS:${{ github.ref_name }}
         if: ${{ inputs.aws_tag_mainnet && github.event.ref_type == 'tag'}}
+        run: |
+          docker tag ironfish ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:${{ github.ref_name }}
+          docker push ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:${{ github.ref_name }}
+
+      # Used to deploy images for specific branches
+      - name: Deploy Node Image to AWS:${{ github.ref_name }}
+        if: ${{ inputs.aws_tag_git_branch && github.ref_type == 'branch' }}
         run: |
           docker tag ironfish ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:${{ github.ref_name }}
           docker push ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:${{ github.ref_name }}

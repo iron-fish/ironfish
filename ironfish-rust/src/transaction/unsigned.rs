@@ -5,11 +5,11 @@
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
 use ironfish_frost::{
+    dkg::round3::PublicKeyPackage,
     frost::{
         aggregate, round1::SigningCommitments, round2::SignatureShare, Identifier,
         RandomizedParams, Randomizer, SigningPackage as FrostSigningPackage,
     },
-    keys::PublicKeyPackage,
     participant::Identity,
 };
 
@@ -229,7 +229,9 @@ impl UnsignedTransaction {
 
         let serialized_signature = authorizing_group_signature.serialize();
 
-        let transaction = self.add_signature(serialized_signature)?;
+        let mut bytes = [0; 64];
+        bytes.copy_from_slice(&serialized_signature?);
+        let transaction = self.add_signature(bytes)?;
 
         Ok(transaction)
     }

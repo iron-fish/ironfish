@@ -6,8 +6,7 @@ import { AccountImport } from '@ironfish/sdk/src/wallet/exporter'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { inputPrompt } from '../../../../ui'
-import { longPrompt } from '../../../../utils/input'
+import * as ui from '../../../../ui'
 
 export class MultisigCreateDealer extends IronfishCommand {
   static description = `Create a set of multisig accounts from participant identities`
@@ -37,9 +36,12 @@ export class MultisigCreateDealer extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(MultisigCreateDealer)
 
+    const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
     let identities = flags.identity
     if (!identities || identities.length < 2) {
-      const input = await longPrompt(
+      const input = await ui.longPrompt(
         'Enter the identities of all participants, separated by commas',
         {
           required: true,
@@ -55,14 +57,12 @@ export class MultisigCreateDealer extends IronfishCommand {
 
     let minSigners = flags.minSigners
     if (!minSigners) {
-      const input = await inputPrompt('Enter the number of minimum signers', true)
+      const input = await ui.inputPrompt('Enter the number of minimum signers', true)
       minSigners = parseInt(input)
       if (isNaN(minSigners) || minSigners < 2) {
         this.error('Minimum number of signers must be at least 2')
       }
     }
-
-    const client = await this.connectRpc()
 
     const name = await this.getCoordinatorName(client, flags.name?.trim())
 
@@ -130,7 +130,7 @@ export class MultisigCreateDealer extends IronfishCommand {
 
     let name = inputName
     do {
-      name = name ?? (await inputPrompt('Enter a name for the coordinator', true))
+      name = name ?? (await ui.inputPrompt('Enter a name for the coordinator', true))
 
       if (accountNames.has(name)) {
         this.log(`Account with name ${name} already exists`)

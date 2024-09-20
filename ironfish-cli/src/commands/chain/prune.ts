@@ -6,7 +6,7 @@ import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 
 export default class Prune extends IronfishCommand {
-  static description = 'remove unused blocks from the chain'
+  static description = 'delete unused blocks from the blockchain'
 
   static flags = {
     dry: Flags.boolean({

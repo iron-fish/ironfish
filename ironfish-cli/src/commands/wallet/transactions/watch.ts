@@ -4,25 +4,15 @@
 import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import * as ui from '../../../ui'
 import { watchTransaction } from '../../../utils/transaction'
 
-export class WatchTxCommand extends IronfishCommand {
-  static description = `Wait for the status of an account transaction to confirm or expire`
-
-  static flags = {
-    ...RemoteFlags,
-    account: Flags.string({
-      char: 'a',
-      description: 'Name of the account to get transaction details for',
-    }),
-    confirmations: Flags.integer({
-      required: false,
-      description: 'Minimum number of blocks confirmations for a transaction',
-    }),
-  }
+export class TransactionsWatchCommand extends IronfishCommand {
+  static description = `wait for an account transaction to confirm`
+  static hiddenAliases = ['wallet:transaction:watch']
 
   static args = {
-    hash: Args.string({
+    transaction: Args.string({
       required: true,
       description: 'Hash of the transaction',
     }),
@@ -32,13 +22,25 @@ export class WatchTxCommand extends IronfishCommand {
     }),
   }
 
+  static flags = {
+    ...RemoteFlags,
+    account: Flags.string({
+      char: 'a',
+      description: 'Name of the account to get transaction details for',
+    }),
+    confirmations: Flags.integer({
+      description: 'Minimum number of blocks confirmations for a transaction',
+    }),
+  }
+
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(WatchTxCommand)
-    const { hash } = args
+    const { flags, args } = await this.parse(TransactionsWatchCommand)
+    const { transaction: hash } = args
     // TODO: remove account arg
     const account = flags.account ? flags.account : args.account
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     await watchTransaction({
       client,

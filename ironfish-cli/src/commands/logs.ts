@@ -1,23 +1,20 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ConsoleReporterInstance, FullNode, IJSON } from '@ironfish/sdk'
+import { ConsoleReporterInstance, IJSON } from '@ironfish/sdk'
 import { logType } from 'consola'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 
 export default class LogsCommand extends IronfishCommand {
-  static description = 'Tail server logs'
+  static description = 'show node logs'
 
   static flags = {
     ...RemoteFlags,
   }
 
-  node: FullNode | null = null
-
   async start(): Promise<void> {
     await this.parse(LogsCommand)
-
     await this.sdk.client.connect()
 
     const response = this.sdk.client.node.getLogStream()

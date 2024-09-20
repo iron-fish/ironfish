@@ -6,11 +6,11 @@ import { setLogLevelFromConfig } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { ProgressBar, ProgressBarPresets } from '../../ui'
+import { checkWalletUnlocked, ProgressBar, ProgressBarPresets } from '../../ui'
 import { hasUserResponseError } from '../../utils'
 
 export class RescanCommand extends IronfishCommand {
-  static description = `Rescan the blockchain for transactions. Clears wallet disk caches before rescanning.`
+  static description = `resets all accounts balance and rescans`
 
   static flags = {
     ...RemoteFlags,
@@ -35,6 +35,7 @@ export class RescanCommand extends IronfishCommand {
     }
 
     const client = await this.connectRpc(local)
+    await checkWalletUnlocked(client)
 
     ux.action.start('Asking node to start scanning', undefined, {
       stdout: true,

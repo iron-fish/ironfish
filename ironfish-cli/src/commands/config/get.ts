@@ -4,11 +4,11 @@
 import { ConfigOptions } from '@ironfish/sdk'
 import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
+import { JsonFlags, RemoteFlags } from '../../flags'
 import * as ui from '../../ui'
 
 export class GetCommand extends IronfishCommand {
-  static description = `Print out one config value`
+  static description = `show a single config value`
   static enableJsonFlag = true
 
   static args = {
@@ -20,7 +20,7 @@ export class GetCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    [ColorFlagKey]: ColorFlag,
+    ...JsonFlags,
     user: Flags.boolean({
       description: 'Only show config from the users datadir and not overrides',
     }),

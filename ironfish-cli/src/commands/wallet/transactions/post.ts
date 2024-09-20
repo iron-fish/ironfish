@@ -3,14 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { RawTransactionSerde, RpcClient, Transaction } from '@ironfish/sdk'
 import { Args, Flags, ux } from '@oclif/core'
-import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
-import { confirmOrQuit } from '../../ui'
-import { longPrompt } from '../../utils/input'
-import { renderRawTransactionDetails } from '../../utils/transaction'
+import { IronfishCommand } from '../../../command'
+import { RemoteFlags } from '../../../flags'
+import * as ui from '../../../ui'
+import { renderRawTransactionDetails } from '../../../utils/transaction'
 
-export class PostCommand extends IronfishCommand {
-  static summary = 'Post a raw transaction'
+export class TransactionsPostCommand extends IronfishCommand {
+  static summary = 'post a raw transaction'
 
   static description = `Use this command to post a raw transaction.
    The output is a finalized posted transaction.`
@@ -19,12 +18,19 @@ export class PostCommand extends IronfishCommand {
     '$ ironfish wallet:post 618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4...',
   ]
 
+  static hiddenAliases = ['wallet:post']
+
+  static args = {
+    raw_transaction: Args.string({
+      description: 'The raw transaction in hex encoding',
+    }),
+  }
+
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
-      description: 'The account that created the raw transaction',
+      description: 'Name of the account that created the raw transaction',
       char: 'f',
-      required: false,
       deprecated: true,
     }),
     confirm: Flags.boolean({
@@ -38,26 +44,21 @@ export class PostCommand extends IronfishCommand {
     }),
   }
 
-  static args = {
-    transaction: Args.string({
-      description: 'The raw transaction in hex encoding',
-    }),
-  }
-
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(PostCommand)
-    let transaction = args.transaction
+    const { flags, args } = await this.parse(TransactionsPostCommand)
+    let transaction = args.raw_transaction
+
+    const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     if (!transaction) {
-      transaction = await longPrompt('Enter the raw transaction in hex encoding', {
+      transaction = await ui.longPrompt('Enter the raw transaction in hex encoding', {
         required: true,
       })
     }
 
     const serialized = Buffer.from(transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(serialized)
-
-    const client = await this.connectRpc()
 
     const senderAddress = raw.sender()
     if (!senderAddress) {
@@ -73,7 +74,7 @@ export class PostCommand extends IronfishCommand {
 
     await renderRawTransactionDetails(client, raw, account, this.logger)
 
-    await confirmOrQuit('Do you want to post this?', flags.confirm)
+    await ui.confirmOrQuit('Do you want to post this?', flags.confirm)
 
     ux.action.start(`Posting the transaction`)
 

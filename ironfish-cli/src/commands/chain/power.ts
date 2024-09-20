@@ -4,25 +4,26 @@
 import { FileUtils } from '@ironfish/sdk'
 import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { ColorFlag, ColorFlagKey } from '../../flags'
+import { JsonFlags, RemoteFlags } from '../../flags'
 
 export default class Power extends IronfishCommand {
   static description = "show the network's mining power"
   static enableJsonFlag = true
 
-  static flags = {
-    [ColorFlagKey]: ColorFlag,
-    history: Flags.integer({
-      required: false,
-      description:
-        'The number of blocks to look back to calculate the network hashes per second',
-    }),
-  }
-
   static args = {
     block: Args.integer({
       required: false,
       description: 'The sequence of the block to estimate network speed for',
+    }),
+  }
+
+  static flags = {
+    ...RemoteFlags,
+    ...JsonFlags,
+    history: Flags.integer({
+      required: false,
+      description:
+        'The number of blocks to look back to calculate the network hashes per second',
     }),
   }
 

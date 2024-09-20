@@ -97,6 +97,7 @@ export type GetNodeStatusResponse = {
   }
   accounts: {
     enabled: boolean
+    locked: boolean
     scanning?: {
       hash: string
       sequence: number
@@ -236,6 +237,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
           })
           .defined(),
         enabled: yup.boolean().defined(),
+        locked: yup.boolean().defined(),
         scanning: yup
           .object({
             hash: yup.string().defined(),
@@ -366,6 +368,7 @@ async function getStatus(node: FullNode): Promise<GetNodeStatusResponse> {
     },
     accounts: {
       enabled: node.config.get('enableWallet'),
+      locked: node.wallet.locked,
       head: {
         hash: walletHead?.hash.toString('hex') ?? '',
         sequence: walletHead?.sequence ?? -1,

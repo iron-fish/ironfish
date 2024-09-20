@@ -4,12 +4,20 @@
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { importFile, importPipe, longPrompt } from '../../../utils/input'
+import * as ui from '../../../ui'
+import { importFile, importPipe, longPrompt } from '../../../ui/longPrompt'
 
-export class TransactionImportCommand extends IronfishCommand {
-  static description = `Import a transaction into your wallet`
+export class TransactionsImportCommand extends IronfishCommand {
+  static description = `import a transaction into the wallet`
 
-  static hiddenAliases = ['wallet:transaction:add']
+  static hiddenAliases = ['wallet:transaction:add', 'wallet:transaction:import']
+
+  static args = {
+    transaction: Args.string({
+      required: false,
+      description: 'The transaction in hex encoding',
+    }),
+  }
 
   static flags = {
     ...RemoteFlags,
@@ -23,15 +31,8 @@ export class TransactionImportCommand extends IronfishCommand {
     }),
   }
 
-  static args = {
-    transaction: Args.string({
-      required: false,
-      description: 'The transaction in hex encoding',
-    }),
-  }
-
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(TransactionImportCommand)
+    const { flags, args } = await this.parse(TransactionsImportCommand)
     const { transaction: txArg } = args
 
     let transaction
@@ -41,6 +42,9 @@ export class TransactionImportCommand extends IronfishCommand {
         `Your command includes an unexpected argument. Please pass either --path or a hex-encoded transaction`,
       )
     }
+
+    const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     if (txArg) {
       transaction = txArg
@@ -57,7 +61,6 @@ export class TransactionImportCommand extends IronfishCommand {
     }
 
     ux.action.start(`Importing transaction`)
-    const client = await this.connectRpc()
     const response = await client.wallet.addTransaction({
       transaction,
       broadcast: flags.broadcast,

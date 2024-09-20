@@ -6,8 +6,7 @@ import { UnsignedTransaction } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { confirmOrQuit } from '../../../../ui'
-import { longPrompt } from '../../../../utils/input'
+import * as ui from '../../../../ui'
 import { MultisigTransactionJson } from '../../../../utils/multisig'
 import { renderUnsignedTransactionDetails } from '../../../../utils/transaction'
 
@@ -17,14 +16,12 @@ export class CreateSignatureShareCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
-      char: 'f',
-      description: 'The account from which the signature share will be created',
-      required: false,
+      char: 'a',
+      description: 'Name of the account from which the signature share will be created',
     }),
     signingPackage: Flags.string({
       char: 's',
       description: 'The signing package for which the signature share will be created',
-      required: false,
     }),
     confirm: Flags.boolean({
       default: false,
@@ -41,12 +38,13 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     const loaded = await MultisigTransactionJson.load(this.sdk.fileSystem, flags.path)
     const options = MultisigTransactionJson.resolveFlags(flags, loaded)
 
+    const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
     let signingPackageString = options.signingPackage
     if (!signingPackageString) {
-      signingPackageString = await longPrompt('Enter the signing package')
+      signingPackageString = await ui.longPrompt('Enter the signing package')
     }
-
-    const client = await this.connectRpc()
 
     const signingPackage = new multisig.SigningPackage(Buffer.from(signingPackageString, 'hex'))
     const unsignedTransaction = new UnsignedTransaction(
@@ -63,7 +61,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     )
 
     if (!flags.confirm) {
-      await confirmOrQuit('Confirm new signature share creation')
+      await ui.confirmOrQuit('Confirm new signature share creation')
     }
 
     const signatureShareResponse = await client.wallet.multisig.createSignatureShare({

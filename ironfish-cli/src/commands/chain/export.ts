@@ -9,16 +9,7 @@ import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../ui'
 
 export default class Export extends IronfishCommand {
-  static description = 'export the chain to a file'
-
-  static flags = {
-    ...RemoteFlags,
-    path: Flags.string({
-      char: 'p',
-      required: false,
-      description: 'The path to export the chain to',
-    }),
-  }
+  static description = 'export the blockchain to a file'
 
   static args = {
     start: Args.integer({
@@ -29,6 +20,15 @@ export default class Export extends IronfishCommand {
     stop: Args.integer({
       required: false,
       description: 'The sequence to end at (inclusive)',
+    }),
+  }
+
+  static flags = {
+    ...RemoteFlags,
+    path: Flags.string({
+      char: 'p',
+      required: false,
+      description: 'The path to export the chain to',
     }),
   }
 

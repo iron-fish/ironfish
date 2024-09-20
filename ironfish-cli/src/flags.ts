@@ -18,6 +18,7 @@ import { Flags } from '@oclif/core'
 
 export const VerboseFlagKey = 'verbose'
 export const ConfigFlagKey = 'config'
+export const JsonFlagKey = 'json'
 export const ColorFlagKey = 'color'
 export const DataDirFlagKey = 'datadir'
 export const RpcUseIpcFlagKey = 'rpc.ipc'
@@ -37,10 +38,17 @@ export const VerboseFlag = Flags.boolean({
   helpGroup: 'GLOBAL',
 })
 
+export const JsonFlag = Flags.boolean({
+  default: false,
+  description: 'format output as json',
+  helpGroup: 'OUTPUT',
+})
+
 export const ColorFlag = Flags.boolean({
   default: true,
   allowNo: true,
   description: 'Should colorize the output',
+  helpGroup: 'OUTPUT',
 })
 
 export const ConfigFlag = Flags.string({
@@ -60,43 +68,52 @@ export const DataDirFlag = Flags.string({
 export const RpcUseIpcFlag = Flags.boolean({
   default: DEFAULT_USE_RPC_IPC,
   description: 'Connect to the RPC over IPC (default)',
+  helpGroup: 'RPC',
 })
 
 export const RpcUseTcpFlag = Flags.boolean({
   default: DEFAULT_USE_RPC_TCP,
   description: 'Connect to the RPC over TCP',
+  helpGroup: 'RPC',
 })
 
 export const RpcTcpHostFlag = Flags.string({
   description: 'The TCP host to listen for connections on',
+  helpGroup: 'RPC',
 })
 
 export const RpcTcpPortFlag = Flags.integer({
   description: 'The TCP port to listen for connections on',
+  helpGroup: 'RPC',
 })
 
 export const RpcTcpTlsFlag = Flags.boolean({
   default: DEFAULT_USE_RPC_TLS,
   description: 'Encrypt TCP connection to the RPC over TLS',
   allowNo: true,
+  helpGroup: 'RPC',
 })
 
 export const RpcAuthFlag = Flags.string({
   description: 'The RPC auth token',
+  helpGroup: 'RPC',
 })
 
 export const RpcHttpHostFlag = Flags.string({
   description: 'The HTTP host to listen for connections on',
+  helpGroup: 'RPC',
 })
 
 export const RpcHttpPortFlag = Flags.integer({
   description: 'The HTTP port to listen for connections on',
+  helpGroup: 'RPC',
 })
 
 export const RpcUseHttpFlag = Flags.boolean({
   default: DEFAULT_USE_RPC_HTTP,
   description: 'Connect to the RPC over HTTP',
   allowNo: true,
+  helpGroup: 'RPC',
 })
 
 /**
@@ -113,6 +130,15 @@ export const RemoteFlags = {
   [RpcUseHttpFlagKey]: RpcUseHttpFlag,
   [RpcTcpTlsFlagKey]: RpcTcpTlsFlag,
   [RpcAuthFlagKey]: RpcAuthFlag,
+}
+
+/**
+ * Flags to include if your command returns JSON
+ * you must also use enableJsonFlag = true
+ */
+export const JsonFlags = {
+  [JsonFlagKey]: JsonFlag,
+  [ColorFlagKey]: ColorFlag,
 }
 
 export type IronOpts = { minimum?: bigint; flagName: string }

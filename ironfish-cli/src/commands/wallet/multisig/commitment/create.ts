@@ -5,8 +5,7 @@ import { UnsignedTransaction } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { confirmOrQuit } from '../../../../ui'
-import { longPrompt } from '../../../../utils/input'
+import * as ui from '../../../../ui'
 import { MultisigTransactionJson } from '../../../../utils/multisig'
 import { renderUnsignedTransactionDetails } from '../../../../utils/transaction'
 
@@ -16,10 +15,9 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
-      char: 'f',
+      char: 'a',
       description:
-        'The account to use for generating the commitment, must be a multisig participant account',
-      required: false,
+        'Name of the account to use for generating the commitment, must be a multisig participant account',
     }),
     unsignedTransaction: Flags.string({
       char: 'u',
@@ -46,9 +44,12 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     const loaded = await MultisigTransactionJson.load(this.sdk.fileSystem, flags.path)
     const options = MultisigTransactionJson.resolveFlags(flags, loaded)
 
+    const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
     let identities = options.identity
     if (!identities || identities.length < 2) {
-      const input = await longPrompt(
+      const input = await ui.longPrompt(
         'Enter the identities of all participants who will sign the transaction, separated by commas',
         {
           required: true,
@@ -64,12 +65,11 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
 
     let unsignedTransactionInput = options.unsignedTransaction
     if (!unsignedTransactionInput) {
-      unsignedTransactionInput = await longPrompt('Enter the unsigned transaction', {
+      unsignedTransactionInput = await ui.longPrompt('Enter the unsigned transaction', {
         required: true,
       })
     }
 
-    const client = await this.connectRpc()
     const unsignedTransaction = new UnsignedTransaction(
       Buffer.from(unsignedTransactionInput, 'hex'),
     )
@@ -81,7 +81,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
       this.logger,
     )
 
-    await confirmOrQuit('Confirm signing commitment creation', flags.confirm)
+    await ui.confirmOrQuit('Confirm signing commitment creation', flags.confirm)
 
     const response = await client.wallet.multisig.createSigningCommitment({
       account: flags.account,

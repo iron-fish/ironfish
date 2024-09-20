@@ -10,17 +10,17 @@ import {
   RpcAsset,
   TransactionType,
 } from '@ironfish/sdk'
-import { Args, Flags } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { table, TableColumns, TableFlags } from '../../ui'
-import { getAssetsByIDs } from '../../utils'
+import { checkWalletUnlocked, table, TableColumns, TableFlags } from '../../ui'
+import { getAssetsByIDs, useAccount } from '../../utils'
 import { extractChainportDataFromTransaction } from '../../utils/chainport'
 import { Format, TableCols } from '../../utils/table'
 
 const { sort: _, ...tableFlags } = TableFlags
 export class TransactionsCommand extends IronfishCommand {
-  static description = `Display the account transactions`
+  static description = `list the account's transactions`
 
   static flags = {
     ...RemoteFlags,
@@ -29,8 +29,9 @@ export class TransactionsCommand extends IronfishCommand {
       char: 'a',
       description: 'Name of the account to get transactions for',
     }),
-    hash: Flags.string({
+    transaction: Flags.string({
       char: 't',
+      aliases: ['hash'],
       description: 'Transaction hash to get details for',
     }),
     sequence: Flags.integer({
@@ -52,17 +53,8 @@ export class TransactionsCommand extends IronfishCommand {
     }),
   }
 
-  static args = {
-    account: Args.string({
-      required: false,
-      description: 'Name of the account. DEPRECATED: use --account flag',
-    }),
-  }
-
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(TransactionsCommand)
-    // TODO: remove account arg
-    const account = flags.account ? flags.account : args.account
+    const { flags } = await this.parse(TransactionsCommand)
 
     const format: Format =
       flags.csv || flags.output === 'csv'
@@ -72,12 +64,15 @@ export class TransactionsCommand extends IronfishCommand {
         : Format.cli
 
     const client = await this.connectRpc()
+    await checkWalletUnlocked(client)
+
+    const account = await useAccount(client, flags.account)
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
     const response = client.wallet.getAccountTransactionsStream({
       account,
-      hash: flags.hash,
+      hash: flags.transaction,
       sequence: flags.sequence,
       limit: flags.limit,
       offset: flags.offset,

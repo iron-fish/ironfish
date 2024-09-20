@@ -12,8 +12,11 @@ export enum RPC_ERROR_CODES {
   UNAUTHENTICATED = 'unauthenticated',
   NOT_FOUND = 'not-found',
   DUPLICATE_ACCOUNT_NAME = 'duplicate-account-name',
+  DUPLICATE_IDENTITY_NAME = 'duplicate-identity-name',
   IMPORT_ACCOUNT_NAME_REQUIRED = 'import-account-name-required',
   MULTISIG_SECRET_NOT_FOUND = 'multisig-secret-not-found',
+  WALLET_ALREADY_DECRYPTED = 'wallet-already-decrypted',
+  WALLET_ALREADY_ENCRYPTED = 'wallet-already-encrypted',
 }
 
 /**

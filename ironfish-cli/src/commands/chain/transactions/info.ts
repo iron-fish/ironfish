@@ -5,23 +5,23 @@
 import { CurrencyUtils, FileUtils } from '@ironfish/sdk'
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
-import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../../flags'
+import { JsonFlags, RemoteFlags } from '../../../flags'
 import * as ui from '../../../ui'
 
 export class TransactionInfo extends IronfishCommand {
   static description = 'show transaction information'
   static enableJsonFlag = true
 
-  static flags = {
-    ...RemoteFlags,
-    [ColorFlagKey]: ColorFlag,
-  }
-
   static args = {
     hash: Args.string({
       required: true,
       description: 'Hash of the transaction',
     }),
+  }
+
+  static flags = {
+    ...RemoteFlags,
+    ...JsonFlags,
   }
 
   async start(): Promise<unknown> {

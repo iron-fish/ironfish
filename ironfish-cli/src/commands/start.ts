@@ -32,7 +32,7 @@ export const ENABLE_TELEMETRY_CONFIG_KEY = 'enableTelemetry'
 const DEFAULT_ACCOUNT_NAME = 'default'
 
 export default class Start extends IronfishCommand {
-  static description = 'Start the node'
+  static description = 'start the node'
 
   static flags = {
     [RpcUseIpcFlagKey]: { ...RpcUseIpcFlag, allowNo: true } as typeof RpcUseIpcFlag,
@@ -105,7 +105,7 @@ export default class Start extends IronfishCommand {
     }),
     wallet: Flags.boolean({
       allowNo: true,
-      default: true,
+      default: undefined,
       description: `Enable the node's wallet to scan transactions and decrypt notes from the blockchain`,
     }),
   }
@@ -244,6 +244,12 @@ export default class Start extends IronfishCommand {
 
     if (node.internal.get('isFirstRun')) {
       await this.firstRun(node)
+    }
+
+    const encrypted = await node.wallet.accountsEncrypted()
+    if (encrypted) {
+      this.log('Your wallet is encrypted. Run ironfish wallet:unlock to access your accounts')
+      this.log()
     }
 
     await node.start()

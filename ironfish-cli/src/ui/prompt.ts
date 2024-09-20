@@ -5,27 +5,52 @@
 import { ux } from '@oclif/core'
 import inquirer from 'inquirer'
 
-async function _inputPrompt(message: string): Promise<string> {
+async function _inputPrompt(message: string, options?: { password: boolean }): Promise<string> {
   const result: { prompt: string } = await inquirer.prompt({
-    type: 'input',
+    type: options?.password ? 'password' : 'input',
     name: 'prompt',
     message: `${message}:`,
   })
   return result.prompt.trim()
 }
 
-export async function inputPrompt(message: string, required: boolean = false): Promise<string> {
+export async function inputPrompt(
+  message: string,
+  required: boolean = false,
+  options?: { password: boolean },
+): Promise<string> {
   let userInput: string = ''
 
   if (required) {
     while (!userInput) {
-      userInput = await _inputPrompt(message)
+      userInput = await _inputPrompt(message, options)
     }
   } else {
-    userInput = await _inputPrompt(message)
+    userInput = await _inputPrompt(message, options)
   }
 
   return userInput
+}
+
+export async function confirmInputOrQuit(
+  input: string,
+  message?: string,
+  confirm?: boolean,
+): Promise<void> {
+  if (confirm) {
+    return
+  }
+
+  if (!message) {
+    message = `Are you sure? Type ${input} to confirm.`
+  }
+
+  const entered = await inputPrompt(message, true)
+
+  if (entered !== input) {
+    ux.stdout('Operation aborted.')
+    ux.exit(0)
+  }
 }
 
 export async function confirmPrompt(message: string): Promise<boolean> {
@@ -51,4 +76,31 @@ export async function confirmOrQuit(message?: string, confirm?: boolean): Promis
     ux.stdout('Operation aborted.')
     ux.exit(0)
   }
+}
+
+export async function listPrompt<T>(
+  message: string,
+  choices: T[],
+  name: (v: T) => string,
+  alphebetize: boolean = true,
+): Promise<T> {
+  const values = choices.map((v) => ({
+    name: name(v),
+    value: v,
+  }))
+
+  if (alphebetize) {
+    values.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  const selection = await inquirer.prompt<{ prompt: T }>([
+    {
+      name: 'prompt',
+      message: message,
+      type: 'list',
+      choices: values,
+    },
+  ])
+
+  return selection.prompt
 }

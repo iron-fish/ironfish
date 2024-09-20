@@ -17,8 +17,7 @@ import { Flags, ux } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../../flags'
-import { confirmOrQuit, inputPrompt } from '../../../ui'
-import { selectAsset } from '../../../utils'
+import * as ui from '../../../ui'
 import {
   ChainportBridgeTransaction,
   ChainportNetwork,
@@ -44,36 +43,30 @@ export class BridgeCommand extends IronfishCommand {
       description: 'Wait for the transaction to be confirmed on Ironfish',
     }),
     account: Flags.string({
-      char: 'f',
-      description: 'The account to send the asset from',
+      char: 'a',
+      description: 'Name of the account to send the asset from',
     }),
     to: Flags.string({
-      char: 't',
       description: 'The Ethereum public address of the recipient',
     }),
     amount: ValueFlag({
-      char: 'a',
       description: 'The amount of the asset in the major denomination',
       flagName: 'amount',
     }),
     assetId: HexFlag({
-      char: 'i',
       description: 'The identifier for the asset to use when bridging',
     }),
     fee: IronFlag({
-      char: 'o',
       description: 'The fee amount in IRON',
       minimum: 1n,
       flagName: 'fee',
     }),
     feeRate: IronFlag({
-      char: 'r',
       description: 'The fee rate amount in IRON/Kilobyte',
       minimum: 1n,
       flagName: 'fee rate',
     }),
     expiration: Flags.integer({
-      char: 'e',
       description:
         'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
     }),
@@ -87,6 +80,7 @@ export class BridgeCommand extends IronfishCommand {
     const { flags } = await this.parse(BridgeCommand)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
@@ -118,7 +112,7 @@ export class BridgeCommand extends IronfishCommand {
       assetData,
     )
 
-    await confirmOrQuit()
+    await ui.confirmOrQuit()
 
     const postTransaction = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
@@ -177,7 +171,7 @@ export class BridgeCommand extends IronfishCommand {
     }
 
     if (!to) {
-      to = await inputPrompt('Enter the public address of the recipient', true)
+      to = await ui.inputPrompt('Enter the public address of the recipient', true)
     }
 
     if (!isEthereumAddress(to)) {
@@ -191,7 +185,7 @@ export class BridgeCommand extends IronfishCommand {
     const tokens = await fetchChainportVerifiedTokens(networkId)
 
     if (assetId == null) {
-      const asset = await selectAsset(client, from, {
+      const asset = await ui.assetPrompt(client, from, {
         action: 'send',
         showNativeAsset: true,
         showNonCreatorAsset: true,

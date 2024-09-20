@@ -19,7 +19,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class Miner extends IronfishCommand {
-  static description = `Start a miner and subscribe to new blocks for the node`
+  static description = `start a miner`
 
   updateInterval: SetIntervalToken | null = null
 

@@ -8,7 +8,7 @@ import { IronfishCommand } from '../command'
 import { confirmOrQuit } from '../ui'
 
 export default class Reset extends IronfishCommand {
-  static description = 'Reset the node to its initial state'
+  static description = 'reset the node database'
 
   static flags = {
     networkId: Flags.integer({

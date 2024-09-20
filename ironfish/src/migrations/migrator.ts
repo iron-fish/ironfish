@@ -8,9 +8,10 @@ import { Assert } from '../assert'
 import { Logger } from '../logger'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import { StrEnumUtils } from '../utils'
-import { ErrorUtils } from '../utils/error'
 import { MIGRATIONS } from './data'
 import { Database, Migration, MigrationContext } from './migration'
+
+type MigrationStatus = { name: string; applied: boolean }
 
 export class Migrator {
   readonly context: MigrationContext
@@ -172,31 +173,28 @@ export class Migrator {
     logger.info(`Successfully ${dryRun ? 'dry ran' : 'applied'} ${unapplied.length} migrations`)
   }
 
-  async check(): Promise<void> {
+  async status(): Promise<{
+    migrations: MigrationStatus[]
+    unapplied: number
+  }> {
     let unapplied = 0
-
-    this.logger.info('Checking migrations:')
-
+    const migrations: MigrationStatus[] = []
     for (const migration of this.migrations) {
-      process.stdout.write(`  Checking ${migration.name.slice(0, 35)}...`.padEnd(50, ' '))
+      const applied = await this.isApplied(migration)
 
-      try {
-        const applied = await this.isApplied(migration)
-        process.stdout.write(` ${applied ? 'APPLIED' : 'WAITING'}\n`)
+      migrations.push({
+        name: migration.name,
+        applied,
+      })
 
-        if (!applied) {
-          unapplied++
-        }
-      } catch (e) {
-        process.stdout.write(` ERROR\n`)
-        this.logger.error(ErrorUtils.renderError(e, true))
-        throw e
+      if (!applied) {
+        unapplied++
       }
     }
 
-    if (unapplied > 0) {
-      this.logger.info('')
-      this.logger.info(`You have ${unapplied} unapplied migrations.`)
+    return {
+      migrations,
+      unapplied,
     }
   }
 }

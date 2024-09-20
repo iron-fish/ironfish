@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { table } from '../../../../ui'
+import * as ui from '../../../../ui'
 
 export class MultisigParticipants extends IronfishCommand {
   static description = 'List out all the participant names and identities'
@@ -14,12 +14,19 @@ export class MultisigParticipants extends IronfishCommand {
 
   async start(): Promise<void> {
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
     const response = await client.wallet.multisig.getIdentities()
 
-    const participants = []
-    for (const { name, identity } of response.content.identities) {
+    const participants: {
+      name: string
+      value: string
+      hasSecret: boolean
+    }[] = []
+    for (const { name, identity, hasSecret } of response.content.identities) {
       participants.push({
         name,
+        hasSecret: hasSecret,
         value: identity,
       })
     }
@@ -27,12 +34,16 @@ export class MultisigParticipants extends IronfishCommand {
     // sort identities by name
     participants.sort((a, b) => a.name.localeCompare(b.name))
 
-    table(
+    ui.table(
       participants,
       {
         name: {
           header: 'Participant Name',
           get: (p) => p.name,
+        },
+        hasSecret: {
+          header: 'Has Secret',
+          get: (p) => (p.hasSecret ? 'Yes' : 'No'),
         },
         identity: {
           header: 'Identity',

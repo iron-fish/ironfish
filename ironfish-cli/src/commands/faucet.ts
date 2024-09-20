@@ -12,7 +12,7 @@ import { inputPrompt } from '../ui'
 const FAUCET_DISABLED = false
 
 export class FaucetCommand extends IronfishCommand {
-  static description = `Receive coins from the Iron Fish official testnet Faucet`
+  static description = 'get coins from the testnet Faucet'
 
   static flags = {
     ...RemoteFlags,

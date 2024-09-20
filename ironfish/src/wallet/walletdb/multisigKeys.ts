@@ -4,7 +4,11 @@
 import bufio from 'bufio'
 import { Assert } from '../../assert'
 import { IDatabaseEncoding } from '../../storage'
-import { MultisigKeys, MultisigSigner } from '../interfaces/multisigKeys'
+import {
+  MultisigHardwareSigner,
+  MultisigKeys,
+  MultisigSigner,
+} from '../interfaces/multisigKeys'
 
 export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
   serialize(value: MultisigKeys): Buffer {
@@ -12,12 +16,15 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
 
     let flags = 0
     flags |= Number(!!isSignerMultisig(value)) << 0
+    flags |= Number(!!isHardwareSignerMultisig(value)) << 1
     bw.writeU8(flags)
 
     bw.writeVarBytes(Buffer.from(value.publicKeyPackage, 'hex'))
     if (isSignerMultisig(value)) {
       bw.writeVarBytes(Buffer.from(value.secret, 'hex'))
       bw.writeVarBytes(Buffer.from(value.keyPackage, 'hex'))
+    } else if (isHardwareSignerMultisig(value)) {
+      bw.writeVarBytes(Buffer.from(value.identity, 'hex'))
     }
 
     return bw.render()
@@ -28,6 +35,7 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
 
     const flags = reader.readU8()
     const isSigner = flags & (1 << 0)
+    const isHardwareSigner = flags & (1 << 1)
 
     const publicKeyPackage = reader.readVarBytes().toString('hex')
     if (isSigner) {
@@ -37,6 +45,12 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
         publicKeyPackage,
         secret,
         keyPackage,
+      }
+    } else if (isHardwareSigner) {
+      const identity = reader.readVarBytes().toString('hex')
+      return {
+        publicKeyPackage,
+        identity,
       }
     }
 
@@ -53,6 +67,8 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
     if (isSignerMultisig(value)) {
       size += bufio.sizeVarString(value.secret, 'hex')
       size += bufio.sizeVarString(value.keyPackage, 'hex')
+    } else if (isHardwareSignerMultisig(value)) {
+      size += bufio.sizeVarString(value.identity, 'hex')
     }
 
     return size
@@ -61,6 +77,12 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
 
 export function isSignerMultisig(multisigKeys: MultisigKeys): multisigKeys is MultisigSigner {
   return 'keyPackage' in multisigKeys && 'secret' in multisigKeys
+}
+
+export function isHardwareSignerMultisig(
+  multisigKeys: MultisigKeys,
+): multisigKeys is MultisigHardwareSigner {
+  return 'identity' in multisigKeys
 }
 
 export function AssertIsSignerMultisig(

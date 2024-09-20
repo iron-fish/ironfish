@@ -2,18 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CurrencyUtils, GetBalanceResponse, isNativeIdentifier, RpcAsset } from '@ironfish/sdk'
-import { Args, Flags } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import * as ui from '../../ui'
-import { renderAssetWithVerificationStatus } from '../../utils'
+import { renderAssetWithVerificationStatus, useAccount } from '../../utils'
 
 export class BalanceCommand extends IronfishCommand {
-  static description =
-    'Display the account balance\n\
-  What is the difference between available to spend balance, and balance?\n\
-  Available to spend balance is your coins from transactions that have been mined on blocks on your main chain.\n\
-  Balance is your coins from all of your transactions, even if they are on forks or not yet included as part of a mined block.'
+  static description = `show the account's balance for an asset
+
+What is the difference between available to spend balance, and balance?\n\
+Available to spend balance is your coins from transactions that have been mined on blocks on your main chain.\n\
+Balance is your coins from all of your transactions, even if they are on forks or not yet included as part of a mined block.`
+
+  static examples = [
+    {
+      description: 'show the balance for $IRON asset',
+      command: 'ironfish wallet:balance',
+    },
+    {
+      description: 'show the balance for $IRON asset',
+      command:
+        'ironfish wallet:balance --assetId 51f33a2f14f92735e562dc658a5639279ddca3d5079a6d1242b2a588a9cbf44c',
+    },
+  ]
 
   static flags = {
     ...RemoteFlags,
@@ -30,28 +42,20 @@ export class BalanceCommand extends IronfishCommand {
       description: 'Also show unconfirmed balance',
     }),
     confirmations: Flags.integer({
-      required: false,
       description: 'Minimum number of blocks confirmations for a transaction',
     }),
     assetId: Flags.string({
-      required: false,
       description: 'Asset identifier to check the balance for',
     }),
   }
 
-  static args = {
-    account: Args.string({
-      required: false,
-      description: 'Name of the account to get balance for. DEPRECATED: use --account flag',
-    }),
-  }
-
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(BalanceCommand)
-    // TODO: remove account arg
-    const account = flags.account ? flags.account : args.account
+    const { flags } = await this.parse(BalanceCommand)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
+    const account = await useAccount(client, flags.account)
 
     const response = await client.wallet.getAccountBalance({
       account,
@@ -90,9 +94,7 @@ export class BalanceCommand extends IronfishCommand {
       this.log(
         ui.card({
           Account: response.content.account,
-          'Head Hash': response.content.blockHash || 'NULL',
-          'Head Sequence': response.content.sequence || 'NULL',
-          Available: renderedAvailable,
+          Balance: renderedAvailable,
           Confirmed: renderedConfirmed,
           Unconfirmed: renderedUnconfirmed,
           Pending: renderedPending,
@@ -104,7 +106,7 @@ export class BalanceCommand extends IronfishCommand {
     this.log(
       ui.card({
         Account: response.content.account,
-        'Available Balance': renderedAvailable,
+        Balance: renderedAvailable,
       }),
     )
   }

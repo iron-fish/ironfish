@@ -6,9 +6,8 @@ use std::collections::{BTreeMap, HashMap};
 
 #[cfg(test)]
 use super::internal_batch_verify_transactions;
-
 use super::{ProposedTransaction, Transaction, TRANSACTION_PUBLIC_KEY_SIZE};
-
+use crate::frost_utils::account_keys::derive_account_keys;
 use crate::test_util::create_multisig_identities;
 use crate::transaction::tests::split_spender_key::split_spender_key;
 use crate::{
@@ -27,6 +26,8 @@ use crate::{
 };
 use ff::Field;
 use group::GroupEncoding;
+use ironfish_frost::dkg::{round1 as round1_dkg, round2 as round2_dkg, round3 as round3_dkg};
+use ironfish_frost::participant::Secret;
 use ironfish_frost::{
     frost::{round2, round2::SignatureShare, Identifier, Randomizer},
     nonces::deterministic_signing_nonces,
@@ -914,4 +915,197 @@ fn test_add_signature_by_building_transaction() {
         .expect("should be able to sign transaction");
 
     verify_transaction(&signed).expect("should be able to verify transaction");
+}
+
+#[test]
+fn test_dkg_signing() {
+    let secret1 = Secret::random(thread_rng());
+    let secret2 = Secret::random(thread_rng());
+    let secret3 = Secret::random(thread_rng());
+    let identity1 = secret1.to_identity();
+    let identity2 = secret2.to_identity();
+    let identity3 = secret3.to_identity();
+    let identities = &[identity1.clone(), identity2.clone(), identity3.clone()];
+
+    let (round1_secret_package_1, package1) = round1_dkg::round1(
+        &identity1,
+        2,
+        [&identity1, &identity2, &identity3],
+        thread_rng(),
+    )
+    .expect("round 1 failed");
+
+    let (round1_secret_package_2, package2) = round1_dkg::round1(
+        &identity2,
+        2,
+        [&identity1, &identity2, &identity3],
+        thread_rng(),
+    )
+    .expect("round 1 failed");
+
+    let (round1_secret_package_3, package3) = round1_dkg::round1(
+        &identity3,
+        2,
+        [&identity1, &identity2, &identity3],
+        thread_rng(),
+    )
+    .expect("round 1 failed");
+
+    let (encrypted_secret_package_1, round2_public_packages_1) = round2_dkg::round2(
+        &secret1,
+        &round1_secret_package_1,
+        [&package1, &package2, &package3],
+        thread_rng(),
+    )
+    .expect("round 2 failed");
+
+    let (encrypted_secret_package_2, round2_public_packages_2) = round2_dkg::round2(
+        &secret2,
+        &round1_secret_package_2,
+        [&package1, &package2, &package3],
+        thread_rng(),
+    )
+    .expect("round 2 failed");
+
+    let (encrypted_secret_package_3, round2_public_packages_3) = round2_dkg::round2(
+        &secret3,
+        &round1_secret_package_3,
+        [&package1, &package2, &package3],
+        thread_rng(),
+    )
+    .expect("round 2 failed");
+
+    let (key_package_1, public_key_package, group_secret_key) = round3_dkg::round3(
+        &secret1,
+        &encrypted_secret_package_1,
+        [&package1, &package2, &package3],
+        [&round2_public_packages_2, &round2_public_packages_3],
+    )
+    .expect("round 3 failed");
+
+    let (key_package_2, _, _) = round3_dkg::round3(
+        &secret2,
+        &encrypted_secret_package_2,
+        [&package1, &package2, &package3],
+        [&round2_public_packages_1, &round2_public_packages_3],
+    )
+    .expect("round 3 failed");
+
+    let (key_package_3, _, _) = round3_dkg::round3(
+        &secret3,
+        &encrypted_secret_package_3,
+        [&package1, &package2, &package3],
+        [&round2_public_packages_1, &round2_public_packages_2],
+    )
+    .expect("round 3 failed");
+
+    let account_keys = derive_account_keys(public_key_package.verifying_key(), &group_secret_key)
+        .expect("account key derivation failed");
+    let public_address = account_keys.public_address;
+
+    // create raw/proposed transaction
+    let in_note = Note::new(public_address, 42, "", NATIVE_ASSET, public_address);
+    let out_note = Note::new(public_address, 40, "", NATIVE_ASSET, public_address);
+    let asset = Asset::new(public_address, "Testcoin", "A really cool coin")
+        .expect("should be able to create an asset");
+    let value = 5;
+    let mint_out_note = Note::new(public_address, value, "", *asset.id(), public_address);
+    let witness = make_fake_witness(&in_note);
+
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
+    transaction
+        .add_spend(in_note, &witness)
+        .expect("add spend to transaction");
+    assert_eq!(transaction.spends.len(), 1);
+    transaction
+        .add_output(out_note)
+        .expect("add output to transaction");
+    assert_eq!(transaction.outputs.len(), 1);
+    transaction
+        .add_mint(asset, value)
+        .expect("add mint to transaction");
+    transaction
+        .add_output(mint_out_note)
+        .expect("add mint output to transaction");
+
+    let intended_fee = 1;
+    transaction
+        .add_change_notes(Some(public_address), public_address, intended_fee)
+        .expect("should be able to add change notes");
+
+    // build UnsignedTransaction without signing
+    let mut unsigned_transaction = transaction
+        .build(
+            account_keys.proof_authorizing_key,
+            account_keys.view_key,
+            account_keys.outgoing_viewing_key,
+            intended_fee,
+            Some(account_keys.public_address),
+        )
+        .expect("should be able to build unsigned transaction");
+
+    let transaction_hash = unsigned_transaction
+        .transaction_signature_hash()
+        .expect("should be able to compute transaction hash");
+
+    let mut commitments = HashMap::new();
+
+    // simulate signing
+    // commitment generation
+    let identity_keypackages = [
+        (identity1, key_package_1),
+        (identity2, key_package_2),
+        (identity3, key_package_3),
+    ];
+    for (identity, key_package) in identity_keypackages.iter() {
+        let nonces = deterministic_signing_nonces(
+            key_package.signing_share(),
+            &transaction_hash,
+            identities,
+        );
+        commitments.insert(identity.clone(), (&nonces).into());
+    }
+
+    let signing_package = unsigned_transaction
+        .signing_package(commitments)
+        .expect("should be able to create signing package");
+
+    // simulate round 2
+    let mut signature_shares: BTreeMap<Identifier, SignatureShare> = BTreeMap::new();
+    let randomizer =
+        Randomizer::deserialize(&unsigned_transaction.public_key_randomness.to_bytes())
+            .expect("should be able to deserialize randomizer");
+
+    for (identity, key_package) in identity_keypackages.iter() {
+        let nonces = deterministic_signing_nonces(
+            key_package.signing_share(),
+            &transaction_hash,
+            identities,
+        );
+        let signature_share = round2::sign(
+            &signing_package.frost_signing_package,
+            &nonces,
+            key_package,
+            randomizer,
+        )
+        .expect("should be able to create signature share");
+        signature_shares.insert(identity.to_frost_identifier(), signature_share);
+    }
+
+    // coordinator creates signed transaction
+    let signed_transaction = unsigned_transaction
+        .aggregate_signature_shares(
+            &public_key_package,
+            &signing_package.frost_signing_package,
+            signature_shares,
+        )
+        .expect("should be able to sign transaction");
+
+    assert_eq!(signed_transaction.spends.len(), 1);
+    assert_eq!(signed_transaction.outputs.len(), 3);
+    assert_eq!(signed_transaction.mints.len(), 1);
+    assert_eq!(signed_transaction.burns.len(), 0);
+
+    // verify transaction
+    verify_transaction(&signed_transaction).expect("should be able to verify transaction");
 }

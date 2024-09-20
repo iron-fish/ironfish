@@ -17,8 +17,10 @@ import {
   useTxFixture,
 } from '../../testUtilities'
 import { AsyncUtils } from '../../utils/async'
+import { MasterKey } from '../masterKey'
 import { BalanceValue } from '../walletdb/balanceValue'
 import { Account } from './account'
+import { EncryptedAccount } from './encryptedAccount'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -165,6 +167,76 @@ describe('Accounts', () => {
 
     // record of expired transaction is preserved
     await expect(account.getTransaction(tx.hash())).resolves.toBeDefined()
+  })
+
+  describe('setName', () => {
+    it('should rename an account', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+
+      await account.setName('newName')
+
+      expect(node.wallet.getAccountByName('newName')).toBeDefined()
+    })
+
+    it('should not allow blank names', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+
+      await expect(account.setName('')).rejects.toThrow('Account name cannot be blank')
+      await expect(account.setName('     ')).rejects.toThrow('Account name cannot be blank')
+    })
+
+    it('should throw an error if the passphrase is missing and the wallet is encrypted', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+      await node.wallet.encrypt(passphrase)
+
+      await expect(account.setName('B')).rejects.toThrow()
+    })
+
+    it('should throw an error if there is no master key and the wallet is encrypted', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+      await node.wallet.encrypt(passphrase)
+
+      await expect(account.setName('B')).rejects.toThrow()
+    })
+
+    it('should save the encrypted account if the passphrase is correct and the wallet is encrypted', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+      const newName = 'B'
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+      await node.wallet.encrypt(passphrase)
+
+      await node.wallet.unlock(passphrase)
+      await node.wallet.setName(account, newName)
+      await node.wallet.lock()
+
+      const accountValue = await node.wallet.walletDb.accounts.get(account.id)
+      Assert.isNotUndefined(accountValue)
+      Assert.isTrue(accountValue.encrypted)
+
+      const encryptedAccount = new EncryptedAccount({
+        accountValue,
+        walletDb: node.wallet.walletDb,
+      })
+
+      const masterKey = node.wallet['masterKey']
+      Assert.isNotNull(masterKey)
+      const key = await masterKey.unlock(passphrase)
+      const decryptedAccount = encryptedAccount.decrypt(key)
+
+      expect(decryptedAccount.name).toEqual(newName)
+    })
   })
 
   describe('loadPendingTransactions', () => {
@@ -2594,6 +2666,22 @@ describe('Accounts', () => {
         .map(({ transaction }) => transaction.hash())
         .sort()
       expect(accountTransactionHashes).toEqual(blockTransactionHashes)
+    })
+  })
+
+  describe('encrypt', () => {
+    it('returns an encrypted account that can be decrypted into the original account', async () => {
+      const { node } = nodeTest
+      const account = await useAccountFixture(node.wallet)
+      const passphrase = 'foo'
+
+      const masterKey = MasterKey.generate(passphrase)
+      const key = await masterKey.unlock(passphrase)
+      const encryptedAccount = account.encrypt(masterKey)
+
+      const decryptedAccount = encryptedAccount.decrypt(key)
+
+      expect(account.serialize()).toMatchObject(decryptedAccount.serialize())
     })
   })
 })

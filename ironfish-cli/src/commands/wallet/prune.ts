@@ -4,9 +4,10 @@
 import { NodeUtils, TransactionStatus } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
+import { inputPrompt } from '../../ui'
 
 export default class PruneCommand extends IronfishCommand {
-  static description = 'Removes expired transactions from the wallet'
+  static description = `deletes expired transactions from the wallet`
 
   static flags = {
     dryrun: Flags.boolean({
@@ -39,6 +40,14 @@ export default class PruneCommand extends IronfishCommand {
     const node = await this.sdk.node()
     await NodeUtils.waitForOpen(node)
     ux.action.stop('Done.')
+
+    if (node.wallet.locked) {
+      const passphrase = await inputPrompt('Enter your passphrase to unlock the wallet', true, {
+        password: true,
+      })
+
+      await node.wallet.unlock(passphrase)
+    }
 
     let accounts
     if (flags.account) {

@@ -43,6 +43,24 @@ export class DuplicateAccountNameError extends Error {
   }
 }
 
+export class DuplicateIdentityNameError extends Error {
+  name = this.constructor.name
+
+  constructor(name: string) {
+    super()
+    this.message = `Multisig identity already exists with the name ${name}`
+  }
+}
+
+export class DuplicateIdentityError extends Error {
+  name = this.constructor.name
+
+  constructor(identity: string) {
+    super()
+    this.message = `Multisig participant already exists for the identity ${identity}`
+  }
+}
+
 export class DuplicateSpendingKeyError extends Error {
   name = this.constructor.name
 
@@ -58,5 +76,14 @@ export class DuplicateMultisigSecretNameError extends Error {
   constructor(name: string) {
     super()
     this.message = `Multisig secret already exists with the name ${name}`
+  }
+}
+
+export class AccountDecryptionFailedError extends Error {
+  name = this.constructor.name
+
+  constructor() {
+    super()
+    this.message = 'Failed to decrypt wallet'
   }
 }

@@ -4,13 +4,12 @@
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import * as ui from '../../../ui'
 
 export class ScanningOffCommand extends IronfishCommand {
-  static description = `Turn off scanning for an account. The wallet will no longer scan the blockchain for new account transactions.`
+  static description = `turn off scanning for an account
 
-  static flags = {
-    ...RemoteFlags,
-  }
+The wallet will no longer scan the blockchain for new account transactions.`
 
   static args = {
     account: Args.string({
@@ -19,11 +18,16 @@ export class ScanningOffCommand extends IronfishCommand {
     }),
   }
 
+  static flags = {
+    ...RemoteFlags,
+  }
+
   async start(): Promise<void> {
     const { args } = await this.parse(ScanningOffCommand)
     const { account } = args
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     await client.wallet.setScanning({
       account: account,

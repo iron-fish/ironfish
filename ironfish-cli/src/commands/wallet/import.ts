@@ -10,12 +10,19 @@ import {
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { inputPrompt } from '../../ui'
-import { importFile, importPipe, longPrompt } from '../../utils/input'
+import { checkWalletUnlocked, inputPrompt } from '../../ui'
+import { importFile, importPipe, longPrompt } from '../../ui/longPrompt'
 import { Ledger } from '../../utils/ledger'
 
 export class ImportCommand extends IronfishCommand {
-  static description = `Import an account`
+  static description = `import an account`
+
+  static args = {
+    blob: Args.string({
+      required: false,
+      description: 'The copy-pasted output of wallet:export; or, a raw spending key',
+    }),
+  }
 
   static flags = {
     ...RemoteFlags,
@@ -25,25 +32,18 @@ export class ImportCommand extends IronfishCommand {
       description: 'Rescan the blockchain once the account is imported',
     }),
     path: Flags.string({
-      description: 'the path to the file containing the account to import',
+      description: 'The path to the file containing the account to import',
     }),
     name: Flags.string({
-      description: 'the name to use for the account',
+      description: 'Name to use for the account',
     }),
     createdAt: Flags.integer({
       description: 'Block sequence to begin scanning from for the imported account',
     }),
     ledger: Flags.boolean({
-      description: 'import a view-only account from a ledger device',
+      description: 'Import a view-only account from a ledger device',
       default: false,
       exclusive: ['path'],
-    }),
-  }
-
-  static args = {
-    blob: Args.string({
-      required: false,
-      description: 'The copy-pasted output of wallet:export; or, a raw spending key',
     }),
   }
 
@@ -52,6 +52,7 @@ export class ImportCommand extends IronfishCommand {
     const { blob } = args
 
     const client = await this.connectRpc()
+    await checkWalletUnlocked(client)
 
     let account: string
 
@@ -61,7 +62,7 @@ export class ImportCommand extends IronfishCommand {
       ((flags.path && flags.path.length !== 0) || flags.ledger)
     ) {
       this.error(
-        `Your command includes an unexpected argument. Please pass only 1 of the following: 
+        `Your command includes an unexpected argument. Please pass only 1 of the following:
     1. the output of wallet:export OR
     2. --path to import an account from a file OR
     3. --ledger to import an account from a ledger device`,
@@ -115,11 +116,17 @@ export class ImportCommand extends IronfishCommand {
         if (
           e instanceof RpcRequestError &&
           (e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString() ||
-            e.code === RPC_ERROR_CODES.IMPORT_ACCOUNT_NAME_REQUIRED.toString())
+            e.code === RPC_ERROR_CODES.IMPORT_ACCOUNT_NAME_REQUIRED.toString() ||
+            e.code === RPC_ERROR_CODES.DUPLICATE_IDENTITY_NAME.toString())
         ) {
           const message = 'Enter a name for the account'
 
           if (e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString()) {
+            this.log()
+            this.log(e.codeMessage)
+          }
+
+          if (e.code === RPC_ERROR_CODES.DUPLICATE_IDENTITY_NAME.toString()) {
             this.log()
             this.log(e.codeMessage)
           }

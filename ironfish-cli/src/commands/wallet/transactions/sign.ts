@@ -4,14 +4,17 @@
 
 import { CurrencyUtils, RpcClient, Transaction } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
-import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
-import { longPrompt } from '../../utils/input'
-import { Ledger } from '../../utils/ledger'
-import { renderTransactionDetails, watchTransaction } from '../../utils/transaction'
+import { IronfishCommand } from '../../../command'
+import { RemoteFlags } from '../../../flags'
+import * as ui from '../../../ui'
+import { Ledger } from '../../../utils/ledger'
+import { renderTransactionDetails, watchTransaction } from '../../../utils/transaction'
 
-export class SignTransaction extends IronfishCommand {
-  static description = `Sign an unsigned transaction`
+export class TransactionsSignCommand extends IronfishCommand {
+  static description = `sign an unsigned transaction`
+
+  static hiddenAliases = ['wallet:sign']
+
   static flags = {
     ...RemoteFlags,
     unsignedTransaction: Flags.string({
@@ -34,8 +37,9 @@ export class SignTransaction extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(SignTransaction)
+    const { flags } = await this.parse(TransactionsSignCommand)
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     if (!flags.broadcast && flags.watch) {
       this.error('Cannot use --watch without --broadcast')
@@ -43,7 +47,7 @@ export class SignTransaction extends IronfishCommand {
 
     let unsignedTransaction = flags.unsignedTransaction
     if (!unsignedTransaction) {
-      unsignedTransaction = await longPrompt('Enter the unsigned transaction', {
+      unsignedTransaction = await ui.longPrompt('Enter the unsigned transaction', {
         required: true,
       })
     }

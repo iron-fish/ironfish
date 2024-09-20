@@ -32,13 +32,16 @@ import { BufferUtils } from '../../utils'
 import { BloomFilter } from '../../utils/bloomFilter'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account/account'
+import { EncryptedAccount } from '../account/encryptedAccount'
+import { MasterKey } from '../masterKey'
 import { AccountValue, AccountValueEncoding } from './accountValue'
 import { AssetValue, AssetValueEncoding } from './assetValue'
 import { BalanceValue, BalanceValueEncoding } from './balanceValue'
 import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
+import { MasterKeyValue, MasterKeyValueEncoding } from './masterKeyValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
-import { MultisigSecretValue, MultisigSecretValueEncoding } from './multisigSecretValue'
+import { MultisigIdentityValue, MultisigIdentityValueEncoder } from './multisigIdentityValue'
 import { ParticipantIdentity, ParticipantIdentityEncoding } from './participantIdentity'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
@@ -136,14 +139,19 @@ export class WalletDB {
     value: null
   }>
 
-  multisigSecrets: IDatabaseStore<{
+  multisigIdentities: IDatabaseStore<{
     key: Buffer
-    value: MultisigSecretValue
+    value: MultisigIdentityValue
   }>
 
   participantIdentities: IDatabaseStore<{
     key: [Account['prefix'], Buffer]
     value: ParticipantIdentity
+  }>
+
+  masterKey: IDatabaseStore<{
+    key: 'key'
+    value: MasterKeyValue
   }>
 
   cacheStores: Array<IDatabaseStore<DatabaseSchema>>
@@ -296,10 +304,10 @@ export class WalletDB {
       valueEncoding: NULL_ENCODING,
     })
 
-    this.multisigSecrets = this.db.addStore({
+    this.multisigIdentities = this.db.addStore({
       name: 'ms',
       keyEncoding: new BufferEncoding(),
-      valueEncoding: new MultisigSecretValueEncoding(),
+      valueEncoding: new MultisigIdentityValueEncoder(),
     })
 
     this.participantIdentities = this.db.addStore({
@@ -310,6 +318,12 @@ export class WalletDB {
         4,
       ),
       valueEncoding: new ParticipantIdentityEncoding(),
+    })
+
+    this.masterKey = this.db.addStore({
+      name: 'mk',
+      keyEncoding: new StringEncoding<'key'>(),
+      valueEncoding: new MasterKeyValueEncoding(),
     })
 
     // IDatabaseStores that cache and index decrypted chain data
@@ -341,6 +355,10 @@ export class WalletDB {
 
   async setAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
+      if (await this.accountsEncrypted(tx)) {
+        throw new Error('Cannot save decrypted account when accounts are encrypted')
+      }
+
       await this.accounts.put(account.id, account.serialize(), tx)
 
       const nativeUnconfirmedBalance = await this.balances.get(
@@ -359,6 +377,41 @@ export class WalletDB {
           tx,
         )
       }
+    })
+  }
+
+  async setEncryptedAccount(
+    account: Account,
+    masterKey: MasterKey,
+    tx?: IDatabaseTransaction,
+  ): Promise<EncryptedAccount> {
+    return this.db.withTransaction(tx, async (tx) => {
+      const accountsEncrypted = await this.accountsEncrypted(tx)
+      if (!accountsEncrypted) {
+        throw new Error('Cannot save encrypted account when accounts are decrypted')
+      }
+
+      const encryptedAccount = account.encrypt(masterKey)
+      await this.accounts.put(account.id, encryptedAccount.serialize(), tx)
+
+      const nativeUnconfirmedBalance = await this.balances.get(
+        [account.prefix, Asset.nativeId()],
+        tx,
+      )
+      if (nativeUnconfirmedBalance === undefined) {
+        await this.saveUnconfirmedBalance(
+          account,
+          Asset.nativeId(),
+          {
+            unconfirmed: 0n,
+            blockHash: null,
+            sequence: null,
+          },
+          tx,
+        )
+      }
+
+      return encryptedAccount
     })
   }
 
@@ -391,9 +444,23 @@ export class WalletDB {
     return meta
   }
 
-  async *loadAccounts(tx?: IDatabaseTransaction): AsyncGenerator<AccountValue, void, unknown> {
-    for await (const account of this.accounts.getAllValuesIter(tx)) {
-      yield account
+  async loadMasterKey(tx?: IDatabaseTransaction): Promise<MasterKeyValue | null> {
+    const record = await this.masterKey.get('key', tx)
+    return record ?? null
+  }
+
+  async saveMasterKey(masterKey: MasterKey, tx?: IDatabaseTransaction): Promise<void> {
+    const record = await this.loadMasterKey(tx)
+    Assert.isNull(record)
+
+    await this.masterKey.put('key', { nonce: masterKey.nonce, salt: masterKey.salt }, tx)
+  }
+
+  async *loadAccounts(
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<[string, AccountValue], void, unknown> {
+    for await (const [id, account] of this.accounts.getAllIter(tx)) {
+      yield [id, account]
     }
   }
 
@@ -1186,6 +1253,71 @@ export class WalletDB {
     }
   }
 
+  async encryptAccounts(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.db.withTransaction(tx, async (tx) => {
+      const record = await this.loadMasterKey(tx)
+      Assert.isNull(record)
+
+      const masterKey = MasterKey.generate(passphrase)
+      await this.saveMasterKey(masterKey, tx)
+
+      await masterKey.unlock(passphrase)
+
+      for await (const [id, accountValue] of this.accounts.getAllIter(tx)) {
+        if (accountValue.encrypted) {
+          throw new Error('Wallet is already encrypted')
+        }
+
+        const account = new Account({ accountValue, walletDb: this })
+        const encryptedAccount = account.encrypt(masterKey)
+        await this.accounts.put(id, encryptedAccount.serialize(), tx)
+      }
+
+      await masterKey.destroy()
+    })
+  }
+
+  async decryptAccounts(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.db.withTransaction(tx, async (tx) => {
+      const masterKeyValue = await this.loadMasterKey(tx)
+      Assert.isNotNull(masterKeyValue)
+
+      const masterKey = new MasterKey(masterKeyValue)
+      const key = await masterKey.unlock(passphrase)
+
+      for await (const [id, accountValue] of this.accounts.getAllIter(tx)) {
+        if (!accountValue.encrypted) {
+          throw new Error('Wallet is already decrypted')
+        }
+
+        const encryptedAccount = new EncryptedAccount({
+          accountValue,
+          walletDb: this,
+        })
+        const account = encryptedAccount.decrypt(key)
+        await this.accounts.put(id, account.serialize(), tx)
+      }
+
+      await masterKey.destroy()
+      await this.masterKey.del('key', tx)
+    })
+  }
+
+  async accountsEncrypted(tx?: IDatabaseTransaction): Promise<boolean> {
+    const accountValues: AccountValue[] = []
+    for await (const [_, account] of this.loadAccounts(tx)) {
+      accountValues.push(account)
+    }
+
+    if (accountValues.length === 0) {
+      return false
+    }
+
+    const allEqual = accountValues.every((a) => a.encrypted === accountValues[0].encrypted)
+    Assert.isTrue(allEqual)
+    return accountValues[0].encrypted
+  }
+
   async *loadTransactionsByTime(
     account: Account,
     tx?: IDatabaseTransaction,
@@ -1301,36 +1433,49 @@ export class WalletDB {
     await this.nullifierToTransactionHash.del([account.prefix, nullifier], tx)
   }
 
-  async putMultisigSecret(
+  async putMultisigIdentity(
     identity: Buffer,
-    value: MultisigSecretValue,
+    value: MultisigIdentityValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.multisigSecrets.put(identity, value, tx)
+    await this.multisigIdentities.put(identity, value, tx)
   }
 
-  async getMultisigSecret(
+  async getMultisigIdentity(
     identity: Buffer,
     tx?: IDatabaseTransaction,
-  ): Promise<MultisigSecretValue | undefined> {
-    return this.multisigSecrets.get(identity, tx)
+  ): Promise<MultisigIdentityValue | undefined> {
+    return this.multisigIdentities.get(identity, tx)
   }
 
-  async hasMultisigSecret(identity: Buffer, tx?: IDatabaseTransaction): Promise<boolean> {
-    return (await this.getMultisigSecret(identity, tx)) !== undefined
+  async hasMultisigIdentity(identity: Buffer, tx?: IDatabaseTransaction): Promise<boolean> {
+    return (await this.getMultisigIdentity(identity, tx)) !== undefined
   }
 
-  async deleteMultisigSecret(identity: Buffer, tx?: IDatabaseTransaction): Promise<void> {
-    await this.multisigSecrets.del(identity, tx)
+  async deleteMultisigIdentity(identity: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+    await this.multisigIdentities.del(identity, tx)
+  }
+
+  async getMultisigIdentityByName(
+    name: string,
+    tx?: IDatabaseTransaction,
+  ): Promise<Buffer | undefined> {
+    for await (const [identity, value] of this.multisigIdentities.getAllIter(tx)) {
+      if (value.name === name) {
+        return identity
+      }
+    }
+
+    return undefined
   }
 
   async getMultisigSecretByName(
     name: string,
     tx?: IDatabaseTransaction,
-  ): Promise<MultisigSecretValue | undefined> {
-    for await (const value of this.multisigSecrets.getAllValuesIter(tx)) {
+  ): Promise<Buffer | undefined> {
+    for await (const value of this.multisigIdentities.getAllValuesIter(tx)) {
       if (value.name === name) {
-        return value
+        return value.secret
       }
     }
 
@@ -1338,11 +1483,13 @@ export class WalletDB {
   }
 
   async hasMultisigSecretName(name: string, tx?: IDatabaseTransaction): Promise<boolean> {
-    return (await this.getMultisigSecretByName(name, tx)) !== undefined
+    return (await this.getMultisigIdentityByName(name, tx)) !== undefined
   }
 
-  async *getMultisigSecrets(tx?: IDatabaseTransaction): AsyncGenerator<MultisigSecretValue> {
-    for await (const value of this.multisigSecrets.getAllValuesIter(tx)) {
+  async *getMultisigIdentities(
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<MultisigIdentityValue> {
+    for await (const value of this.multisigIdentities.getAllValuesIter(tx)) {
       yield value
     }
   }

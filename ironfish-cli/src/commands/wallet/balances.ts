@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferUtils, CurrencyUtils, GetBalancesResponse, RpcAsset } from '@ironfish/sdk'
-import { Args, Flags } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { table, TableColumns, TableFlags } from '../../ui'
-import { compareAssets, renderAssetWithVerificationStatus } from '../../utils'
+import { checkWalletUnlocked, table, TableColumns, TableFlags } from '../../ui'
+import { compareAssets, renderAssetWithVerificationStatus, useAccount } from '../../utils'
 
 type AssetBalancePairs = { asset: RpcAsset; balance: GetBalancesResponse['balances'][number] }
 
 export class BalancesCommand extends IronfishCommand {
-  static description = `Display the account's balances for all assets`
+  static description = `show the account's balance for all assets`
 
   static flags = {
     ...RemoteFlags,
@@ -25,24 +25,17 @@ export class BalancesCommand extends IronfishCommand {
       description: `Also show unconfirmed balance, head hash, and head sequence`,
     }),
     confirmations: Flags.integer({
-      required: false,
       description: 'Minimum number of blocks confirmations for a transaction',
     }),
   }
 
-  static args = {
-    account: Args.string({
-      required: false,
-      description: 'Name of the account to get balances for. DEPRECATED: use --account flag',
-    }),
-  }
-
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(BalancesCommand)
+    const { flags } = await this.parse(BalancesCommand)
     const client = await this.connectRpc()
+    await checkWalletUnlocked(client)
 
-    // TODO: remove account arg
-    const account = flags.account ? flags.account : args.account
+    const account = await useAccount(client, flags.account)
+
     const response = await client.wallet.getAccountBalances({
       account,
       confirmations: flags.confirmations,
@@ -66,7 +59,7 @@ export class BalancesCommand extends IronfishCommand {
 
     let columns: TableColumns<AssetBalancePairs> = {
       assetName: {
-        header: 'Asset Name',
+        header: 'Asset',
         get: ({ asset }) =>
           renderAssetWithVerificationStatus(
             BufferUtils.toHuman(Buffer.from(asset.name, 'hex')),
@@ -76,12 +69,8 @@ export class BalancesCommand extends IronfishCommand {
             },
           ),
       },
-      'asset.id': {
-        header: 'Asset Id',
-        get: ({ asset }) => asset.id,
-      },
       available: {
-        header: 'Available Balance',
+        header: 'Balance',
         get: ({ asset, balance }) =>
           CurrencyUtils.render(balance.available, false, asset.id, asset.verification),
       },
@@ -90,32 +79,28 @@ export class BalancesCommand extends IronfishCommand {
     if (flags.all) {
       columns = {
         ...columns,
-        availableNotes: {
-          header: 'Available Notes',
-          get: ({ balance }) => balance.availableNoteCount,
-        },
         confirmed: {
-          header: 'Confirmed Balance',
+          header: 'Confirmed',
           get: ({ asset, balance }) =>
             CurrencyUtils.render(balance.confirmed, false, asset.id, asset.verification),
         },
         unconfirmed: {
-          header: 'Unconfirmed Balance',
+          header: 'Unconfirmed',
           get: ({ asset, balance }) =>
             CurrencyUtils.render(balance.unconfirmed, false, asset.id, asset.verification),
         },
         pending: {
-          header: 'Pending Balance',
+          header: 'Pending',
           get: ({ asset, balance }) =>
             CurrencyUtils.render(balance.pending, false, asset.id, asset.verification),
         },
-        blockHash: {
-          header: 'Head Hash',
-          get: ({ balance }) => balance.blockHash || 'NULL',
+        availableNotes: {
+          header: 'Notes',
+          get: ({ balance }) => balance.availableNoteCount,
         },
-        sequence: {
-          header: 'Head Sequence',
-          get: ({ balance }) => balance.sequence || 'NULL',
+        'asset.id': {
+          header: 'Asset Id',
+          get: ({ asset }) => asset.id,
         },
       }
     }

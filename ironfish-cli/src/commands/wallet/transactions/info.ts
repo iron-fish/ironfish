@@ -18,11 +18,21 @@ import {
   extractChainportDataFromTransaction,
   fetchChainportNetworkMap,
   getAssetsByIDs,
+  useAccount,
 } from '../../../utils'
 import { getExplorer } from '../../../utils/explorer'
 
-export class TransactionCommand extends IronfishCommand {
-  static description = `Display an account transaction`
+export class TransactionInfoCommand extends IronfishCommand {
+  static description = `show an account transaction's info`
+
+  static hiddenAliases = ['wallet:transaction']
+
+  static args = {
+    transaction: Args.string({
+      required: true,
+      description: 'Hash of the transaction',
+    }),
+  }
 
   static flags = {
     ...RemoteFlags,
@@ -32,24 +42,15 @@ export class TransactionCommand extends IronfishCommand {
     }),
   }
 
-  static args = {
-    hash: Args.string({
-      required: true,
-      description: 'Hash of the transaction',
-    }),
-    account: Args.string({
-      required: false,
-      description: 'Name of the account. DEPRECATED: use --account flag',
-    }),
-  }
-
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(TransactionCommand)
-    const { hash } = args
-    // TODO: remove account arg
-    const account = flags.account ? flags.account : args.account
+    const { flags, args } = await this.parse(TransactionInfoCommand)
+    const { transaction: hash } = args
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
+    const account = await useAccount(client, flags.account)
+
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
     const response = await client.wallet.getAccountTransaction({

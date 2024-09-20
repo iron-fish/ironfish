@@ -42,17 +42,24 @@ import {
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNotesItem } from '../workerPool/tasks/decryptNotes'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
+import { EncryptedAccount } from './account/encryptedAccount'
 import { AssetBalances } from './assetBalances'
 import {
   DuplicateAccountNameError,
+  DuplicateIdentityNameError,
   DuplicateMultisigSecretNameError,
   DuplicateSpendingKeyError,
   MaxMemoLengthError,
   NotEnoughFundsError,
 } from './errors'
+import { isMultisigSignerImport } from './exporter'
 import { AccountImport, validateAccountImport } from './exporter/accountImport'
-import { isMultisigSignerTrustedDealerImport } from './exporter/multisig'
+import {
+  isMultisigHardwareSignerImport,
+  isMultisigSignerTrustedDealerImport,
+} from './exporter/multisig'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
+import { MasterKey } from './masterKey'
 import { ScanState } from './scanner/scanState'
 import { WalletScanner } from './scanner/walletScanner'
 import { AssetValue } from './walletdb/assetValue'
@@ -89,11 +96,14 @@ export type TransactionOutput = {
   assetId: Buffer
 }
 
+export const DEFAULT_UNLOCK_TIMEOUT_MS = 24 * 60 * 60 * 1000
+
 export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
 
-  protected readonly accountById = new Map<string, Account>()
+  readonly accountById = new Map<string, Account>()
+  readonly encryptedAccountById = new Map<string, EncryptedAccount>()
   readonly walletDb: WalletDB
   private readonly logger: Logger
   readonly workerPool: WorkerPool
@@ -102,13 +112,16 @@ export class Wallet {
   private readonly config: Config
   private readonly consensus: Consensus
   readonly networkId: number
+  private masterKey: MasterKey | null
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
   protected isStarted = false
   protected isOpen = false
   protected isSyncingTransactionGossip = false
+  locked: boolean
   protected eventLoopTimeout: SetTimeoutToken | null = null
+  protected lockTimeout: SetTimeoutToken | null
   private readonly createTransactionMutex: Mutex
   private readonly eventLoopAbortController: AbortController
   private eventLoopPromise: Promise<void> | null = null
@@ -142,6 +155,9 @@ export class Wallet {
     this.networkId = networkId
     this.nodeClient = nodeClient || null
     this.rebroadcastAfter = rebroadcastAfter ?? 10
+    this.locked = false
+    this.lockTimeout = null
+    this.masterKey = null
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
 
@@ -208,9 +224,30 @@ export class Wallet {
   }
 
   private async load(): Promise<void> {
-    for await (const accountValue of this.walletDb.loadAccounts()) {
-      const account = new Account({ accountValue, walletDb: this.walletDb })
-      this.accountById.set(account.id, account)
+    this.encryptedAccountById.clear()
+    this.accountById.clear()
+    this.masterKey = null
+
+    const masterKeyValue = await this.walletDb.loadMasterKey()
+    if (masterKeyValue) {
+      this.masterKey = new MasterKey(masterKeyValue)
+    }
+
+    for await (const [id, accountValue] of this.walletDb.loadAccounts()) {
+      if (accountValue.encrypted) {
+        const encryptedAccount = new EncryptedAccount({
+          walletDb: this.walletDb,
+          accountValue,
+        })
+        this.encryptedAccountById.set(id, encryptedAccount)
+
+        this.locked = true
+      } else {
+        const account = new Account({ accountValue, walletDb: this.walletDb })
+        this.accountById.set(account.id, account)
+
+        this.locked = false
+      }
     }
 
     const meta = await this.walletDb.loadAccountsMeta()
@@ -218,6 +255,7 @@ export class Wallet {
   }
 
   private unload(): void {
+    this.encryptedAccountById.clear()
     this.accountById.clear()
 
     this.defaultAccount = null
@@ -242,6 +280,12 @@ export class Wallet {
   }
 
   async stop(): Promise<void> {
+    if (this.masterKey) {
+      await this.masterKey.destroy()
+    }
+
+    this.stopUnlockTimeout()
+
     if (!this.isStarted) {
       return
     }
@@ -264,18 +308,20 @@ export class Wallet {
     const [promise, resolve] = PromiseUtils.split<void>()
     this.eventLoopPromise = promise
 
-    if (!this.scanner.running) {
-      void this.scan()
-    }
+    if (!this.locked) {
+      if (!this.scanner.running) {
+        void this.scan()
+      }
 
-    void this.syncTransactionGossip()
-    await this.cleanupDeletedAccounts()
+      void this.syncTransactionGossip()
+      await this.cleanupDeletedAccounts()
 
-    const head = await this.getLatestHead()
+      const head = await this.getLatestHead()
 
-    if (head) {
-      await this.expireTransactions(head.sequence)
-      await this.rebroadcastTransactions(head.sequence)
+      if (head) {
+        await this.expireTransactions(head.sequence)
+        await this.rebroadcastTransactions(head.sequence)
+      }
     }
 
     if (this.isStarted) {
@@ -326,16 +372,18 @@ export class Wallet {
     options?: {
       resetCreatedAt?: boolean
       resetScanningEnabled?: boolean
+      passphrase?: string
     },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.resetAccounts(options, tx)
   }
 
-  resetAccounts(
+  async resetAccounts(
     options?: {
       resetCreatedAt?: boolean
       resetScanningEnabled?: boolean
+      passphrase?: string
     },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -1169,6 +1217,48 @@ export class Wallet {
     }
   }
 
+  /**
+   * Delete a transaction from all accounts in the wallet if it has not yet been
+   * added to a block
+   */
+  async deleteTransaction(hash: Buffer, tx?: IDatabaseTransaction): Promise<boolean> {
+    let deleted = false
+
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
+      for (const account of this.accountById.values()) {
+        const transactionValue = await account.getTransaction(hash, tx)
+
+        if (transactionValue == null) {
+          continue
+        }
+
+        const transactionStatus = await this.getTransactionStatus(
+          account,
+          transactionValue,
+          undefined,
+          tx,
+        )
+
+        if (
+          transactionStatus === TransactionStatus.CONFIRMED ||
+          transactionStatus === TransactionStatus.UNCONFIRMED
+        ) {
+          return false
+        }
+
+        if (
+          transactionStatus === TransactionStatus.EXPIRED ||
+          transactionStatus === TransactionStatus.PENDING
+        ) {
+          await account.deleteTransaction(transactionValue.transaction, tx)
+          deleted = true
+        }
+      }
+    })
+
+    return deleted
+  }
+
   async getTransactionStatus(
     account: Account,
     transaction: TransactionValue,
@@ -1269,6 +1359,10 @@ export class Wallet {
       setDefault: false,
     },
   ): Promise<Account> {
+    if (!name.trim()) {
+      throw new Error('Account name cannot be blank')
+    }
+
     if (this.getAccountByName(name)) {
       throw new DuplicateAccountNameError(name)
     }
@@ -1288,6 +1382,7 @@ export class Wallet {
 
     const account = new Account({
       accountValue: {
+        encrypted: false,
         version: ACCOUNT_SCHEMA_VERSION,
         id: uuid(),
         name,
@@ -1304,7 +1399,20 @@ export class Wallet {
     })
 
     await this.walletDb.db.transaction(async (tx) => {
-      await this.walletDb.setAccount(account, tx)
+      const accountsEncrypted = await this.walletDb.accountsEncrypted(tx)
+
+      if (accountsEncrypted) {
+        Assert.isNotNull(this.masterKey)
+        const encryptedAccount = await this.walletDb.setEncryptedAccount(
+          account,
+          this.masterKey,
+          tx,
+        )
+        this.encryptedAccountById.set(account.id, encryptedAccount)
+      } else {
+        await this.walletDb.setAccount(account, tx)
+      }
+
       await account.updateHead(createdAt, tx)
     })
 
@@ -1327,23 +1435,31 @@ export class Wallet {
     options?: { createdAt?: number },
   ): Promise<Account> {
     let multisigKeys = accountValue.multisigKeys
+    let secret: Buffer | undefined
+    let identity: Buffer | undefined
     const name = accountValue.name
 
-    if (
-      accountValue.multisigKeys &&
-      isMultisigSignerTrustedDealerImport(accountValue.multisigKeys)
-    ) {
-      const multisigSecret = await this.walletDb.getMultisigSecret(
-        Buffer.from(accountValue.multisigKeys.identity, 'hex'),
-      )
-      if (!multisigSecret) {
-        throw new Error('Cannot import identity without a corresponding multisig secret')
-      }
+    if (accountValue.multisigKeys) {
+      if (isMultisigSignerTrustedDealerImport(accountValue.multisigKeys)) {
+        const multisigIdentity = await this.walletDb.getMultisigIdentity(
+          Buffer.from(accountValue.multisigKeys.identity, 'hex'),
+        )
+        if (!multisigIdentity || !multisigIdentity.secret) {
+          throw new Error('Cannot import identity without a corresponding multisig secret')
+        }
 
-      multisigKeys = {
-        keyPackage: accountValue.multisigKeys.keyPackage,
-        publicKeyPackage: accountValue.multisigKeys.publicKeyPackage,
-        secret: multisigSecret.secret.toString('hex'),
+        multisigKeys = {
+          keyPackage: accountValue.multisigKeys.keyPackage,
+          publicKeyPackage: accountValue.multisigKeys.publicKeyPackage,
+          secret: multisigIdentity.secret.toString('hex'),
+        }
+        secret = multisigIdentity.secret
+        identity = Buffer.from(accountValue.multisigKeys.identity, 'hex')
+      } else if (isMultisigSignerImport(accountValue.multisigKeys)) {
+        secret = Buffer.from(accountValue.multisigKeys.secret, 'hex')
+        identity = new multisig.ParticipantSecret(secret).toIdentity().serialize()
+      } else if (isMultisigHardwareSignerImport(accountValue.multisigKeys)) {
+        identity = Buffer.from(accountValue.multisigKeys.identity, 'hex')
       }
     }
 
@@ -1389,12 +1505,44 @@ export class Wallet {
         name,
         multisigKeys,
         scanningEnabled: true,
+        encrypted: false,
       },
       walletDb: this.walletDb,
     })
 
     await this.walletDb.db.transaction(async (tx) => {
-      await this.walletDb.setAccount(account, tx)
+      const encrypted = await this.walletDb.accountsEncrypted(tx)
+
+      if (encrypted) {
+        Assert.isNotNull(this.masterKey)
+        await this.walletDb.setEncryptedAccount(account, this.masterKey, tx)
+      } else {
+        await this.walletDb.setAccount(account, tx)
+      }
+
+      if (identity) {
+        const existingIdentity = await this.walletDb.getMultisigIdentity(identity, tx)
+
+        if (!existingIdentity) {
+          const duplicateSecret = await this.walletDb.getMultisigSecretByName(
+            accountValue.name,
+            tx,
+          )
+
+          if (duplicateSecret) {
+            throw new DuplicateIdentityNameError(accountValue.name)
+          }
+
+          await this.walletDb.putMultisigIdentity(
+            identity,
+            {
+              name: account.name,
+              secret,
+            },
+            tx,
+          )
+        }
+      }
 
       if (createdAt !== null) {
         const previousBlock = await this.chainGetBlock({ sequence: createdAt.sequence - 1 })
@@ -1419,8 +1567,24 @@ export class Wallet {
     return account
   }
 
+  async setName(account: Account, name: string, tx?: IDatabaseTransaction): Promise<void> {
+    await account.setName(name, { masterKey: this.masterKey }, tx)
+  }
+
+  async setScanningEnabled(
+    account: Account,
+    enabled: boolean,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await account.updateScanningEnabled(enabled, { masterKey: this.masterKey }, tx)
+  }
+
   get accounts(): Account[] {
     return Array.from(this.accountById.values())
+  }
+
+  get encryptedAccounts(): EncryptedAccount[] {
+    return Array.from(this.encryptedAccountById.values())
   }
 
   accountExists(name: string): boolean {
@@ -1441,6 +1605,7 @@ export class Wallet {
         createdAt: options?.resetCreatedAt ? null : account.createdAt,
         scanningEnabled: options?.resetScanningEnabled ? true : account.scanningEnabled,
         id: uuid(),
+        encrypted: false,
       },
       walletDb: this.walletDb,
     })
@@ -1448,7 +1613,19 @@ export class Wallet {
     this.logger.debug(`Resetting account name: ${account.name}, id: ${account.id}`)
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
-      await this.walletDb.setAccount(newAccount, tx)
+      const encrypted = await this.walletDb.accountsEncrypted(tx)
+
+      if (encrypted) {
+        Assert.isNotNull(this.masterKey)
+        const encryptedAccount = await this.walletDb.setEncryptedAccount(
+          newAccount,
+          this.masterKey,
+          tx,
+        )
+        this.encryptedAccountById.set(newAccount.id, encryptedAccount)
+      } else {
+        await this.walletDb.setAccount(newAccount, tx)
+      }
 
       if (newAccount.createdAt !== null) {
         const previousBlock = await this.chainGetBlock({
@@ -1742,7 +1919,7 @@ export class Wallet {
       const secret = multisig.ParticipantSecret.random()
       const identity = secret.toIdentity()
 
-      await this.walletDb.putMultisigSecret(
+      await this.walletDb.putMultisigIdentity(
         identity.serialize(),
         {
           name,
@@ -1753,5 +1930,112 @@ export class Wallet {
 
       return identity.serialize()
     })
+  }
+
+  async accountsEncrypted(): Promise<boolean> {
+    return this.walletDb.accountsEncrypted()
+  }
+
+  async encrypt(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
+    const unlock = await this.createTransactionMutex.lock()
+
+    try {
+      Assert.isNull(this.masterKey)
+      await this.walletDb.encryptAccounts(passphrase, tx)
+      await this.load()
+    } finally {
+      unlock()
+    }
+  }
+
+  async decrypt(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
+    const unlock = await this.createTransactionMutex.lock()
+
+    try {
+      await this.walletDb.decryptAccounts(passphrase, tx)
+      await this.load()
+    } catch (e) {
+      this.logger.error(ErrorUtils.renderError(e, true))
+      throw e
+    } finally {
+      unlock()
+    }
+  }
+
+  async lock(tx?: IDatabaseTransaction): Promise<void> {
+    const unlock = await this.createTransactionMutex.lock()
+
+    try {
+      const encrypted = await this.walletDb.accountsEncrypted(tx)
+      if (!encrypted) {
+        return
+      }
+
+      this.stopUnlockTimeout()
+      this.accountById.clear()
+      this.locked = true
+
+      if (this.masterKey) {
+        await this.masterKey.lock()
+      }
+
+      this.logger.info(
+        'Wallet locked. Unlock the wallet to view your accounts and create transactions',
+      )
+    } finally {
+      unlock()
+    }
+  }
+
+  async unlock(passphrase: string, timeout?: number, tx?: IDatabaseTransaction): Promise<void> {
+    const unlock = await this.createTransactionMutex.lock()
+
+    try {
+      const encrypted = await this.walletDb.accountsEncrypted(tx)
+      if (!encrypted) {
+        return
+      }
+
+      Assert.isNotNull(this.masterKey)
+      const key = await this.masterKey.unlock(passphrase)
+
+      for (const [id, account] of this.encryptedAccountById.entries()) {
+        this.accountById.set(id, account.decrypt(key))
+      }
+
+      this.startUnlockTimeout(timeout)
+      this.locked = false
+    } catch (e) {
+      this.logger.debug('Wallet unlock failed')
+      this.stopUnlockTimeout()
+      this.accountById.clear()
+      this.locked = true
+
+      throw e
+    } finally {
+      unlock()
+    }
+  }
+
+  private startUnlockTimeout(timeout?: number): void {
+    if (!timeout) {
+      timeout = DEFAULT_UNLOCK_TIMEOUT_MS
+    }
+
+    this.stopUnlockTimeout()
+
+    // Keep the wallet unlocked indefinitely
+    if (timeout === -1) {
+      return
+    }
+
+    this.lockTimeout = setTimeout(() => void this.lock(), timeout)
+  }
+
+  private stopUnlockTimeout(): void {
+    if (this.lockTimeout) {
+      clearTimeout(this.lockTimeout)
+      this.lockTimeout = null
+    }
   }
 }

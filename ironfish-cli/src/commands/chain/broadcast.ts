@@ -8,15 +8,15 @@ import { RemoteFlags } from '../../flags'
 export class BroadcastCommand extends IronfishCommand {
   static description = 'broadcast a transaction to the network'
 
-  static flags = {
-    ...RemoteFlags,
-  }
-
   static args = {
     transaction: Args.string({
       required: true,
       description: 'The transaction in hex encoding',
     }),
+  }
+
+  static flags = {
+    ...RemoteFlags,
   }
 
   async start(): Promise<void> {
@@ -26,8 +26,20 @@ export class BroadcastCommand extends IronfishCommand {
     ux.action.start(`Broadcasting transaction`)
     const client = await this.connectRpc()
     const response = await client.chain.broadcastTransaction({ transaction })
-    if (response.content) {
+
+    if (response.content.accepted && response.content.broadcasted) {
       ux.action.stop(`Transaction broadcasted: ${response.content.hash}`)
+    } else {
+      ux.action.stop()
+      this.error(
+        `Transaction broadcast may have failed.${
+          !response.content.accepted ? ' Transaction was not accepted by the node.' : ''
+        }${
+          !response.content.broadcasted
+            ? ' Transaction was not broadcasted to the network.'
+            : ''
+        }`,
+      )
     }
   }
 }

@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { multisig } from '@ironfish/rust-nodejs'
-import { Asset } from '@ironfish/rust-nodejs'
+import { Asset, multisig } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../../assert'
@@ -15,7 +14,8 @@ import { WithNonNull, WithRequired } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
 import { MultisigKeys, MultisigSigner } from '../interfaces/multisigKeys'
-import { AccountValue } from '../walletdb/accountValue'
+import { MasterKey } from '../masterKey'
+import { AccountValueEncoding, DecryptedAccountValue } from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
 import { BalanceValue } from '../walletdb/balanceValue'
 import { DecryptedNoteValue } from '../walletdb/decryptedNoteValue'
@@ -23,6 +23,7 @@ import { HeadValue } from '../walletdb/headValue'
 import { isSignerMultisig } from '../walletdb/multisigKeys'
 import { TransactionValue } from '../walletdb/transactionValue'
 import { WalletDB } from '../walletdb/walletdb'
+import { EncryptedAccount } from './encryptedAccount'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
@@ -76,7 +77,13 @@ export class Account {
   readonly multisigKeys?: MultisigKeys
   readonly proofAuthorizingKey: string | null
 
-  constructor({ accountValue, walletDb }: { accountValue: AccountValue; walletDb: WalletDB }) {
+  constructor({
+    accountValue,
+    walletDb,
+  }: {
+    accountValue: DecryptedAccountValue
+    walletDb: WalletDB
+  }) {
     this.id = accountValue.id
     this.name = accountValue.name
     this.spendingKey = accountValue.spendingKey
@@ -102,8 +109,9 @@ export class Account {
     return this.spendingKey !== null
   }
 
-  serialize(): AccountValue {
+  serialize(): DecryptedAccountValue {
     return {
+      encrypted: false,
       version: this.version,
       id: this.id,
       name: this.name,
@@ -119,10 +127,26 @@ export class Account {
     }
   }
 
-  async setName(name: string, tx?: IDatabaseTransaction): Promise<void> {
+  async setName(
+    name: string,
+    options?: { masterKey: MasterKey | null },
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    if (!name.trim()) {
+      throw new Error('Account name cannot be blank')
+    }
+
+    const walletEncrypted = await this.walletDb.accountsEncrypted(tx)
+
     this.name = name
 
-    await this.walletDb.setAccount(this, tx)
+    if (walletEncrypted) {
+      Assert.isNotUndefined(options)
+      Assert.isNotNull(options?.masterKey)
+      await this.walletDb.setEncryptedAccount(this, options.masterKey, tx)
+    } else {
+      await this.walletDb.setAccount(this, tx)
+    }
   }
 
   async *getNotes(
@@ -934,40 +958,64 @@ export class Account {
     sequence: number | null
   }> {
     const head = await this.getHead()
-    if (!head) {
-      return
+
+    let hasNative = false
+
+    if (head) {
+      const pendingByAsset = await this.getPendingDeltas(head.sequence, tx)
+      const unconfirmedByAsset = await this.getUnconfirmedDeltas(
+        head.sequence,
+        confirmations,
+        tx,
+      )
+
+      for await (const { assetId, balance } of this.walletDb.getUnconfirmedBalances(this, tx)) {
+        const { delta: unconfirmedDelta, count: unconfirmedCount } = unconfirmedByAsset.get(
+          assetId,
+        ) ?? {
+          delta: 0n,
+          count: 0,
+        }
+
+        const { delta: pendingDelta, count: pendingCount } = pendingByAsset.get(assetId) ?? {
+          delta: 0n,
+          count: 0,
+        }
+
+        const { balance: available, noteCount: availableNoteCount } =
+          await this.calculateAvailableBalance(head.sequence, assetId, confirmations, tx)
+
+        if (!hasNative && Asset.nativeId().equals(assetId)) {
+          hasNative = true
+        }
+
+        yield {
+          assetId,
+          unconfirmed: balance.unconfirmed,
+          unconfirmedCount,
+          confirmed: balance.unconfirmed - unconfirmedDelta,
+          pending: balance.unconfirmed + pendingDelta,
+          pendingCount,
+          available,
+          availableNoteCount,
+          blockHash: balance.blockHash,
+          sequence: balance.sequence,
+        }
+      }
     }
 
-    const pendingByAsset = await this.getPendingDeltas(head.sequence, tx)
-    const unconfirmedByAsset = await this.getUnconfirmedDeltas(head.sequence, confirmations, tx)
-
-    for await (const { assetId, balance } of this.walletDb.getUnconfirmedBalances(this, tx)) {
-      const { delta: unconfirmedDelta, count: unconfirmedCount } = unconfirmedByAsset.get(
-        assetId,
-      ) ?? {
-        delta: 0n,
-        count: 0,
-      }
-
-      const { delta: pendingDelta, count: pendingCount } = pendingByAsset.get(assetId) ?? {
-        delta: 0n,
-        count: 0,
-      }
-
-      const { balance: available, noteCount: availableNoteCount } =
-        await this.calculateAvailableBalance(head.sequence, assetId, confirmations, tx)
-
+    if (!hasNative) {
       yield {
-        assetId,
-        unconfirmed: balance.unconfirmed,
-        unconfirmedCount,
-        confirmed: balance.unconfirmed - unconfirmedDelta,
-        pending: balance.unconfirmed + pendingDelta,
-        pendingCount,
-        available,
-        availableNoteCount,
-        blockHash: balance.blockHash,
-        sequence: balance.sequence,
+        assetId: Asset.nativeId(),
+        unconfirmed: 0n,
+        unconfirmedCount: 0,
+        confirmed: 0n,
+        pending: 0n,
+        pendingCount: 0,
+        available: 0n,
+        availableNoteCount: 0,
+        blockHash: head?.hash ?? null,
+        sequence: head?.sequence ?? null,
       }
     }
   }
@@ -1251,10 +1299,20 @@ export class Account {
 
   async updateScanningEnabled(
     scanningEnabled: boolean,
+    options?: { masterKey: MasterKey | null },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
+    const walletEncrypted = await this.walletDb.accountsEncrypted(tx)
+
     this.scanningEnabled = scanningEnabled
-    await this.walletDb.setAccount(this, tx)
+
+    if (walletEncrypted) {
+      Assert.isNotUndefined(options)
+      Assert.isNotNull(options?.masterKey)
+      await this.walletDb.setEncryptedAccount(this, options.masterKey, tx)
+    } else {
+      await this.walletDb.setAccount(this, tx)
+    }
   }
 
   async getTransactionNotes(
@@ -1281,6 +1339,23 @@ export class Account {
     AssertMultisig(this)
     const publicKeyPackage = new multisig.PublicKeyPackage(this.multisigKeys.publicKeyPackage)
     return publicKeyPackage.identities()
+  }
+
+  encrypt(masterKey: MasterKey): EncryptedAccount {
+    const encoder = new AccountValueEncoding()
+    const serialized = encoder.serialize(this.serialize())
+    const derivedKey = masterKey.deriveNewKey()
+    const data = derivedKey.encrypt(serialized)
+
+    return new EncryptedAccount({
+      accountValue: {
+        encrypted: true,
+        data,
+        salt: derivedKey.salt(),
+        nonce: derivedKey.nonce(),
+      },
+      walletDb: this.walletDb,
+    })
   }
 }
 

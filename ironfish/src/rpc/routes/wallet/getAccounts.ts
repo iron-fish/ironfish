@@ -14,6 +14,7 @@ export type GetAccountsResponse = { accounts: string[] }
 export const GetAccountsRequestSchema: yup.ObjectSchema<GetAccountsRequest> = yup
   .object({
     default: yup.boolean().optional(),
+    displayName: yup.boolean().optional(),
   })
   .notRequired()
   .default({})

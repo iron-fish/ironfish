@@ -35,12 +35,18 @@ import type {
   CreateTransactionResponse,
   CreateTrustedDealerKeyPackageRequest,
   CreateTrustedDealerKeyPackageResponse,
+  DecryptWalletRequest,
+  DecryptWalletResponse,
+  DeleteTransactionRequest,
+  DeleteTransactionResponse,
   DkgRound1Request,
   DkgRound1Response,
   DkgRound2Request,
   DkgRound2Response,
   DkgRound3Request,
   DkgRound3Response,
+  EncryptWalletRequest,
+  EncryptWalletResponse,
   EstimateFeeRateRequest,
   EstimateFeeRateResponse,
   EstimateFeeRatesRequest,
@@ -132,9 +138,13 @@ import type {
   GetWorkersStatusRequest,
   GetWorkersStatusResponse,
   ImportAccountRequest,
+  ImportParticipantRequest,
+  ImportParticipantResponse,
   ImportResponse,
   IsValidPublicAddressRequest,
   IsValidPublicAddressResponse,
+  LockWalletRequest,
+  LockWalletResponse,
   MintAssetRequest,
   MintAssetResponse,
   OnGossipRequest,
@@ -166,6 +176,8 @@ import type {
   StopNodeResponse,
   SubmitBlockRequest,
   SubmitBlockResponse,
+  UnlockWalletRequest,
+  UnlockWalletResponse,
   UnsetConfigRequest,
   UnsetConfigResponse,
   UploadConfigRequest,
@@ -261,6 +273,15 @@ export abstract class RpcClient {
       ): Promise<RpcResponseEnded<CreateParticipantResponse>> => {
         return this.request<CreateParticipantResponse>(
           `${ApiNamespace.wallet}/multisig/createParticipant`,
+          params,
+        ).waitForEnd()
+      },
+
+      importParticipant: (
+        params: ImportParticipantRequest,
+      ): Promise<RpcResponseEnded<ImportParticipantResponse>> => {
+        return this.request<ImportParticipantResponse>(
+          `${ApiNamespace.wallet}/multisig/importParticipant`,
           params,
         ).waitForEnd()
       },
@@ -586,6 +607,15 @@ export abstract class RpcClient {
       ).waitForEnd()
     },
 
+    deleteTransaction: (
+      params: DeleteTransactionRequest,
+    ): Promise<RpcResponseEnded<DeleteTransactionResponse>> => {
+      return this.request<DeleteTransactionResponse>(
+        `${ApiNamespace.wallet}/deleteTransaction`,
+        params,
+      ).waitForEnd()
+    },
+
     estimateFeeRates: (
       params?: EstimateFeeRatesRequest,
     ): Promise<RpcResponseEnded<EstimateFeeRatesResponse>> => {
@@ -624,6 +654,38 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<SetScanningResponse>> => {
       return this.request<SetScanningResponse>(
         `${ApiNamespace.wallet}/setScanning`,
+        params,
+      ).waitForEnd()
+    },
+
+    encrypt: (
+      params: EncryptWalletRequest,
+    ): Promise<RpcResponseEnded<EncryptWalletResponse>> => {
+      return this.request<EncryptWalletResponse>(
+        `${ApiNamespace.wallet}/encrypt`,
+        params,
+      ).waitForEnd()
+    },
+
+    decrypt: (
+      params: DecryptWalletRequest,
+    ): Promise<RpcResponseEnded<DecryptWalletResponse>> => {
+      return this.request<DecryptWalletResponse>(
+        `${ApiNamespace.wallet}/decrypt`,
+        params,
+      ).waitForEnd()
+    },
+
+    unlock: (params: UnlockWalletRequest): Promise<RpcResponseEnded<UnlockWalletResponse>> => {
+      return this.request<UnlockWalletResponse>(
+        `${ApiNamespace.wallet}/unlock`,
+        params,
+      ).waitForEnd()
+    },
+
+    lock: (params?: LockWalletRequest): Promise<RpcResponseEnded<LockWalletResponse>> => {
+      return this.request<LockWalletResponse>(
+        `${ApiNamespace.wallet}/lock`,
         params,
       ).waitForEnd()
     },
@@ -962,7 +1024,7 @@ export abstract class RpcClient {
 
     isValidPublicAddress: (
       params: IsValidPublicAddressRequest,
-    ): Promise<RpcResponse<IsValidPublicAddressResponse>> => {
+    ): Promise<RpcResponseEnded<IsValidPublicAddressResponse>> => {
       return this.request<IsValidPublicAddressResponse>(
         `${ApiNamespace.chain}/isValidPublicAddress`,
         params,
@@ -971,7 +1033,7 @@ export abstract class RpcClient {
 
     broadcastTransaction: (
       params: BroadcastTransactionRequest,
-    ): Promise<RpcResponse<BroadcastTransactionResponse>> => {
+    ): Promise<RpcResponseEnded<BroadcastTransactionResponse>> => {
       return this.request<BroadcastTransactionResponse>(
         `${ApiNamespace.chain}/broadcastTransaction`,
         params,
