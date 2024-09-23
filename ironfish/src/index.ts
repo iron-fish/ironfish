@@ -27,5 +27,7 @@ export * from './network'
 export * from './package'
 export * from './platform'
 export * from './primitives'
-export { makeFakeWitness } from './testUtilities'
 export { getFeeRate } from './memPool'
+
+import { makeFakeWitness } from './testUtilities'
+export const testUtilities = { makeFakeWitness }
