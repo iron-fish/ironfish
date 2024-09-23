@@ -5,7 +5,12 @@ import {
   deserializePublicPackage,
   deserializeRound2CombinedPublicPackage,
 } from '@ironfish/rust-nodejs'
-import { AccountFormat, encodeAccountImport, RpcClient } from '@ironfish/sdk'
+import {
+  ACCOUNT_SCHEMA_VERSION,
+  AccountFormat,
+  encodeAccountImport,
+  RpcClient,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
@@ -210,7 +215,7 @@ export class DkgRound3Command extends IronfishCommand {
         publicKeyPackage: publicKeyPackage.toString('hex'),
         identity,
       },
-      version: 4,
+      version: ACCOUNT_SCHEMA_VERSION,
       name: participantName,
       spendingKey: null,
       createdAt: null,
