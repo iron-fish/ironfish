@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  ACCOUNT_SCHEMA_VERSION,
   AccountImport,
   createRootLogger,
   CurrencyUtils,
@@ -135,7 +136,7 @@ export class Ledger {
     }
 
     const accountImport: AccountImport = {
-      version: 4, // ACCOUNT_SCHEMA_VERSION as of 2024-05
+      version: ACCOUNT_SCHEMA_VERSION,
       name: 'ledger',
       viewKey: responseViewKey.viewKey.toString('hex'),
       incomingViewKey: responseViewKey.ivk.toString('hex'),
