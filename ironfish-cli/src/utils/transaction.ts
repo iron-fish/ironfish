@@ -243,20 +243,13 @@ async function _renderTransactionDetails(
       }
       logger.log('')
 
-      const verifiedAssetMetadata = assetLookup[note.assetId].verification
-
       const renderedAmount = CurrencyUtils.render(
         note.value,
         true,
         note.assetId,
-        verifiedAssetMetadata,
+        assetLookup[note.assetId].verification,
       )
       logger.log(`Amount:        ${renderedAmount}`)
-
-      if (verifiedAssetMetadata.status === 'verified') {
-        logger.log(`Asset ID:      ${note.assetId}`)
-      }
-
       logger.log(`Memo:          ${note.memo}`)
       logger.log(`Recipient:     ${note.owner}`)
       logger.log(`Sender:        ${note.sender}`)
@@ -274,20 +267,13 @@ async function _renderTransactionDetails(
       }
       logger.log('')
 
-      const verifiedAssetMetadata = assetLookup[note.assetId].verification
-
       const renderedAmount = CurrencyUtils.render(
         note.value,
         true,
         note.assetId,
-        verifiedAssetMetadata,
+        assetLookup[note.assetId].verification,
       )
       logger.log(`Amount:        ${renderedAmount}`)
-
-      if (verifiedAssetMetadata.status === 'verified') {
-        logger.log(`Asset ID:      ${note.assetId}`)
-      }
-
       logger.log(`Memo:          ${note.memo}`)
       logger.log(`Recipient:     ${note.owner}`)
       logger.log(`Sender:        ${note.sender}`)
