@@ -68,7 +68,7 @@
     "@oclif/plugin-warn-if-update-available": "3.1.8",
     "@types/keccak": "3.0.4",
     "@types/tar": "6.1.1",
-    "@zondax/ledger-ironfish": "https://github.com/iron-fish/ledger-ironfish-js.git#dev",
+    "@zondax/ledger-ironfish": "0.3.0",
     "axios": "1.7.2",
     "bech32": "2.0.0",
     "blessed": "0.1.81",
