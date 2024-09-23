@@ -61,7 +61,7 @@ export class Ledger {
   }
 
   connect = async (dkg = false) => {
-    const transport = await TransportNodeHid.create(3000, 3000)
+    const transport = await TransportNodeHid.create(3000)
 
     if (transport.deviceModel) {
       this.logger.debug(`${transport.deviceModel.productName} found.`)
@@ -174,7 +174,7 @@ export class Ledger {
       throw new Error('Connect to Ledger first')
     }
 
-    this.logger.log('Please approve the request on your ledger device.')
+    this.logger.log('Approve identity request on ledger device.')
 
     const response: ResponseIdentity = await this.tryInstruction(this.app.dkgGetIdentity(index))
 
