@@ -5,11 +5,13 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import {
   assetMetadataWithDefaults,
+  BurnDescription,
   createRootLogger,
   CurrencyUtils,
   GetTransactionNotesResponse,
   GetUnsignedTransactionNotesResponse,
   Logger,
+  MintDescription,
   PromiseUtils,
   RawTransaction,
   RpcAsset,
@@ -19,8 +21,6 @@ import {
   TransactionStatus,
   UnsignedTransaction,
 } from '@ironfish/sdk'
-import { BurnDescription } from '@ironfish/sdk/src/primitives/burnDescription'
-import { MintDescription } from '@ironfish/sdk/src/primitives/mintDescription'
 import { ux } from '@oclif/core'
 import { ProgressBar, ProgressBarPresets } from '../ui'
 import { getAssetsByIDs, getAssetVerificationByIds } from './asset'
