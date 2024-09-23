@@ -8,7 +8,6 @@ import {
   isValidPublicAddress,
   RawTransaction,
   RawTransactionSerde,
-  RpcClient,
   TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
@@ -21,7 +20,7 @@ import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
-import { Ledger } from '../../utils/ledger'
+import { sendTransactionWithLedger } from '../../utils/ledger'
 import { getSpendPostTimeInMs, updateSpendPostTimeInMs } from '../../utils/spendPostTime'
 import {
   displayTransactionSummary,
@@ -259,7 +258,14 @@ export class Send extends IronfishCommand {
     }
 
     if (flags.ledger) {
-      await this.sendTransactionWithLedger(client, raw, from, flags.watch, flags.confirm)
+      await sendTransactionWithLedger(
+        client,
+        raw,
+        from,
+        flags.watch,
+        flags.confirm,
+        this.logger,
+      )
       this.exit(0)
     }
 
@@ -341,85 +347,6 @@ export class Send extends IronfishCommand {
     }
 
     if (flags.watch) {
-      this.log('')
-
-      await watchTransaction({
-        client,
-        logger: this.logger,
-        account: from,
-        hash: transaction.hash().toString('hex'),
-      })
-    }
-  }
-
-  private async sendTransactionWithLedger(
-    client: RpcClient,
-    raw: RawTransaction,
-    from: string | undefined,
-    watch: boolean,
-    confirm: boolean,
-  ): Promise<void> {
-    const ledger = new Ledger(this.logger)
-    try {
-      await ledger.connect()
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
-
-    const publicKey = (await client.wallet.getAccountPublicKey({ account: from })).content
-      .publicKey
-
-    const ledgerPublicKey = await ledger.getPublicAddress()
-
-    if (publicKey !== ledgerPublicKey) {
-      this.error(
-        `The public key on the ledger device does not match the public key of the account '${from}'`,
-      )
-    }
-
-    const buildTransactionResponse = await client.wallet.buildTransaction({
-      account: from,
-      rawTransaction: RawTransactionSerde.serialize(raw).toString('hex'),
-    })
-
-    const unsignedTransaction = buildTransactionResponse.content.unsignedTransaction
-
-    const signature = (await ledger.sign(unsignedTransaction)).toString('hex')
-
-    this.log(`\nSignature: ${signature}`)
-
-    const addSignatureResponse = await client.wallet.addSignature({
-      unsignedTransaction,
-      signature,
-    })
-
-    const signedTransaction = addSignatureResponse.content.transaction
-    const bytes = Buffer.from(signedTransaction, 'hex')
-
-    const transaction = new Transaction(bytes)
-
-    this.log(`\nSigned Transaction: ${signedTransaction}`)
-    this.log(`\nHash: ${transaction.hash().toString('hex')}`)
-    this.log(`Fee: ${CurrencyUtils.render(transaction.fee(), true)}`)
-
-    await ui.confirmOrQuit('', confirm)
-
-    const addTransactionResponse = await client.wallet.addTransaction({
-      transaction: signedTransaction,
-      broadcast: true,
-    })
-
-    if (addTransactionResponse.content.accepted === false) {
-      this.error(
-        `Transaction '${transaction.hash().toString('hex')}' was not accepted into the mempool`,
-      )
-    }
-
-    if (watch) {
       this.log('')
 
       await watchTransaction({
