@@ -291,6 +291,20 @@ export class Ledger {
     return response.publicPackage
   }
 
+  reviewTransaction = async (transaction: string): Promise<Buffer> => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    this.logger.info(
+      'Please review and approve the outputs of this transaction on your ledger device.',
+    )
+
+    const { hash } = await this.tryInstruction(this.app.reviewTransaction(transaction))
+
+    return hash
+  }
+
   dkgGetCommitments = async (transactionHash: string): Promise<Buffer> => {
     if (!this.app) {
       throw new Error('Connect to Ledger first')

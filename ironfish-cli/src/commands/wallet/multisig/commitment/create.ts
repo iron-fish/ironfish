@@ -98,7 +98,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
       await this.createSigningCommitmentWithLedger(
         client,
         participantName,
-        unsignedTransaction.hash(),
+        unsignedTransaction,
         identities,
       )
       return
@@ -121,7 +121,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
   async createSigningCommitmentWithLedger(
     client: RpcClient,
     participantName: string,
-    transactionHash: Buffer,
+    unsignedTransaction: UnsignedTransaction,
     signers: string[],
   ): Promise<void> {
     const ledger = new Ledger(this.logger)
@@ -138,9 +138,13 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
     const identity = identityResponse.content.identity
 
+    const transactionHash = await ledger.reviewTransaction(
+      unsignedTransaction.serialize().toString('hex'),
+    )
+
     const rawCommitments = await ledger.dkgGetCommitments(transactionHash.toString('hex'))
 
-    const sigingCommitment = multisig.SigningCommitment.fromRaw(
+    const signingCommitment = multisig.SigningCommitment.fromRaw(
       identity,
       rawCommitments,
       transactionHash,
@@ -148,7 +152,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     )
 
     this.log('\nCommitment:\n')
-    this.log(sigingCommitment.serialize().toString('hex'))
+    this.log(signingCommitment.serialize().toString('hex'))
 
     this.log()
     this.log('Next step:')
