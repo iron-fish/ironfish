@@ -28,3 +28,6 @@ export * from './package'
 export * from './platform'
 export * from './primitives'
 export { getFeeRate } from './memPool'
+
+import { makeFakeWitness } from './testUtilities'
+export const testUtilities = { makeFakeWitness }
