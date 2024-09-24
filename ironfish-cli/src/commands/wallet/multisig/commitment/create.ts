@@ -1,11 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { UnsignedTransaction } from '@ironfish/sdk'
+import { multisig } from '@ironfish/rust-nodejs'
+import { RpcClient, UnsignedTransaction } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
+import { Ledger } from '../../../../utils/ledger'
 import { MultisigTransactionJson } from '../../../../utils/multisig'
 import { renderUnsignedTransactionDetails } from '../../../../utils/transaction'
 
@@ -36,6 +38,10 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     path: Flags.string({
       description: 'Path to a JSON file containing multisig transaction data',
     }),
+    ledger: Flags.boolean({
+      default: false,
+      description: 'Create signing commitment using a Ledger device',
+    }),
   }
 
   async start(): Promise<void> {
@@ -46,6 +52,11 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
 
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
+
+    let participantName = flags.account
+    if (!participantName) {
+      participantName = await ui.multisigSecretPrompt(client)
+    }
 
     let identities = options.identity
     if (!identities || identities.length < 2) {
@@ -77,20 +88,71 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     await renderUnsignedTransactionDetails(
       client,
       unsignedTransaction,
-      flags.account,
+      participantName,
       this.logger,
     )
 
     await ui.confirmOrQuit('Confirm signing commitment creation', flags.confirm)
 
+    if (flags.ledger) {
+      await this.createSigningCommitmentWithLedger(
+        client,
+        participantName,
+        unsignedTransaction,
+        identities,
+      )
+      return
+    }
+
     const response = await client.wallet.multisig.createSigningCommitment({
-      account: flags.account,
+      account: participantName,
       unsignedTransaction: unsignedTransactionInput,
       signers: identities.map((identity) => ({ identity })),
     })
 
     this.log('\nCommitment:\n')
     this.log(response.content.commitment)
+
+    this.log()
+    this.log('Next step:')
+    this.log('Send the commitment to the multisig account coordinator.')
+  }
+
+  async createSigningCommitmentWithLedger(
+    client: RpcClient,
+    participantName: string,
+    unsignedTransaction: UnsignedTransaction,
+    signers: string[],
+  ): Promise<void> {
+    const ledger = new Ledger(this.logger)
+    try {
+      await ledger.connect(true)
+    } catch (e) {
+      if (e instanceof Error) {
+        this.error(e.message)
+      } else {
+        throw e
+      }
+    }
+
+    const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
+    const identity = identityResponse.content.identity
+
+    const transactionHash = await ledger.reviewTransaction(
+      unsignedTransaction.serialize().toString('hex'),
+    )
+
+    const rawCommitments = await ledger.dkgGetCommitments(transactionHash.toString('hex'))
+
+    const signingCommitment = multisig.SigningCommitment.fromRaw(
+      identity,
+      rawCommitments,
+      transactionHash,
+      signers,
+    )
+
+    this.log('\nCommitment:\n')
+    this.log(signingCommitment.serialize().toString('hex'))
 
     this.log()
     this.log('Next step:')
