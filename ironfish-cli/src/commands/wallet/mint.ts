@@ -151,7 +151,7 @@ This will create tokens and increase supply for a given asset.`
         name = await ui.inputPrompt('Enter the name for the new asset', true)
       }
 
-      if (!metadata) {
+      if (metadata == null) {
         metadata = await ui.inputPrompt('Enter metadata for the new asset')
       }
 
