@@ -23,6 +23,7 @@ import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
+import { sendTransactionWithLedger } from '../../utils/ledger'
 import { watchTransaction } from '../../utils/transaction'
 
 export class Mint extends IronfishCommand {
@@ -101,6 +102,10 @@ This will create tokens and increase supply for a given asset.`
       description:
         'Return a serialized UnsignedTransaction. Use it to create a transaction and build proofs but not post to the network',
       exclusive: ['rawTransaction'],
+    }),
+    ledger: Flags.boolean({
+      default: false,
+      description: 'Mint a transaction using a Ledger device',
     }),
   }
 
@@ -285,6 +290,18 @@ This will create tokens and increase supply for a given asset.`
       flags.confirm,
       assetData,
     )
+
+    if (flags.ledger) {
+      await sendTransactionWithLedger(
+        client,
+        raw,
+        account,
+        flags.watch,
+        flags.confirm,
+        this.logger,
+      )
+      this.exit(0)
+    }
 
     ux.action.start('Sending the transaction')
 
