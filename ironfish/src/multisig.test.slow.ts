@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset, multisig, Note as NativeNote, verifyTransactions } from '@ironfish/rust-nodejs'
+import { makeFakeWitness } from './devUtils'
 import { Note, RawTransaction } from './primitives'
 import { Transaction, TransactionVersion } from './primitives/transaction'
-import { makeFakeWitness } from './devUtils'
 
 describe('multisig', () => {
   describe('dkg', () => {
