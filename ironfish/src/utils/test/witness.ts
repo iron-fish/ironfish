@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Assert } from '../assert'
-import { NoteHasher, Witness } from '../merkletree'
-import { Side } from '../merkletree/merkletree'
-import { WitnessNode } from '../merkletree/witness'
-import { Note } from '../primitives'
-import { NoteEncrypted } from '../primitives/noteEncrypted'
+import { Assert } from '../../assert'
+import { NoteHasher, Witness } from '../../merkletree'
+import { Side } from '../../merkletree/merkletree'
+import { WitnessNode } from '../../merkletree/witness'
+import { Note } from '../../primitives'
+import { NoteEncrypted } from '../../primitives/noteEncrypted'
 
 export function makeFakeWitness(note: Note): Witness<NoteEncrypted, Buffer, Buffer, Buffer> {
   const hasher = new NoteHasher()
