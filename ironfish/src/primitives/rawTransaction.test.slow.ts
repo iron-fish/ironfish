@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
-import { makeFakeWitness, useAccountFixture, useTxFixture } from '../testUtilities'
+import { useAccountFixture, useTxFixture } from '../testUtilities'
 import { createNodeTest } from '../testUtilities/nodeTest'
+import { makeFakeWitness } from '../utils/test'
 import { SpendingAccount } from '../wallet'
 import { Note } from './note'
 import { RawTransaction } from './rawTransaction'

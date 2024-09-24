@@ -5,7 +5,6 @@ import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { IsNoteWitnessEqual } from '../merkletree/witness'
-import { makeFakeWitness } from '../testUtilities'
 import {
   useAccountFixture,
   useMinerBlockFixture,
@@ -13,6 +12,7 @@ import {
 } from '../testUtilities/fixtures'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
+import { makeFakeWitness } from '../utils/test'
 import { Note } from './note'
 import { MintData, RawTransaction, RawTransactionSerde } from './rawTransaction'
 import { TransactionVersion } from './transaction'
