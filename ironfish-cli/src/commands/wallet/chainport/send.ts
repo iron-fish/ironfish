@@ -85,7 +85,7 @@ export class BridgeCommand extends IronfishCommand {
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
     if (networkId !== TESTNET.id && networkId !== MAINNET.id) {
-      this.error(`Chainport transactions are only available on testnet.`)
+      this.error(`Chainport transactions are only available on testnet and mainnet.`)
     }
 
     if (!flags.offline) {
