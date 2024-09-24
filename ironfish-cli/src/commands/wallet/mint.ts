@@ -98,7 +98,7 @@ This will create tokens and increase supply for a given asset.`
       description: 'The public address of the account to transfer ownership of this asset to.',
     }),
     transferTo: Flags.string({
-      description: 'transfer all newly minted coins to this public address.',
+      description: 'transfer all newly minted coins to this public address',
     }),
     transferToMemo: Flags.string({
       description: 'The memo of transfer when using transferTo',
