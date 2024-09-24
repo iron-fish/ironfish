@@ -12,7 +12,7 @@ import {
 } from '../testUtilities/fixtures'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
-import { makeFakeWitness } from '../testUtils'
+import { makeFakeWitness } from '../devUtils'
 import { Note } from './note'
 import { MintData, RawTransaction, RawTransactionSerde } from './rawTransaction'
 import { TransactionVersion } from './transaction'

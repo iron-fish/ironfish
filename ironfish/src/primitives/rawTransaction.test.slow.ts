@@ -4,7 +4,7 @@
 import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { useAccountFixture, useTxFixture } from '../testUtilities'
 import { createNodeTest } from '../testUtilities/nodeTest'
-import { makeFakeWitness } from '../testUtils'
+import { makeFakeWitness } from '../devUtils'
 import { SpendingAccount } from '../wallet'
 import { Note } from './note'
 import { RawTransaction } from './rawTransaction'
