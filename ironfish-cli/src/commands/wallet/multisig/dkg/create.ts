@@ -29,7 +29,6 @@ export class DkgCreateCommand extends IronfishCommand {
     ledger: Flags.boolean({
       default: false,
       description: 'Perform operation with a ledger device',
-      hidden: true,
     }),
   }
 
@@ -56,17 +55,21 @@ export class DkgCreateCommand extends IronfishCommand {
     const accountName = await this.getAccountName(client, flags.newAccount)
 
     const { name: participantName, identity } = ledger
-      ? await this.retryStep(() => {
+      ? await ui.retryStep(() => {
           Assert.isNotUndefined(ledger)
           return this.getIdentityFromLedger(ledger, client, flags.participant)
-        })
+        }, this.logger)
       : await this.getParticipant(client, flags.participant)
 
     this.log(`Identity for ${participantName}: \n${identity} \n`)
 
-    const { round1, totalParticipants } = await this.retryStep(async () => {
-      return this.performRound1(client, participantName, identity, ledger)
-    })
+    const { round1, totalParticipants } = await ui.retryStep(
+      async () => {
+        return this.performRound1(client, participantName, identity, ledger)
+      },
+      this.logger,
+      true,
+    )
 
     this.log('\n============================================')
     this.log('\nRound 1 Encrypted Secret Package:')
@@ -78,9 +81,13 @@ export class DkgCreateCommand extends IronfishCommand {
 
     this.log('\nShare your Round 1 Public Package with other participants.')
 
-    const { round2: round2Result, round1PublicPackages } = await this.retryStep(async () => {
-      return this.performRound2(client, participantName, round1, totalParticipants, ledger)
-    })
+    const { round2: round2Result, round1PublicPackages } = await ui.retryStep(
+      async () => {
+        return this.performRound2(client, participantName, round1, totalParticipants, ledger)
+      },
+      this.logger,
+      true,
+    )
 
     this.log('\n============================================')
     this.log('\nRound 2 Encrypted Secret Package:')
@@ -91,17 +98,21 @@ export class DkgCreateCommand extends IronfishCommand {
     this.log('\n============================================')
     this.log('\nShare your Round 2 Public Package with other participants.')
 
-    await this.retryStep(async () => {
-      await this.performRound3(
-        client,
-        accountName,
-        participantName,
-        round2Result,
-        round1PublicPackages,
-        totalParticipants,
-        ledger,
-      )
-    })
+    await ui.retryStep(
+      async () => {
+        return this.performRound3(
+          client,
+          accountName,
+          participantName,
+          round2Result,
+          round1PublicPackages,
+          totalParticipants,
+          ledger,
+        )
+      },
+      this.logger,
+      true,
+    )
 
     this.log('Multisig account created successfully using DKG!')
   }
@@ -166,7 +177,6 @@ export class DkgCreateCommand extends IronfishCommand {
     name: string
     identity: string
   }> {
-    this.log('Getting identity from ledger')
     // TODO(hughy): support multiple identities using index
     const identity = await ledger.dkgGetIdentity(0)
 
@@ -201,18 +211,6 @@ export class DkgCreateCommand extends IronfishCommand {
     }
   }
 
-  private async retryStep<T>(stepFunction: () => Promise<T>): Promise<T> {
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      try {
-        const result = await stepFunction()
-        return result
-      } catch (error) {
-        this.log(`An Error Occurred: ${(error as Error).message}`)
-      }
-    }
-  }
-
   async createParticipant(
     client: RpcClient,
     name: string,
@@ -225,29 +223,6 @@ export class DkgCreateCommand extends IronfishCommand {
       name,
       identity,
     }
-  }
-
-  async collectStrings(
-    item: string,
-    count: number,
-    additionalStrings: string[],
-  ): Promise<string[]> {
-    const array = []
-
-    for (let i = 0; i < count; i++) {
-      const input = await ui.longPrompt(`${item} #${i + 1}`, { required: true })
-      array.push(input)
-    }
-
-    const result = [...array, ...additionalStrings]
-
-    const withoutDuplicates = [...new Set(result)]
-
-    if (withoutDuplicates.length !== result.length) {
-      throw new Error(`Duplicate ${item} found in the list`)
-    }
-
-    return result
   }
 
   async performRound1WithLedger(
@@ -299,9 +274,10 @@ export class DkgCreateCommand extends IronfishCommand {
         totalParticipants - 1
       } identities of all other participants (excluding yours) `,
     )
-    const identities = await this.collectStrings('Identity', totalParticipants - 1, [
-      currentIdentity,
-    ])
+    const identities = await ui.collectStrings('Identity', totalParticipants - 1, {
+      additionalStrings: [currentIdentity],
+      errorOnDuplicate: true,
+    })
 
     input = await ui.inputPrompt('Enter the number of minimum signers', true)
     const minSigners = parseInt(input)
@@ -372,10 +348,14 @@ export class DkgCreateCommand extends IronfishCommand {
     round1PublicPackages: string[]
   }> {
     this.log(`\nEnter ${totalParticipants - 1} Round 1 Public Packages (excluding yours) `)
-    const round1PublicPackages = await this.collectStrings(
+
+    const round1PublicPackages = await ui.collectStrings(
       'Round 1 Public Package',
       totalParticipants - 1,
-      [round1Result.publicPackage],
+      {
+        additionalStrings: [round1Result.publicPackage],
+        errorOnDuplicate: true,
+      },
     )
 
     this.log('\nPerforming DKG Round 2...')
@@ -514,10 +494,13 @@ export class DkgCreateCommand extends IronfishCommand {
   ): Promise<void> {
     this.log(`\nEnter ${totalParticipants - 1} Round 2 Public Packages (excluding yours) `)
 
-    const round2PublicPackages = await this.collectStrings(
+    const round2PublicPackages = await ui.collectStrings(
       'Round 2 Public Package',
       totalParticipants - 1,
-      [round2Result.publicPackage],
+      {
+        additionalStrings: [round2Result.publicPackage],
+        errorOnDuplicate: true,
+      },
     )
 
     if (ledger) {

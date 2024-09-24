@@ -4,6 +4,37 @@
 
 import { ux } from '@oclif/core'
 import inquirer from 'inquirer'
+import { longPrompt } from './longPrompt'
+
+export async function collectStrings(
+  itemName: string,
+  itemAmount: number,
+  options?: {
+    additionalStrings: string[]
+    errorOnDuplicate: boolean
+  },
+): Promise<string[]> {
+  const array = []
+
+  for (let i = 0; i < itemAmount; i++) {
+    const input = await longPrompt(`${itemName} #${i + 1}`, { required: true })
+    array.push(input)
+  }
+
+  const additionalStrings = options?.additionalStrings || []
+
+  const strings = [...array, ...additionalStrings]
+
+  if (!options?.errorOnDuplicate) {
+    const withoutDuplicates = [...new Set(strings)]
+
+    if (withoutDuplicates.length !== strings.length) {
+      throw new Error(`Duplicate ${itemName} found in the list`)
+    }
+  }
+
+  return strings
+}
 
 async function _inputPrompt(message: string, options?: { password: boolean }): Promise<string> {
   const result: { prompt: string } = await inquirer.prompt({
