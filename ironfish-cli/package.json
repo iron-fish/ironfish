@@ -87,9 +87,6 @@
     "tar": "6.1.11",
     "uuid": "8.3.2"
   },
-  "resolutions": {
-    "@zondax/ledger-ironfish/**/@zondax/ledger-js": "^0.2.1"
-  },
   "oclif": {
     "macos": {
       "identifier": "network.ironfish.cli"
