@@ -196,6 +196,12 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     signatureShare: string,
     totalParticipants: number,
   ): Promise<void> {
+    this.log(
+      `Enter ${
+        totalParticipants - 1
+      } signature shares of the participants (excluding your own)`,
+    )
+
     const signatureShares = await ui.collectStrings('Signature Share', totalParticipants - 1, {
       additionalStrings: [signatureShare],
       errorOnDuplicate: true,
@@ -288,6 +294,10 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     identities: string[],
     unsignedTransaction: UnsignedTransaction,
   ) {
+    this.log(
+      `Enter ${identities.length - 1} commitments of the participants (excluding your own)`,
+    )
+
     const commitments = await ui.collectStrings('Commitment', identities.length - 1, {
       additionalStrings: [commitment],
       errorOnDuplicate: true,
@@ -320,8 +330,12 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       this.error('Minimum number of participants must be at least 2')
     }
 
-    const identities = await ui.collectStrings('Identity', totalParticipants, {
-      additionalStrings: [],
+    this.log(
+      `Enter ${totalParticipants - 1} identities of the participants (excluding your own)`,
+    )
+
+    const identities = await ui.collectStrings('Identity', totalParticipants - 1, {
+      additionalStrings: [participant.identity],
       errorOnDuplicate: true,
     })
 
