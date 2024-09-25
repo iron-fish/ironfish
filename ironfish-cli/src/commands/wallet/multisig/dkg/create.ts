@@ -55,10 +55,14 @@ export class DkgCreateCommand extends IronfishCommand {
     const accountName = await this.getAccountName(client, flags.newAccount)
 
     const { name: participantName, identity } = ledger
-      ? await ui.retryStep(() => {
-          Assert.isNotUndefined(ledger)
-          return this.getIdentityFromLedger(ledger, client, flags.participant)
-        }, this.logger)
+      ? await ui.retryStep(
+          () => {
+            Assert.isNotUndefined(ledger)
+            return this.getIdentityFromLedger(ledger, client, flags.participant)
+          },
+          this.logger,
+          true,
+        )
       : await this.getParticipant(client, flags.participant)
 
     this.log(`Identity for ${participantName}: \n${identity} \n`)
