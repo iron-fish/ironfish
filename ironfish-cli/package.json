@@ -70,7 +70,6 @@
     "@types/tar": "6.1.1",
     "@zondax/ledger-ironfish": "0.1.2",
     "@zondax/ledger-ironfish-dkg": "npm:@zondax/ledger-ironfish@0.4.0",
-    "@zondax/ledger-js-dkg": "npm:@zondax/ledger-js@1.0.1",
     "axios": "1.7.2",
     "bech32": "2.0.0",
     "blessed": "0.1.81",
@@ -86,6 +85,10 @@
     "supports-hyperlinks": "2.2.0",
     "tar": "6.1.11",
     "uuid": "8.3.2"
+  },
+  "resolutions": {
+    "@zondax/ledger-ironfish/@zondax/ledger-js": "npm:@zondax/ledger-js@0.2.1",
+    "@zondax/ledger-ironfish-dkg/@zondax/ledger-js": "npm:@zondax/ledger-js@1.0.1"
   },
   "oclif": {
     "macos": {

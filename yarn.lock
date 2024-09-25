@@ -3925,20 +3925,20 @@
   dependencies:
     "@zondax/ledger-js" "^0.2.1"
 
-"@zondax/ledger-js-dkg@npm:@zondax/ledger-js@1.0.1", "@zondax/ledger-js@^1.0.1":
-  name "@zondax/ledger-js-dkg"
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@zondax/ledger-js/-/ledger-js-1.0.1.tgz#a1c51943c5b7d1370cea588b193197234485d196"
-  integrity sha512-9h+aIXyEK+Rdic5Ppsmq+tptDFwPTacG1H6tpZHFdhtBFHYFOLLkKTTmq5rMTv84aAPS1v0tnsF1e2Il6M05Cg==
-  dependencies:
-    "@ledgerhq/hw-transport" "6.31.2"
-
 "@zondax/ledger-js@^0.2.1":
   version "0.2.2"
   resolved "https://registry.yarnpkg.com/@zondax/ledger-js/-/ledger-js-0.2.2.tgz#b334cecaa372a8bfb91ae4fc5dd0d1c52411da4e"
   integrity sha512-7wOUlRF2+kRaRU2KSzKb7XjPfScwEg3Cjg6NH/p+ikQLJ9eMkGC45NhSxYn8lixIIk+TgZ4yzTNOzFvF836gQw==
   dependencies:
     "@ledgerhq/hw-transport" "6.28.1"
+
+"@zondax/ledger-js@^1.0.1":
+  name "@zondax/ledger-js-dkg"
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@zondax/ledger-js/-/ledger-js-1.0.1.tgz#a1c51943c5b7d1370cea588b193197234485d196"
+  integrity sha512-9h+aIXyEK+Rdic5Ppsmq+tptDFwPTacG1H6tpZHFdhtBFHYFOLLkKTTmq5rMTv84aAPS1v0tnsF1e2Il6M05Cg==
+  dependencies:
+    "@ledgerhq/hw-transport" "6.31.2"
 
 JSONStream@^1.0.4:
   version "1.3.5"
