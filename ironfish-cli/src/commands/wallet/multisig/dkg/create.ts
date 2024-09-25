@@ -11,7 +11,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
-import { Ledger } from '../../../../utils/ledger'
+import { LedgerDkg } from '../../../../utils/ledger'
 
 export class DkgCreateCommand extends IronfishCommand {
   static description = 'Interactive command to create a multisignature account using DKG'
@@ -37,12 +37,12 @@ export class DkgCreateCommand extends IronfishCommand {
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
 
-    let ledger: Ledger | undefined = undefined
+    let ledger: LedgerDkg | undefined = undefined
 
     if (flags.ledger) {
-      ledger = new Ledger(this.logger)
+      ledger = new LedgerDkg(this.logger)
       try {
-        await ledger.connect(true)
+        await ledger.connect()
       } catch (e) {
         if (e instanceof Error) {
           this.error(e.message)
@@ -170,7 +170,7 @@ export class DkgCreateCommand extends IronfishCommand {
   }
 
   async getIdentityFromLedger(
-    ledger: Ledger,
+    ledger: LedgerDkg,
     client: RpcClient,
     name?: string,
   ): Promise<{
@@ -226,7 +226,7 @@ export class DkgCreateCommand extends IronfishCommand {
   }
 
   async performRound1WithLedger(
-    ledger: Ledger,
+    ledger: LedgerDkg,
     client: RpcClient,
     participantName: string,
     identities: string[],
@@ -256,7 +256,7 @@ export class DkgCreateCommand extends IronfishCommand {
     client: RpcClient,
     participantName: string,
     currentIdentity: string,
-    ledger: Ledger | undefined,
+    ledger: LedgerDkg | undefined,
   ): Promise<{
     round1: { secretPackage: string; publicPackage: string }
     totalParticipants: number
@@ -316,7 +316,7 @@ export class DkgCreateCommand extends IronfishCommand {
   }
 
   async performRound2WithLedger(
-    ledger: Ledger,
+    ledger: LedgerDkg,
     round1PublicPackages: string[],
     round1SecretPackage: string,
   ): Promise<{
@@ -342,7 +342,7 @@ export class DkgCreateCommand extends IronfishCommand {
     participantName: string,
     round1Result: { secretPackage: string; publicPackage: string },
     totalParticipants: number,
-    ledger: Ledger | undefined,
+    ledger: LedgerDkg | undefined,
   ): Promise<{
     round2: { secretPackage: string; publicPackage: string }
     round1PublicPackages: string[]
@@ -388,7 +388,7 @@ export class DkgCreateCommand extends IronfishCommand {
   }
 
   async performRound3WithLedger(
-    ledger: Ledger,
+    ledger: LedgerDkg,
     client: RpcClient,
     accountName: string,
     participantName: string,
@@ -490,7 +490,7 @@ export class DkgCreateCommand extends IronfishCommand {
     round2Result: { secretPackage: string; publicPackage: string },
     round1PublicPackages: string[],
     totalParticipants: number,
-    ledger: Ledger | undefined,
+    ledger: LedgerDkg | undefined,
   ): Promise<void> {
     this.log(`\nEnter ${totalParticipants - 1} Round 2 Public Packages (excluding yours) `)
 

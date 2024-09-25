@@ -16,7 +16,7 @@ import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
 import { importAccount } from '../../../../utils'
-import { Ledger } from '../../../../utils/ledger'
+import { LedgerDkg } from '../../../../utils/ledger'
 
 export class DkgRound3Command extends IronfishCommand {
   static description = 'Perform round3 of the DKG protocol for multisig account creation'
@@ -149,9 +149,9 @@ export class DkgRound3Command extends IronfishCommand {
     round2PublicPackagesStr: string[],
     round2SecretPackage: string,
   ): Promise<void> {
-    const ledger = new Ledger(this.logger)
+    const ledger = new LedgerDkg(this.logger)
     try {
-      await ledger.connect(true)
+      await ledger.connect()
     } catch (e) {
       if (e instanceof Error) {
         this.error(e.message)

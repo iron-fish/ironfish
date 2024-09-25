@@ -14,7 +14,7 @@ import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import * as ui from '../../../ui'
-import { Ledger } from '../../../utils/ledger'
+import { LedgerDkg } from '../../../utils/ledger'
 import { renderUnsignedTransactionDetails, watchTransaction } from '../../../utils/transaction'
 
 // todo(patnir): this command does not differentiate between a participant and an account.
@@ -50,12 +50,12 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
 
-    let ledger: Ledger | undefined = undefined
+    let ledger: LedgerDkg | undefined = undefined
 
     if (flags.ledger) {
-      ledger = new Ledger(this.logger)
+      ledger = new LedgerDkg(this.logger)
       try {
-        await ledger.connect(true)
+        await ledger.connect()
       } catch (e) {
         if (e instanceof Error) {
           this.error(e.message)
@@ -250,7 +250,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     identity: MultisigParticipant,
     signingPackageString: string,
     unsignedTransaction: UnsignedTransaction,
-    ledger: Ledger | undefined,
+    ledger: LedgerDkg | undefined,
   ): Promise<string> {
     let signatureShare: string
 
@@ -310,7 +310,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     participant: MultisigParticipant,
     unsignedTransaction: UnsignedTransaction,
     unsignedTransactionInput: string,
-    ledger: Ledger | undefined,
+    ledger: LedgerDkg | undefined,
   ) {
     const input = await ui.inputPrompt(
       'Enter the number of participants in signing this transaction',
@@ -353,7 +353,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
   }
 
   async createSigningCommitmentWithLedger(
-    ledger: Ledger,
+    ledger: LedgerDkg,
     participant: MultisigParticipant,
     transactionHash: Buffer,
     signers: string[],
