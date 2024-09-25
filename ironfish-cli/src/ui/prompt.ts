@@ -25,7 +25,7 @@ export async function collectStrings(
 
   const strings = [...array, ...additionalStrings]
 
-  if (!options?.errorOnDuplicate) {
+  if (options?.errorOnDuplicate) {
     const withoutDuplicates = [...new Set(strings)]
 
     if (withoutDuplicates.length !== strings.length) {
