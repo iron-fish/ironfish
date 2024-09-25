@@ -31,7 +31,7 @@ import {
   ResponseViewKey as ResponseViewKeyDkg,
 } from '@zondax/ledger-ironfish-dkg'
 import { default as IronfishDkgApp } from '@zondax/ledger-ironfish-dkg'
-import { ResponseError } from '@zondax/ledger-js-dkg'
+import { ResponseError } from '@zondax/ledger-js'
 import * as ui from '../ui'
 import { watchTransaction } from './transaction'
 
