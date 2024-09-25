@@ -6,7 +6,13 @@ import {
   deserializePublicPackage,
   deserializeRound2CombinedPublicPackage,
 } from '@ironfish/rust-nodejs'
-import { AccountFormat, Assert, encodeAccountImport, RpcClient } from '@ironfish/sdk'
+import {
+  ACCOUNT_SCHEMA_VERSION,
+  AccountFormat,
+  Assert,
+  encodeAccountImport,
+  RpcClient,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
@@ -29,6 +35,9 @@ export class DkgCreateCommand extends IronfishCommand {
     ledger: Flags.boolean({
       default: false,
       description: 'Perform operation with a ledger device',
+    }),
+    createdAt: Flags.integer({
+      description: 'Block sequence to begin scanning from for the created account',
     }),
   }
 
@@ -112,6 +121,7 @@ export class DkgCreateCommand extends IronfishCommand {
           round1PublicPackages,
           totalParticipants,
           ledger,
+          flags.createdAt,
         )
       },
       this.logger,
@@ -403,6 +413,7 @@ export class DkgCreateCommand extends IronfishCommand {
     round1PublicPackagesStr: string[],
     round2PublicPackagesStr: string[],
     round2SecretPackage: string,
+    accountCreatedAt?: number,
   ): Promise<void> {
     const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
     const identity = identityResponse.content.identity
@@ -459,15 +470,16 @@ export class DkgCreateCommand extends IronfishCommand {
         publicKeyPackage: publicKeyPackage.toString('hex'),
         identity,
       },
-      version: 4,
+      version: ACCOUNT_SCHEMA_VERSION,
       name: accountName,
-      spendingKey: null,
       createdAt: null,
+      spendingKey: null,
     }
 
     // Import multisig account
     const response = await client.wallet.importAccount({
       account: encodeAccountImport(accountImport, AccountFormat.Base64Json),
+      createdAt: accountCreatedAt,
     })
 
     this.log()
@@ -499,6 +511,7 @@ export class DkgCreateCommand extends IronfishCommand {
     round1PublicPackages: string[],
     totalParticipants: number,
     ledger: LedgerDkg | undefined,
+    accountCreatedAt?: number,
   ): Promise<void> {
     this.log(`\nEnter ${totalParticipants - 1} Round 2 Public Packages (excluding yours) `)
 
@@ -520,6 +533,7 @@ export class DkgCreateCommand extends IronfishCommand {
         round1PublicPackages,
         round2PublicPackages,
         round2Result.secretPackage,
+        accountCreatedAt,
       )
       return
     }

@@ -18,6 +18,9 @@ export class MultisigLedgerImport extends IronfishCommand {
       description: 'Name to use for the account',
       char: 'n',
     }),
+    createdAt: Flags.integer({
+      description: 'Block sequence to begin scanning from for the imported account',
+    }),
   }
 
   async start(): Promise<void> {
@@ -59,6 +62,8 @@ export class MultisigLedgerImport extends IronfishCommand {
       client,
       encodeAccountImport(accountImport, AccountFormat.Base64Json),
       this.logger,
+      name,
+      flags.createdAt,
     )
 
     this.log()

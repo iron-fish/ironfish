@@ -53,6 +53,9 @@ export class DkgRound3Command extends IronfishCommand {
       description: 'Perform operation with a ledger device',
       hidden: true,
     }),
+    createdAt: Flags.integer({
+      description: 'Block sequence to begin scanning from for the created account',
+    }),
   }
 
   async start(): Promise<void> {
@@ -124,6 +127,7 @@ export class DkgRound3Command extends IronfishCommand {
         round1PublicPackages,
         round2PublicPackages,
         round2SecretPackage,
+        flags.createdAt,
       )
       return
     }
@@ -134,6 +138,7 @@ export class DkgRound3Command extends IronfishCommand {
       round2SecretPackage,
       round1PublicPackages,
       round2PublicPackages,
+      accountCreatedAt: flags.createdAt,
     })
 
     this.log()
@@ -148,6 +153,7 @@ export class DkgRound3Command extends IronfishCommand {
     round1PublicPackagesStr: string[],
     round2PublicPackagesStr: string[],
     round2SecretPackage: string,
+    accountCreatedAt?: number,
   ): Promise<void> {
     const ledger = new LedgerDkg(this.logger)
     try {
@@ -226,6 +232,8 @@ export class DkgRound3Command extends IronfishCommand {
       client,
       encodeAccountImport(accountImport, AccountFormat.Base64Json),
       this.logger,
+      participantName,
+      accountCreatedAt,
     )
 
     this.log()
