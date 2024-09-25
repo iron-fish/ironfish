@@ -16,21 +16,27 @@ import TransportNodeHid from '@ledgerhq/hw-transport-node-hid'
 import { Errors, ux } from '@oclif/core'
 import IronfishApp, {
   IronfishKeys,
-  KeyResponse,
   ResponseAddress,
-  ResponseDkgRound1,
-  ResponseDkgRound2,
-  ResponseIdentity,
   ResponseProofGenKey,
   ResponseSign,
   ResponseViewKey,
 } from '@zondax/ledger-ironfish'
-import { ResponseError } from '@zondax/ledger-js'
+import {
+  KeyResponse,
+  ResponseAddress as ResponseAddressDkg,
+  ResponseDkgRound1,
+  ResponseDkgRound2,
+  ResponseIdentity,
+  ResponseProofGenKey as ResponseProofGenKeyDkg,
+  ResponseViewKey as ResponseViewKeyDkg,
+} from '@zondax/ledger-ironfish-dkg'
+import { default as IronfishDkgApp } from '@zondax/ledger-ironfish-dkg'
+import { ResponseError } from '@zondax/ledger-js-dkg'
 import * as ui from '../ui'
 import { watchTransaction } from './transaction'
 
-export class Ledger {
-  app: IronfishApp | undefined
+export class LedgerDkg {
+  app: IronfishDkgApp | undefined
   logger: Logger
   PATH = "m/44'/1338'/0"
 
@@ -60,113 +66,18 @@ export class Ledger {
     }
   }
 
-  connect = async (dkg = false) => {
+  connect = async () => {
     const transport = await TransportNodeHid.create(3000)
 
     if (transport.deviceModel) {
       this.logger.debug(`${transport.deviceModel.productName} found.`)
     }
 
-    const app = new IronfishApp(transport, dkg)
-
-    // TODO: remove this condition if appInfo is available in the DKG app
-    if (!dkg) {
-      const appInfo = await this.tryInstruction(app.appInfo())
-
-      this.logger.debug(appInfo.appName ?? 'no app name')
-
-      if (appInfo.appName !== 'Ironfish') {
-        this.logger.debug(appInfo.appName ?? 'no app name')
-        throw new Error('Please open the Iron Fish app on your ledger device.')
-      }
-
-      if (appInfo.appVersion) {
-        this.logger.debug(`Ironfish App Version: ${appInfo.appVersion}`)
-      }
-    }
+    const app = new IronfishDkgApp(transport, true)
 
     this.app = app
 
     return { app, PATH: this.PATH }
-  }
-
-  getPublicAddress = async () => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
-    const response = await this.tryInstruction(
-      this.app.retrieveKeys(this.PATH, IronfishKeys.PublicAddress, false),
-    )
-
-    if (!isResponseAddress(response)) {
-      throw new Error(`No public address returned`)
-    } else {
-      return response.publicAddress.toString('hex')
-    }
-  }
-
-  importAccount = async (): Promise<AccountImport> => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
-    const responseAddress: KeyResponse = await this.tryInstruction(
-      this.app.retrieveKeys(this.PATH, IronfishKeys.PublicAddress, false),
-    )
-
-    if (!isResponseAddress(responseAddress)) {
-      throw new Error(`No public address returned.`)
-    }
-
-    const responseViewKey = await this.tryInstruction(
-      this.app.retrieveKeys(this.PATH, IronfishKeys.ViewKey, true),
-    )
-
-    if (!isResponseViewKey(responseViewKey)) {
-      throw new Error(`No view key returned.`)
-    }
-
-    const responsePGK: KeyResponse = await this.tryInstruction(
-      this.app.retrieveKeys(this.PATH, IronfishKeys.ProofGenerationKey, false),
-    )
-
-    if (!isResponseProofGenKey(responsePGK)) {
-      throw new Error(`No proof authorizing key returned.`)
-    }
-
-    const accountImport: AccountImport = {
-      version: ACCOUNT_SCHEMA_VERSION,
-      name: 'ledger',
-      viewKey: responseViewKey.viewKey.toString('hex'),
-      incomingViewKey: responseViewKey.ivk.toString('hex'),
-      outgoingViewKey: responseViewKey.ovk.toString('hex'),
-      publicAddress: responseAddress.publicAddress.toString('hex'),
-      proofAuthorizingKey: responsePGK.nsk.toString('hex'),
-      spendingKey: null,
-      createdAt: null,
-    }
-
-    return accountImport
-  }
-
-  sign = async (message: string): Promise<Buffer> => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
-    this.logger.log('Please confirm the request on your ledger device.')
-
-    const buffer = Buffer.from(message, 'hex')
-
-    // max size of a transaction is 16kb
-    if (buffer.length > 16 * 1024) {
-      throw new Error('Transaction size is too large, must be less than 16kb.')
-    }
-
-    const response: ResponseSign = await this.tryInstruction(this.app.sign(this.PATH, buffer))
-
-    return response.signature
   }
 
   dkgGetIdentity = async (index: number): Promise<Buffer> => {
@@ -358,15 +269,164 @@ export class Ledger {
   }
 }
 
-function isResponseAddress(response: KeyResponse): response is ResponseAddress {
+export class Ledger {
+  app: IronfishApp | undefined
+  logger: Logger
+  PATH = "m/44'/1338'/0"
+
+  constructor(logger?: Logger) {
+    this.app = undefined
+    this.logger = logger ? logger : createRootLogger()
+  }
+
+  connect = async () => {
+    const transport = await TransportNodeHid.create(3000, 3000)
+
+    if (transport.deviceModel) {
+      this.logger.debug(`${transport.deviceModel.productName} found.`)
+    }
+
+    const app = new IronfishApp(transport)
+
+    const appInfo = await app.appInfo()
+    this.logger.debug(appInfo.appName ?? 'no app name')
+
+    if (appInfo.appName !== 'Ironfish') {
+      this.logger.debug(appInfo.appName ?? 'no app name')
+      this.logger.debug(appInfo.returnCode.toString(16))
+      this.logger.debug(appInfo.errorMessage.toString())
+
+      // references:
+      // https://github.com/LedgerHQ/ledger-live/blob/173bb3c84cc855f83ab8dc49362bc381afecc31e/libs/ledgerjs/packages/errors/src/index.ts#L263
+      // https://github.com/Zondax/ledger-ironfish/blob/bf43a4b8d403d15138699ee3bb1a3d6dfdb428bc/docs/APDUSPEC.md?plain=1#L25
+      if (appInfo.returnCode === 0x5515) {
+        throw new Error('Please unlock your Ledger device.')
+      }
+
+      throw new Error('Please open the Iron Fish app on your ledger device.')
+    }
+
+    if (appInfo.appVersion) {
+      this.logger.debug(`Ironfish App Version: ${appInfo.appVersion}`)
+    }
+
+    this.app = app
+
+    return { app, PATH: this.PATH }
+  }
+
+  getPublicAddress = async () => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    const response: ResponseAddress = await this.app.retrieveKeys(
+      this.PATH,
+      IronfishKeys.PublicAddress,
+      false,
+    )
+
+    if (!response.publicAddress) {
+      this.logger.debug(`No public address returned.`)
+      this.logger.debug(response.returnCode.toString())
+      throw new Error(response.errorMessage)
+    }
+
+    return response.publicAddress.toString('hex')
+  }
+
+  importAccount = async () => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    const responseAddress: ResponseAddress = await this.app.retrieveKeys(
+      this.PATH,
+      IronfishKeys.PublicAddress,
+      false,
+    )
+
+    if (!responseAddress.publicAddress) {
+      this.logger.debug(`No public address returned.`)
+      this.logger.debug(responseAddress.returnCode.toString())
+      throw new Error(responseAddress.errorMessage)
+    }
+
+    this.logger.log('Please confirm the request on your ledger device.')
+
+    const responseViewKey: ResponseViewKey = await this.app.retrieveKeys(
+      this.PATH,
+      IronfishKeys.ViewKey,
+      true,
+    )
+
+    if (!responseViewKey.viewKey || !responseViewKey.ovk || !responseViewKey.ivk) {
+      this.logger.debug(`No view key returned.`)
+      this.logger.debug(responseViewKey.returnCode.toString())
+      throw new Error(responseViewKey.errorMessage)
+    }
+
+    const responsePGK: ResponseProofGenKey = await this.app.retrieveKeys(
+      this.PATH,
+      IronfishKeys.ProofGenerationKey,
+      false,
+    )
+
+    if (!responsePGK.ak || !responsePGK.nsk) {
+      this.logger.debug(`No proof authorizing key returned.`)
+      throw new Error(responsePGK.errorMessage)
+    }
+
+    const accountImport: AccountImport = {
+      version: ACCOUNT_SCHEMA_VERSION,
+      name: 'ledger',
+      viewKey: responseViewKey.viewKey.toString('hex'),
+      incomingViewKey: responseViewKey.ivk.toString('hex'),
+      outgoingViewKey: responseViewKey.ovk.toString('hex'),
+      publicAddress: responseAddress.publicAddress.toString('hex'),
+      proofAuthorizingKey: responsePGK.nsk.toString('hex'),
+      spendingKey: null,
+      createdAt: null,
+    }
+
+    return accountImport
+  }
+
+  sign = async (message: string): Promise<Buffer> => {
+    if (!this.app) {
+      throw new Error('Connect to Ledger first')
+    }
+
+    this.logger.log('Please confirm the request on your ledger device.')
+
+    const buffer = Buffer.from(message, 'hex')
+
+    // max size of a transaction is 16kb
+    if (buffer.length > 16 * 1024) {
+      throw new Error('Transaction size is too large, must be less than 16kb.')
+    }
+
+    const response: ResponseSign = await this.app.sign(this.PATH, buffer)
+
+    if (!response.signature) {
+      this.logger.debug(`No signatures returned.`)
+      this.logger.debug(response.returnCode.toString())
+      throw new Error(response.errorMessage)
+    }
+
+    return response.signature
+  }
+}
+
+function isResponseAddress(response: KeyResponse): response is ResponseAddressDkg {
   return 'publicAddress' in response
 }
 
-function isResponseViewKey(response: KeyResponse): response is ResponseViewKey {
+function isResponseViewKey(response: KeyResponse): response is ResponseViewKeyDkg {
   return 'viewKey' in response
 }
 
-function isResponseProofGenKey(response: KeyResponse): response is ResponseProofGenKey {
+function isResponseProofGenKey(response: KeyResponse): response is ResponseProofGenKeyDkg {
   return 'ak' in response
 }
 

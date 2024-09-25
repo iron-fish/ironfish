@@ -7,7 +7,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
-import { Ledger } from '../../../../utils/ledger'
+import { LedgerDkg } from '../../../../utils/ledger'
 import { MultisigTransactionJson } from '../../../../utils/multisig'
 import { renderUnsignedTransactionDetails } from '../../../../utils/transaction'
 
@@ -124,9 +124,9 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     unsignedTransaction: UnsignedTransaction,
     signers: string[],
   ): Promise<void> {
-    const ledger = new Ledger(this.logger)
+    const ledger = new LedgerDkg(this.logger)
     try {
-      await ledger.connect(true)
+      await ledger.connect()
     } catch (e) {
       if (e instanceof Error) {
         this.error(e.message)

@@ -4,7 +4,7 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import * as ui from '../../../../ui'
-import { Ledger } from '../../../../utils/ledger'
+import { LedgerDkg } from '../../../../utils/ledger'
 
 export class MultisigLedgerRestore extends IronfishCommand {
   static description = `restore encrypted multisig keys to a Ledger device`
@@ -26,9 +26,9 @@ export class MultisigLedgerRestore extends IronfishCommand {
       )
     }
 
-    const ledger = new Ledger(this.logger)
+    const ledger = new LedgerDkg(this.logger)
     try {
-      await ledger.connect(true)
+      await ledger.connect()
     } catch (e) {
       if (e instanceof Error) {
         this.error(e.message)

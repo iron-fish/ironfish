@@ -7,7 +7,7 @@ import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
 import { importAccount } from '../../../../utils'
-import { Ledger } from '../../../../utils/ledger'
+import { LedgerDkg } from '../../../../utils/ledger'
 
 export class MultisigLedgerImport extends IronfishCommand {
   static description = `import a multisig account from a Ledger device`
@@ -28,9 +28,9 @@ export class MultisigLedgerImport extends IronfishCommand {
 
     const name = flags.name ?? (await ui.inputPrompt('Enter a name for the account', true))
 
-    const ledger = new Ledger(this.logger)
+    const ledger = new LedgerDkg(this.logger)
     try {
-      await ledger.connect(true)
+      await ledger.connect()
     } catch (e) {
       if (e instanceof Error) {
         this.error(e.message)
