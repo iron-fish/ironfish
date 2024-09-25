@@ -280,7 +280,7 @@ export class Ledger {
   }
 
   connect = async () => {
-    const transport = await TransportNodeHid.create(3000, 3000)
+    const transport = await TransportNodeHid.create(3000)
 
     if (transport.deviceModel) {
       this.logger.debug(`${transport.deviceModel.productName} found.`)
