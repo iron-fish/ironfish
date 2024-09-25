@@ -269,6 +269,10 @@ export class DkgCreateCommand extends IronfishCommand {
       throw new Error('Total number of participants must be at least 2')
     }
 
+    if (ledger && totalParticipants > 4) {
+      throw new Error('DKG with Ledger supports a maximum of 4 participants')
+    }
+
     this.log(
       `\nEnter ${
         totalParticipants - 1
