@@ -54,7 +54,8 @@ export class DkgRound3Command extends IronfishCommand {
       hidden: true,
     }),
     createdAt: Flags.integer({
-      description: 'Block sequence to begin scanning from for the created account',
+      description:
+        "Block sequence to begin scanning from for the created account. Uses node's chain head by default.",
     }),
   }
 
@@ -120,6 +121,12 @@ export class DkgRound3Command extends IronfishCommand {
     }
     round2PublicPackages = round2PublicPackages.map((i) => i.trim())
 
+    let accountCreatedAt = flags.createdAt
+    if (!accountCreatedAt) {
+      const statusResponse = await client.node.getStatus()
+      accountCreatedAt = statusResponse.content.blockchain.head.sequence
+    }
+
     if (flags.ledger) {
       await this.performRound3WithLedger(
         client,
@@ -127,7 +134,7 @@ export class DkgRound3Command extends IronfishCommand {
         round1PublicPackages,
         round2PublicPackages,
         round2SecretPackage,
-        flags.createdAt,
+        accountCreatedAt,
       )
       return
     }
@@ -138,7 +145,7 @@ export class DkgRound3Command extends IronfishCommand {
       round2SecretPackage,
       round1PublicPackages,
       round2PublicPackages,
-      accountCreatedAt: flags.createdAt,
+      accountCreatedAt,
     })
 
     this.log()

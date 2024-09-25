@@ -37,7 +37,8 @@ export class DkgCreateCommand extends IronfishCommand {
       description: 'Perform operation with a ledger device',
     }),
     createdAt: Flags.integer({
-      description: 'Block sequence to begin scanning from for the created account',
+      description:
+        "Block sequence to begin scanning from for the created account. Uses node's chain head by default",
     }),
   }
 
@@ -62,6 +63,12 @@ export class DkgCreateCommand extends IronfishCommand {
     }
 
     const accountName = await this.getAccountName(client, flags.newAccount)
+
+    let accountCreatedAt = flags.createdAt
+    if (!accountCreatedAt) {
+      const statusResponse = await client.node.getStatus()
+      accountCreatedAt = statusResponse.content.blockchain.head.sequence
+    }
 
     const { name: participantName, identity } = ledger
       ? await ui.retryStep(
@@ -121,7 +128,7 @@ export class DkgCreateCommand extends IronfishCommand {
           round1PublicPackages,
           totalParticipants,
           ledger,
-          flags.createdAt,
+          accountCreatedAt,
         )
       },
       this.logger,
