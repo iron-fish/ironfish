@@ -257,8 +257,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     const signingPackage = new multisig.SigningPackage(Buffer.from(signingPackageString, 'hex'))
 
     if (ledger) {
-      await ledger.reviewTransaction(unsignedTransaction.serialize().toString('hex'))
-
       const frostSignatureShare = await ledger.dkgSign(
         unsignedTransaction.publicKeyRandomness(),
         signingPackage.frostSigningPackage().toString('hex'),
@@ -330,6 +328,8 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     let commitment
 
     if (ledger) {
+      await ledger.reviewTransaction(unsignedTransaction.serialize().toString('hex'))
+
       commitment = await this.createSigningCommitmentWithLedger(
         ledger,
         participant,
