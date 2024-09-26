@@ -8,7 +8,7 @@ import { RemoteFlags } from '../../flags'
 import { checkWalletUnlocked, inputPrompt } from '../../ui'
 import { importFile, importPipe, longPrompt } from '../../ui/longPrompt'
 import { importAccount } from '../../utils'
-import { Ledger } from '../../utils/ledger'
+import { Ledger, LedgerError } from '../../utils/ledger'
 
 export class ImportCommand extends IronfishCommand {
   static description = `import an account`
@@ -123,8 +123,9 @@ export class ImportCommand extends IronfishCommand {
       const account = await ledger.importAccount()
       return encodeAccountImport(account, AccountFormat.Base64Json)
     } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
+      if (e instanceof LedgerError) {
+        this.logger.error(e.message + '\n')
+        this.exit(1)
       } else {
         this.error('Unknown error while importing account from ledger device.')
       }
