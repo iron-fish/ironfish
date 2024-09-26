@@ -22,6 +22,7 @@ import IronfishApp, {
   ResponseViewKey,
 } from '@zondax/ledger-ironfish'
 import {
+  default as IronfishDkgApp,
   KeyResponse,
   ResponseAddress as ResponseAddressDkg,
   ResponseDkgRound1,
@@ -30,7 +31,6 @@ import {
   ResponseProofGenKey as ResponseProofGenKeyDkg,
   ResponseViewKey as ResponseViewKeyDkg,
 } from '@zondax/ledger-ironfish-dkg'
-import { default as IronfishDkgApp } from '@zondax/ledger-ironfish-dkg'
 import { ResponseError } from '@zondax/ledger-js'
 import * as ui from '../ui'
 import { watchTransaction } from './transaction'
@@ -501,7 +501,7 @@ export async function sendTransactionWithLedger(
   ux.stdout(`\nHash: ${transaction.hash().toString('hex')}`)
   ux.stdout(`Fee: ${CurrencyUtils.render(transaction.fee(), true)}`)
 
-  await ui.confirmOrQuit('', confirm)
+  await ui.confirmOrQuit('Would you like to broadcast this transaction?', confirm)
 
   const addTransactionResponse = await client.wallet.addTransaction({
     transaction: signedTransaction,
