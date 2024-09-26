@@ -11,9 +11,12 @@ import {
   AccountFormat,
   Assert,
   encodeAccountImport,
+  ErrorUtils,
   RpcClient,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
+import fs from 'fs'
+import path from 'path'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
@@ -519,6 +522,33 @@ export class DkgCreateCommand extends IronfishCommand {
     this.log(
       'Use `ironfish wallet:multisig:ledger:restore` if you need to restore the keys to your Ledger.',
     )
+
+    const dataDir = this.sdk.fileSystem.resolve(this.sdk.dataDir)
+
+    const fileName = `ironfish-ledger-${accountName}.txt`
+
+    const fullPath = path.join(dataDir, fileName)
+
+    const resolved = this.sdk.fileSystem.resolve(fullPath)
+
+    try {
+      if (fs.existsSync(resolved)) {
+        await ui.confirmOrQuit(
+          `There is already a file at ${dataDir}` +
+            `\n\nOverwrite the encrypted keys backup with new file?`,
+        )
+      }
+
+      await fs.promises.writeFile(resolved, encryptedKeys.toString('hex'))
+      this.log(`Stored encrypted keys to ${resolved}`)
+    } catch (err: unknown) {
+      if (ErrorUtils.isNoEntityError(err)) {
+        await fs.promises.mkdir(path.dirname(resolved), { recursive: true })
+        await fs.promises.writeFile(resolved, encryptedKeys.toString('hex'))
+      } else {
+        throw err
+      }
+    }
   }
 
   async performRound3(
