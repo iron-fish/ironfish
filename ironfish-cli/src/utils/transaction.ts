@@ -23,7 +23,7 @@ import {
 } from '@ironfish/sdk'
 import { ux } from '@oclif/core'
 import { ProgressBar, ProgressBarPresets } from '../ui'
-import { getAssetsByIDs, getAssetVerificationByIds } from './asset'
+import { getAssetVerificationByIds } from './asset'
 
 export class TransactionTimer {
   private progressBar: ProgressBar | undefined
@@ -167,7 +167,7 @@ async function _renderTransactionDetails(
   logger = logger ?? createRootLogger()
 
   const assetIds = collectAssetIds(mints, burns, notes)
-  const assetLookup = await getAssetsByIDs(client, assetIds, account, undefined)
+  const assetLookup = await getAssetVerificationByIds(client, assetIds, account, undefined)
 
   if (mints.length > 0) {
     logger.log('')
@@ -185,7 +185,7 @@ async function _renderTransactionDetails(
         mint.value,
         false,
         mint.asset.id().toString('hex'),
-        assetLookup[mint.asset.id().toString('hex')].verification,
+        assetLookup[mint.asset.id().toString('hex')],
       )
       logger.log(`Asset ID:      ${mint.asset.id().toString('hex')}`)
       logger.log(`Name:          ${mint.asset.name().toString('utf8')}`)
@@ -218,7 +218,7 @@ async function _renderTransactionDetails(
         burn.value,
         false,
         burn.assetId.toString('hex'),
-        assetLookup[burn.assetId.toString('hex')].verification,
+        assetLookup[burn.assetId.toString('hex')],
       )
       logger.log(`Asset ID:      ${burn.assetId.toString('hex')}`)
       logger.log(`Amount:        ${renderedAmount}`)
@@ -243,7 +243,7 @@ async function _renderTransactionDetails(
       }
       logger.log('')
 
-      const verifiedAssetMetadata = assetLookup[note.assetId].verification
+      const verifiedAssetMetadata = assetLookup[note.assetId]
 
       const renderedAmount = CurrencyUtils.render(
         note.value,
@@ -253,7 +253,7 @@ async function _renderTransactionDetails(
       )
       logger.log(`Amount:        ${renderedAmount}`)
 
-      if (verifiedAssetMetadata.symbol) {
+      if (verifiedAssetMetadata?.symbol) {
         logger.log(`Asset ID:      ${note.assetId}`)
       }
 
@@ -274,7 +274,7 @@ async function _renderTransactionDetails(
       }
       logger.log('')
 
-      const verifiedAssetMetadata = assetLookup[note.assetId].verification
+      const verifiedAssetMetadata = assetLookup[note.assetId]
 
       const renderedAmount = CurrencyUtils.render(
         note.value,
@@ -284,7 +284,7 @@ async function _renderTransactionDetails(
       )
       logger.log(`Amount:        ${renderedAmount}`)
 
-      if (verifiedAssetMetadata.symbol) {
+      if (verifiedAssetMetadata?.symbol) {
         logger.log(`Asset ID:      ${note.assetId}`)
       }
 
