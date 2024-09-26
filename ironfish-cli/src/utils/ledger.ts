@@ -22,6 +22,7 @@ import IronfishApp, {
   ResponseViewKey,
 } from '@zondax/ledger-ironfish'
 import {
+  default as IronfishDkgApp,
   KeyResponse,
   ResponseAddress as ResponseAddressDkg,
   ResponseDkgRound1,
@@ -30,7 +31,6 @@ import {
   ResponseProofGenKey as ResponseProofGenKeyDkg,
   ResponseViewKey as ResponseViewKeyDkg,
 } from '@zondax/ledger-ironfish-dkg'
-import { default as IronfishDkgApp } from '@zondax/ledger-ironfish-dkg'
 import { ResponseError } from '@zondax/ledger-js'
 import * as ui from '../ui'
 import { watchTransaction } from './transaction'
@@ -74,6 +74,8 @@ export class LedgerDkg {
     }
 
     const app = new IronfishDkgApp(transport, true)
+
+    await app.getVersion()
 
     this.app = app
 
