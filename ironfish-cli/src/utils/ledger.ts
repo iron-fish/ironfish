@@ -300,10 +300,10 @@ export class Ledger {
       // https://github.com/LedgerHQ/ledger-live/blob/173bb3c84cc855f83ab8dc49362bc381afecc31e/libs/ledgerjs/packages/errors/src/index.ts#L263
       // https://github.com/Zondax/ledger-ironfish/blob/bf43a4b8d403d15138699ee3bb1a3d6dfdb428bc/docs/APDUSPEC.md?plain=1#L25
       if (appInfo.returnCode === 0x5515) {
-        throw new Error('Please unlock your Ledger device.')
+        throw new LedgerError('Please unlock your Ledger device.')
       }
 
-      throw new Error('Please open the Iron Fish app on your ledger device.')
+      throw new LedgerError('Please open the Iron Fish app on your ledger device.')
     }
 
     if (appInfo.appVersion) {
