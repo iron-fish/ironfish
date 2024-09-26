@@ -37,7 +37,7 @@ export const fetchChainportVerifiedTokens = async (
   networkId: number,
 ): Promise<ChainportVerifiedToken[]> => {
   const config = getConfig(networkId)
-  const url = `${config.endpoint}/token/list?network_name=IRONFISH`
+  const url = `${config.endpoint}/token_list?network_name=IRONFISH`
 
   return (await makeChainportRequest<{ verified_tokens: ChainportVerifiedToken[] }>(url))
     .verified_tokens
