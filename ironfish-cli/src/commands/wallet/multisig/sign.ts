@@ -334,7 +334,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       `Enter ${totalParticipants - 1} identities of the participants (excluding your own)`,
     )
 
-    const identities = await ui.collectStrings('Identity', totalParticipants - 1, {
+    const identities = await ui.collectStrings('Participant Identity', totalParticipants - 1, {
       additionalStrings: [participant.identity],
       errorOnDuplicate: true,
     })

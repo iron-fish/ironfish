@@ -299,7 +299,7 @@ export class DkgCreateCommand extends IronfishCommand {
         totalParticipants - 1
       } identities of all other participants (excluding yours) `,
     )
-    const identities = await ui.collectStrings('Identity', totalParticipants - 1, {
+    const identities = await ui.collectStrings('Participant Identity', totalParticipants - 1, {
       additionalStrings: [currentIdentity],
       errorOnDuplicate: true,
     })
