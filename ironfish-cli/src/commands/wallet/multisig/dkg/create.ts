@@ -22,7 +22,7 @@ export class DkgCreateCommand extends IronfishCommand {
       char: 'n',
       description: 'The name of the secret to use for encryption during DKG',
     }),
-    newAccount: Flags.string({
+    name: Flags.string({
       char: 'a',
       description: 'The name to set for multisig account to be created',
     }),
@@ -52,7 +52,7 @@ export class DkgCreateCommand extends IronfishCommand {
       }
     }
 
-    const accountName = await this.getAccountName(client, flags.newAccount)
+    const accountName = await this.getAccountName(client, flags.name)
 
     const { name: participantName, identity } = ledger
       ? await ui.retryStep(
