@@ -75,6 +75,7 @@ export class LedgerDkg {
 
     const app = new IronfishDkgApp(transport, true)
 
+    // If the app isn't open or the device is locked, this will throw an error.
     await app.getVersion()
 
     this.app = app
