@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Logger } from '@ironfish/sdk'
 import { ux } from '@oclif/core'
 import inquirer from 'inquirer'
 import { longPrompt } from './longPrompt'
@@ -43,6 +44,47 @@ async function _inputPrompt(message: string, options?: { password: boolean }): P
     message: `${message}:`,
   })
   return result.prompt.trim()
+}
+
+export async function inputNumberPrompt(
+  logger: Logger,
+  message: string,
+  options: {
+    required?: boolean
+    integer?: boolean
+  },
+): Promise<number> {
+  const validateNumber = (input: string): number => {
+    const num = Number(input)
+
+    if (isNaN(num)) {
+      throw new Error('Input must be a number')
+    }
+
+    if (options.integer && num % 1 !== 0) {
+      throw new Error('Input must be an integer')
+    }
+
+    return num
+  }
+
+  if (options.required) {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        const userInput = await _inputPrompt(message)
+        return validateNumber(userInput)
+      } catch (e) {
+        if (e instanceof Error) {
+          logger.error(e.message)
+        } else {
+          logger.error('An error occurred. Please try again.')
+        }
+      }
+    }
+  }
+
+  return validateNumber(await _inputPrompt(message))
 }
 
 export async function inputPrompt(
