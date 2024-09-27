@@ -320,6 +320,9 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     unsignedTransactionInput: string,
     ledger: LedgerDkg | undefined,
   ) {
+    this.log(`Identity for ${participant.name}: \n${participant.identity} \n`)
+    this.log('Share your participant identity with other signers.')
+
     const input = await ui.inputPrompt(
       'Enter the number of participants in signing this transaction',
       true,
