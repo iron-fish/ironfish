@@ -10,8 +10,8 @@ import {
   ACCOUNT_SCHEMA_VERSION,
   AccountFormat,
   Assert,
-  RpcClient,
   encodeAccountImport,
+  RpcClient,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
@@ -72,13 +72,13 @@ export class DkgCreateCommand extends IronfishCommand {
 
     const { name: participantName, identity } = ledger
       ? await ui.retryStep(
-        () => {
-          Assert.isNotUndefined(ledger)
-          return this.getIdentityFromLedger(ledger, client, flags.participant)
-        },
-        this.logger,
-        true,
-      )
+          () => {
+            Assert.isNotUndefined(ledger)
+            return this.getIdentityFromLedger(ledger, client, flags.participant)
+          },
+          this.logger,
+          true,
+        )
       : await this.getParticipant(client, flags.participant)
 
     this.log(`Identity for ${participantName}: \n${identity} \n`)
@@ -299,7 +299,8 @@ export class DkgCreateCommand extends IronfishCommand {
     }
 
     this.log(
-      `\nEnter ${totalParticipants - 1
+      `\nEnter ${
+        totalParticipants - 1
       } identities of all other participants (excluding yours) `,
     )
     const identities = await ui.collectStrings('Participant Identity', totalParticipants - 1, {
@@ -312,6 +313,12 @@ export class DkgCreateCommand extends IronfishCommand {
       'Enter the number of minimum signers',
       { required: true, integer: true },
     )
+
+    if (minSigners < 2 || minSigners > totalParticipants) {
+      throw new Error(
+        'Minimum number of signers must be between 2 and the total number of participants',
+      )
+    }
 
     if (ledger) {
       const result = await this.performRound1WithLedger(
