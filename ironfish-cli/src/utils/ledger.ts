@@ -4,6 +4,7 @@
 import {
   ACCOUNT_SCHEMA_VERSION,
   AccountImport,
+  Assert,
   createRootLogger,
   CurrencyUtils,
   Logger,
@@ -45,9 +46,12 @@ export class LedgerDkg {
     this.logger = logger ? logger : createRootLogger()
   }
 
-  tryInstruction = async <T>(promise: Promise<T>) => {
+  tryInstruction = async <T>(instruction: (app: IronfishDkgApp) => Promise<T>) => {
+    await this.refreshConnection()
+    Assert.isNotUndefined(this.app, 'Unable to establish connection with Ledger device')
+
     try {
-      return await promise
+      return await instruction(this.app)
     } catch (error: unknown) {
       if (isResponseError(error)) {
         this.logger.debug(`Ledger ResponseError returnCode: ${error.returnCode.toString(16)}`)
@@ -69,6 +73,11 @@ export class LedgerDkg {
   connect = async () => {
     const transport = await TransportNodeHid.create(3000)
 
+    transport.on('disconnect', async () => {
+      await transport.close()
+      this.app = undefined
+    })
+
     if (transport.deviceModel) {
       this.logger.debug(`${transport.deviceModel.productName} found.`)
     }
@@ -83,15 +92,17 @@ export class LedgerDkg {
     return { app, PATH: this.PATH }
   }
 
-  dkgGetIdentity = async (index: number): Promise<Buffer> => {
+  private refreshConnection = async () => {
     if (!this.app) {
-      throw new Error('Connect to Ledger first')
+      await this.connect()
     }
+  }
 
+  dkgGetIdentity = async (index: number): Promise<Buffer> => {
     this.logger.log('Retrieving identity from ledger device.')
 
-    const response: ResponseIdentity = await this.tryInstruction(
-      this.app.dkgGetIdentity(index, false),
+    const response: ResponseIdentity = await this.tryInstruction((app) =>
+      app.dkgGetIdentity(index, false),
     )
 
     return response.identity
@@ -102,13 +113,9 @@ export class LedgerDkg {
     identities: string[],
     minSigners: number,
   ): Promise<ResponseDkgRound1> => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
     this.logger.log('Please approve the request on your ledger device.')
 
-    return this.tryInstruction(this.app.dkgRound1(index, identities, minSigners))
+    return this.tryInstruction((app) => app.dkgRound1(index, identities, minSigners))
   }
 
   dkgRound2 = async (
@@ -116,14 +123,10 @@ export class LedgerDkg {
     round1PublicPackages: string[],
     round1SecretPackage: string,
   ): Promise<ResponseDkgRound2> => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
     this.logger.log('Please approve the request on your ledger device.')
 
-    return this.tryInstruction(
-      this.app.dkgRound2(index, round1PublicPackages, round1SecretPackage),
+    return this.tryInstruction((app) =>
+      app.dkgRound2(index, round1PublicPackages, round1SecretPackage),
     )
   }
 
@@ -135,14 +138,10 @@ export class LedgerDkg {
     round2SecretPackage: string,
     gskBytes: string[],
   ): Promise<void> => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
     this.logger.log('Please approve the request on your ledger device.')
 
-    return this.tryInstruction(
-      this.app.dkgRound3Min(
+    return this.tryInstruction((app) =>
+      app.dkgRound3Min(
         index,
         participants,
         round1PublicPackages,
@@ -160,28 +159,24 @@ export class LedgerDkg {
     outgoingViewKey: string
     proofAuthorizingKey: string
   }> => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
-    const responseAddress: KeyResponse = await this.tryInstruction(
-      this.app.dkgRetrieveKeys(IronfishKeys.PublicAddress),
+    const responseAddress: KeyResponse = await this.tryInstruction((app) =>
+      app.dkgRetrieveKeys(IronfishKeys.PublicAddress),
     )
 
     if (!isResponseAddress(responseAddress)) {
       throw new Error(`No public address returned.`)
     }
 
-    const responseViewKey = await this.tryInstruction(
-      this.app.dkgRetrieveKeys(IronfishKeys.ViewKey),
+    const responseViewKey = await this.tryInstruction((app) =>
+      app.dkgRetrieveKeys(IronfishKeys.ViewKey),
     )
 
     if (!isResponseViewKey(responseViewKey)) {
       throw new Error(`No view key returned.`)
     }
 
-    const responsePGK: KeyResponse = await this.tryInstruction(
-      this.app.dkgRetrieveKeys(IronfishKeys.ProofGenerationKey),
+    const responsePGK: KeyResponse = await this.tryInstruction((app) =>
+      app.dkgRetrieveKeys(IronfishKeys.ProofGenerationKey),
     )
 
     if (!isResponseProofGenKey(responsePGK)) {
@@ -202,7 +197,7 @@ export class LedgerDkg {
       throw new Error('Connect to Ledger first')
     }
 
-    const response = await this.tryInstruction(this.app.dkgGetPublicPackage())
+    const response = await this.tryInstruction((app) => app.dkgGetPublicPackage())
 
     return response.publicPackage
   }
@@ -216,7 +211,7 @@ export class LedgerDkg {
       'Please review and approve the outputs of this transaction on your ledger device.',
     )
 
-    const { hash } = await this.tryInstruction(this.app.reviewTransaction(transaction))
+    const { hash } = await this.tryInstruction((app) => app.reviewTransaction(transaction))
 
     return hash
   }
@@ -226,8 +221,8 @@ export class LedgerDkg {
       throw new Error('Connect to Ledger first')
     }
 
-    const { commitments } = await this.tryInstruction(
-      this.app.dkgGetCommitments(transactionHash),
+    const { commitments } = await this.tryInstruction((app) =>
+      app.dkgGetCommitments(transactionHash),
     )
 
     return commitments
@@ -242,8 +237,8 @@ export class LedgerDkg {
       throw new Error('Connect to Ledger first')
     }
 
-    const { signature } = await this.tryInstruction(
-      this.app.dkgSign(randomness, frostSigningPackage, transactionHash),
+    const { signature } = await this.tryInstruction((app) =>
+      app.dkgSign(randomness, frostSigningPackage, transactionHash),
     )
 
     return signature
@@ -256,7 +251,7 @@ export class LedgerDkg {
 
     this.logger.log('Please approve the request on your ledger device.')
 
-    const { encryptedKeys } = await this.tryInstruction(this.app.dkgBackupKeys())
+    const { encryptedKeys } = await this.tryInstruction((app) => app.dkgBackupKeys())
 
     return encryptedKeys
   }
@@ -268,7 +263,7 @@ export class LedgerDkg {
 
     this.logger.log('Please approve the request on your ledger device.')
 
-    await this.tryInstruction(this.app.dkgRestoreKeys(encryptedKeys))
+    await this.tryInstruction((app) => app.dkgRestoreKeys(encryptedKeys))
   }
 }
 
