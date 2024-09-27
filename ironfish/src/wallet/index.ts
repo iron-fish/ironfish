@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 export * from './account/account'
 export * from './wallet'
-export * from './exporter'
+export * from './exporter/encoder'
+export * from './exporter/account'
 export { AccountValue } from './walletdb/accountValue'
 export { Base64JsonEncoder } from './exporter/encoders/base64json'
 export { JsonEncoder } from './exporter/encoders/json'

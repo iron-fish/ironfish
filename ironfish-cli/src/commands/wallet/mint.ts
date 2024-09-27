@@ -23,7 +23,6 @@ import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
-import { sendTransactionWithLedger } from '../../utils/ledger'
 import { watchTransaction } from '../../utils/transaction'
 
 export class Mint extends IronfishCommand {
@@ -97,21 +96,11 @@ This will create tokens and increase supply for a given asset.`
     transferOwnershipTo: Flags.string({
       description: 'The public address of the account to transfer ownership of this asset to.',
     }),
-    transferTo: Flags.string({
-      description: 'transfer all newly minted coins to this public address',
-    }),
-    transferToMemo: Flags.string({
-      description: 'The memo of transfer when using transferTo',
-    }),
     unsignedTransaction: Flags.boolean({
       default: false,
       description:
         'Return a serialized UnsignedTransaction. Use it to create a transaction and build proofs but not post to the network',
       exclusive: ['rawTransaction'],
-    }),
-    ledger: Flags.boolean({
-      default: false,
-      description: 'Mint a transaction using a Ledger device',
     }),
   }
 
@@ -151,7 +140,7 @@ This will create tokens and increase supply for a given asset.`
         name = await ui.inputPrompt('Enter the name for the new asset', true)
       }
 
-      if (metadata == null) {
+      if (!metadata) {
         metadata = await ui.inputPrompt('Enter metadata for the new asset')
       }
 
@@ -224,12 +213,6 @@ This will create tokens and increase supply for a given asset.`
       }
     }
 
-    if (flags.transferTo) {
-      if (!isValidPublicAddress(flags.transferTo)) {
-        this.error('transferTo must be a valid public address')
-      }
-    }
-
     let expiration = flags.expiration
     if ((flags.rawTransaction || flags.unsignedTransaction) && expiration === undefined) {
       expiration = await promptExpiration({ logger: this.logger, client: client })
@@ -240,32 +223,23 @@ This will create tokens and increase supply for a given asset.`
       this.exit(1)
     }
 
-    const mint = {
-      // Only provide the asset id if we are not minting an asset for the first time
-      ...(assetData != null ? { assetId } : {}),
-      name: name,
-      metadata: metadata,
-      value: CurrencyUtils.encode(amount),
-      transferOwnershipTo: flags.transferOwnershipTo,
-    }
-
     const params: CreateTransactionRequest = {
       account,
       outputs: [],
-      mints: [mint],
+      mints: [
+        {
+          // Only provide the asset id if we are not minting an asset for the first time
+          ...(assetData != null ? { assetId } : {}),
+          name,
+          metadata,
+          value: CurrencyUtils.encode(amount),
+          transferOwnershipTo: flags.transferOwnershipTo,
+        },
+      ],
       fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
       feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
       expiration: expiration,
       confirmations: flags.confirmations,
-    }
-
-    if (flags.transferTo) {
-      params.outputs.push({
-        publicAddress: flags.transferTo,
-        amount: mint.value,
-        assetId: assetId,
-        memo: flags.transferToMemo,
-      })
     }
 
     let raw: RawTransaction
@@ -308,22 +282,9 @@ This will create tokens and increase supply for a given asset.`
       name,
       metadata,
       flags.transferOwnershipTo,
-      flags.transferTo,
       flags.confirm,
       assetData,
     )
-
-    if (flags.ledger) {
-      await sendTransactionWithLedger(
-        client,
-        raw,
-        account,
-        flags.watch,
-        flags.confirm,
-        this.logger,
-      )
-      this.exit(0)
-    }
 
     ux.action.start('Sending the transaction')
 
@@ -363,7 +324,6 @@ This will create tokens and increase supply for a given asset.`
         Value: renderedValue,
         Fee: renderedFee,
         Hash: transaction.hash().toString('hex'),
-        'Transfered To': flags.transferTo ? flags.transferTo : undefined,
       }),
     )
 
@@ -396,7 +356,6 @@ This will create tokens and increase supply for a given asset.`
     name?: string,
     metadata?: string,
     transferOwnershipTo?: string,
-    transferTo?: string,
     confirm?: boolean,
     assetData?: RpcAsset,
   ): Promise<void> {
@@ -416,17 +375,6 @@ This will create tokens and increase supply for a given asset.`
       `Amount: ${renderedAmount}`,
       `Fee: ${renderedFee}`,
     ]
-
-    if (transferTo) {
-      confirmMessage.push(
-        `\nAll ${CurrencyUtils.render(
-          amount,
-          false,
-          assetId,
-          assetData?.verification,
-        )} of this asset will be transferred to ${transferTo}.`,
-      )
-    }
 
     if (transferOwnershipTo) {
       confirmMessage.push(

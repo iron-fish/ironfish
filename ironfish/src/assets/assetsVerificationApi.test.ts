@@ -3,10 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import nock from 'nock'
 import { NodeFileProvider } from '../fileSystems'
-import {
-  AssetsVerificationApi,
-  getDefaultAssetVerificationEndpoint,
-} from './assetsVerificationApi'
+import { AssetsVerificationApi } from './assetsVerificationApi'
 
 const assetData1 = {
   identifier: '0123',
@@ -240,28 +237,5 @@ describe('Assets Verification API Client', () => {
       )
       expect(readFileSpy).toHaveBeenCalledWith('/some/where')
     })
-  })
-})
-
-describe('getDefaultAssetVerificationEndpoint', () => {
-  it('returns the testnet url with the testnet id', () => {
-    expect(getDefaultAssetVerificationEndpoint(0)).toEqual(
-      'https://testnet.api.ironfish.network/assets/verified_metadata',
-    )
-  })
-
-  it('returns the regular url with any other id', () => {
-    expect(getDefaultAssetVerificationEndpoint(1)).toEqual(
-      'https://api.ironfish.network/assets/verified_metadata',
-    )
-    expect(getDefaultAssetVerificationEndpoint(10)).toEqual(
-      'https://api.ironfish.network/assets/verified_metadata',
-    )
-  })
-
-  it('returns the regular url with no id', () => {
-    expect(getDefaultAssetVerificationEndpoint()).toEqual(
-      'https://api.ironfish.network/assets/verified_metadata',
-    )
   })
 })

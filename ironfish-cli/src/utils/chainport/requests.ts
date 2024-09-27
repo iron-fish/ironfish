@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { MAINNET } from '@ironfish/sdk'
 import axios from 'axios'
 import { getConfig } from './config'
 import {
@@ -38,12 +37,7 @@ export const fetchChainportVerifiedTokens = async (
   networkId: number,
 ): Promise<ChainportVerifiedToken[]> => {
   const config = getConfig(networkId)
-  let url
-  if (networkId === MAINNET.id) {
-    url = `${config.endpoint}/token/list?network_name=IRONFISH`
-  } else {
-    url = `${config.endpoint}/token_list?network_name=IRONFISH`
-  }
+  const url = `${config.endpoint}/token/list?network_name=IRONFISH`
 
   return (await makeChainportRequest<{ verified_tokens: ChainportVerifiedToken[] }>(url))
     .verified_tokens

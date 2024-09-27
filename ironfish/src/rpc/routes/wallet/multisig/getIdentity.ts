@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { RPC_ERROR_CODES, RpcValidationError } from '../../../adapters/errors'
+import { RpcValidationError } from '../../../adapters/errors'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
@@ -37,11 +37,7 @@ routes.register<typeof GetIdentityRequestSchema, GetIdentityResponse>(
 
     const identity = await context.wallet.walletDb.getMultisigIdentityByName(name)
     if (identity === undefined) {
-      throw new RpcValidationError(
-        `No identity found with name ${name}`,
-        404,
-        RPC_ERROR_CODES.IDENTITY_NOT_FOUND,
-      )
+      throw new RpcValidationError(`No identity found with name ${name}`, 404)
     }
 
     request.end({ identity: identity.toString('hex') })

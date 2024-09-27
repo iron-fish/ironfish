@@ -6,7 +6,6 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
-import { LedgerDkg } from '../../../../utils/ledger'
 
 export class MultisigIdentityCreate extends IronfishCommand {
   static description = `Create a multisig participant identity`
@@ -16,11 +15,6 @@ export class MultisigIdentityCreate extends IronfishCommand {
     name: Flags.string({
       char: 'n',
       description: 'Name to associate with the identity',
-    }),
-    ledger: Flags.boolean({
-      default: false,
-      description: 'Perform operation with a ledger device',
-      hidden: true,
     }),
   }
 
@@ -35,27 +29,14 @@ export class MultisigIdentityCreate extends IronfishCommand {
       name = await ui.inputPrompt('Enter a name for the identity', true)
     }
 
-    let identity
-    if (flags.ledger) {
-      identity = await this.getIdentityFromLedger()
-    }
-
     let response
     while (!response) {
       try {
-        if (identity) {
-          response = await client.wallet.multisig.importParticipant({
-            name,
-            identity: identity.toString('hex'),
-          })
-        } else {
-          response = await client.wallet.multisig.createParticipant({ name })
-        }
+        response = await client.wallet.multisig.createParticipant({ name })
       } catch (e) {
         if (
           e instanceof RpcRequestError &&
-          (e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString() ||
-            e.code === RPC_ERROR_CODES.DUPLICATE_IDENTITY_NAME.toString())
+          e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString()
         ) {
           this.log()
           this.log(e.codeMessage)
@@ -68,21 +49,5 @@ export class MultisigIdentityCreate extends IronfishCommand {
 
     this.log('Identity:')
     this.log(response.content.identity)
-  }
-
-  async getIdentityFromLedger(): Promise<Buffer> {
-    const ledger = new LedgerDkg(this.logger)
-    try {
-      await ledger.connect()
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
-
-    // TODO(hughy): support multiple identities using index
-    return ledger.dkgGetIdentity(0)
   }
 }

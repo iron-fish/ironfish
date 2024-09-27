@@ -16,7 +16,6 @@ export type DkgRound3Request = {
   round1PublicPackages: Array<string>
   round2PublicPackages: Array<string>
   accountName?: string
-  accountCreatedAt?: number
 }
 
 export type DkgRound3Response = {
@@ -31,7 +30,6 @@ export const DkgRound3RequestSchema: yup.ObjectSchema<DkgRound3Request> = yup
     round1PublicPackages: yup.array().of(yup.string().defined()).defined(),
     round2PublicPackages: yup.array().of(yup.string().defined()).defined(),
     accountName: yup.string().optional(),
-    accountCreatedAt: yup.number().optional(),
   })
   .defined()
 
@@ -94,9 +92,7 @@ routes.register<typeof DkgRound3RequestSchema, DkgRound3Response>(
       },
     }
 
-    const account = await node.wallet.importAccount(accountImport, {
-      createdAt: request.data.accountCreatedAt,
-    })
+    const account = await node.wallet.importAccount(accountImport)
     await node.wallet.skipRescan(account)
 
     request.end({

@@ -5,7 +5,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
-import { LedgerDkg } from '../../../../utils/ledger'
+import { Ledger } from '../../../../utils/ledger'
 
 export class DkgRound2Command extends IronfishCommand {
   static description = 'Perform round2 of the DKG protocol for multisig account creation'
@@ -70,7 +70,7 @@ export class DkgRound2Command extends IronfishCommand {
     round1PublicPackages = round1PublicPackages.map((i) => i.trim())
 
     if (flags.ledger) {
-      await this.performRound2WithLedger(round1PublicPackages, round1SecretPackage)
+      await this.performRound2WithLedger()
       return
     }
 
@@ -93,11 +93,8 @@ export class DkgRound2Command extends IronfishCommand {
     this.log('Send the round 2 public package to each participant')
   }
 
-  async performRound2WithLedger(
-    round1PublicPackages: string[],
-    round1SecretPackage: string,
-  ): Promise<void> {
-    const ledger = new LedgerDkg(this.logger)
+  async performRound2WithLedger(): Promise<void> {
+    const ledger = new Ledger(this.logger)
     try {
       await ledger.connect()
     } catch (e) {
@@ -107,24 +104,5 @@ export class DkgRound2Command extends IronfishCommand {
         throw e
       }
     }
-
-    // TODO(hughy): determine how to handle multiple identities using index
-    const { publicPackage, secretPackage } = await ledger.dkgRound2(
-      0,
-      round1PublicPackages,
-      round1SecretPackage,
-    )
-
-    this.log('\nRound 2 Encrypted Secret Package:\n')
-    this.log(secretPackage.toString('hex'))
-    this.log()
-
-    this.log('\nRound 2 Public Package:\n')
-    this.log(publicPackage.toString('hex'))
-    this.log()
-
-    this.log()
-    this.log('Next step:')
-    this.log('Send the round 2 public package to each participant')
   }
 }

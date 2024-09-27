@@ -52,8 +52,6 @@ describe('Route multisig/dkg/round3', () => {
       ),
     )
 
-    const accountCreatedAt = 2
-
     // Perform DKG round 3
     const round3Responses = await Promise.all(
       participantNames.map((participantName, index) =>
@@ -63,7 +61,6 @@ describe('Route multisig/dkg/round3', () => {
           round2SecretPackage: round2Packages[index].content.round2SecretPackage,
           round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
           round2PublicPackages: round2Packages.map((pkg) => pkg.content.round2PublicPackage),
-          accountCreatedAt,
         }),
       ),
     )
@@ -100,13 +97,6 @@ describe('Route multisig/dkg/round3', () => {
         .map((identity) => identity.toString('hex'))
         .sort()
       expect(knownIdentities).toStrictEqual(expectedIdentities)
-    }
-
-    // Check that all imported accounts have createdAt sequence set
-    for (const accountName of accountNames) {
-      const account = routeTest.wallet.getAccountByName(accountName)
-      Assert.isNotNull(account)
-      expect(account.createdAt?.sequence).toEqual(accountCreatedAt)
     }
   })
 

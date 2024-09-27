@@ -5,13 +5,11 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import {
   assetMetadataWithDefaults,
-  BurnDescription,
   createRootLogger,
   CurrencyUtils,
   GetTransactionNotesResponse,
   GetUnsignedTransactionNotesResponse,
   Logger,
-  MintDescription,
   PromiseUtils,
   RawTransaction,
   RpcAsset,
@@ -21,9 +19,11 @@ import {
   TransactionStatus,
   UnsignedTransaction,
 } from '@ironfish/sdk'
+import { BurnDescription } from '@ironfish/sdk/src/primitives/burnDescription'
+import { MintDescription } from '@ironfish/sdk/src/primitives/mintDescription'
 import { ux } from '@oclif/core'
 import { ProgressBar, ProgressBarPresets } from '../ui'
-import { getAssetVerificationByIds } from './asset'
+import { getAssetsByIDs, getAssetVerificationByIds } from './asset'
 
 export class TransactionTimer {
   private progressBar: ProgressBar | undefined
@@ -167,7 +167,7 @@ async function _renderTransactionDetails(
   logger = logger ?? createRootLogger()
 
   const assetIds = collectAssetIds(mints, burns, notes)
-  const assetLookup = await getAssetVerificationByIds(client, assetIds, account, undefined)
+  const assetLookup = await getAssetsByIDs(client, assetIds, account, undefined)
 
   if (mints.length > 0) {
     logger.log('')
@@ -185,7 +185,7 @@ async function _renderTransactionDetails(
         mint.value,
         false,
         mint.asset.id().toString('hex'),
-        assetLookup[mint.asset.id().toString('hex')],
+        assetLookup[mint.asset.id().toString('hex')].verification,
       )
       logger.log(`Asset ID:      ${mint.asset.id().toString('hex')}`)
       logger.log(`Name:          ${mint.asset.name().toString('utf8')}`)
@@ -218,7 +218,7 @@ async function _renderTransactionDetails(
         burn.value,
         false,
         burn.assetId.toString('hex'),
-        assetLookup[burn.assetId.toString('hex')],
+        assetLookup[burn.assetId.toString('hex')].verification,
       )
       logger.log(`Asset ID:      ${burn.assetId.toString('hex')}`)
       logger.log(`Amount:        ${renderedAmount}`)
@@ -243,20 +243,13 @@ async function _renderTransactionDetails(
       }
       logger.log('')
 
-      const verifiedAssetMetadata = assetLookup[note.assetId]
-
       const renderedAmount = CurrencyUtils.render(
         note.value,
         true,
         note.assetId,
-        verifiedAssetMetadata,
+        assetLookup[note.assetId].verification,
       )
       logger.log(`Amount:        ${renderedAmount}`)
-
-      if (verifiedAssetMetadata?.symbol) {
-        logger.log(`Asset ID:      ${note.assetId}`)
-      }
-
       logger.log(`Memo:          ${note.memo}`)
       logger.log(`Recipient:     ${note.owner}`)
       logger.log(`Sender:        ${note.sender}`)
@@ -274,20 +267,13 @@ async function _renderTransactionDetails(
       }
       logger.log('')
 
-      const verifiedAssetMetadata = assetLookup[note.assetId]
-
       const renderedAmount = CurrencyUtils.render(
         note.value,
         true,
         note.assetId,
-        verifiedAssetMetadata,
+        assetLookup[note.assetId].verification,
       )
       logger.log(`Amount:        ${renderedAmount}`)
-
-      if (verifiedAssetMetadata?.symbol) {
-        logger.log(`Asset ID:      ${note.assetId}`)
-      }
-
       logger.log(`Memo:          ${note.memo}`)
       logger.log(`Recipient:     ${note.owner}`)
       logger.log(`Sender:        ${note.sender}`)
