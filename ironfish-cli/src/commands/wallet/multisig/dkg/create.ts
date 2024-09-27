@@ -11,13 +11,17 @@ import {
   AccountFormat,
   Assert,
   encodeAccountImport,
+  parseUrl,
+  PromiseUtils,
   RpcClient,
 } from '@ironfish/sdk'
-import { Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
+import dns from 'dns'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
 import { LedgerDkg } from '../../../../utils/ledger'
+import { MultisigTcpClient } from '../../../../utils/multisig/network'
 
 export class DkgCreateCommand extends IronfishCommand {
   static description = 'Interactive command to create a multisignature account using DKG'
@@ -39,6 +43,9 @@ export class DkgCreateCommand extends IronfishCommand {
     createdAt: Flags.integer({
       description:
         "Block sequence to begin scanning from for the created account. Uses node's chain head by default",
+    }),
+    server: Flags.string({
+      description: "multisig server to connect to. formatted as '<host>:<port>'",
     }),
   }
 
@@ -70,6 +77,21 @@ export class DkgCreateCommand extends IronfishCommand {
       accountCreatedAt = statusResponse.content.blockchain.head.sequence
     }
 
+    let multisigClient: MultisigTcpClient | null = null
+    if (flags.server) {
+      const parsed = parseUrl(flags.server)
+
+      Assert.isNotNull(parsed.hostname)
+      Assert.isNotNull(parsed.port)
+
+      const resolved = await dns.promises.lookup(parsed.hostname)
+      const host = resolved.address
+      const port = parsed.port
+
+      multisigClient = new MultisigTcpClient({ host, port, logger: this.logger })
+      multisigClient.start()
+    }
+
     const { name: participantName, identity } = ledger
       ? await ui.retryStep(
           () => {
@@ -85,7 +107,7 @@ export class DkgCreateCommand extends IronfishCommand {
 
     const { round1, totalParticipants } = await ui.retryStep(
       async () => {
-        return this.performRound1(client, participantName, identity, ledger)
+        return this.performRound1(client, multisigClient, participantName, identity, ledger)
       },
       this.logger,
       true,
@@ -99,11 +121,16 @@ export class DkgCreateCommand extends IronfishCommand {
     this.log(round1.publicPackage)
     this.log('\n============================================')
 
-    this.log('\nShare your Round 1 Public Package with other participants.')
-
     const { round2: round2Result, round1PublicPackages } = await ui.retryStep(
       async () => {
-        return this.performRound2(client, participantName, round1, totalParticipants, ledger)
+        return this.performRound2(
+          client,
+          multisigClient,
+          participantName,
+          round1,
+          totalParticipants,
+          ledger,
+        )
       },
       this.logger,
       true,
@@ -116,12 +143,12 @@ export class DkgCreateCommand extends IronfishCommand {
     this.log('\nRound 2 Public Package:')
     this.log(round2Result.publicPackage)
     this.log('\n============================================')
-    this.log('\nShare your Round 2 Public Package with other participants.')
 
     await ui.retryStep(
       async () => {
         return this.performRound3(
           client,
+          multisigClient,
           accountName,
           participantName,
           round2Result,
@@ -136,6 +163,7 @@ export class DkgCreateCommand extends IronfishCommand {
     )
 
     this.log('Multisig account created successfully using DKG!')
+    multisigClient?.stop()
   }
 
   private async getParticipant(client: RpcClient, participantName?: string) {
@@ -275,6 +303,7 @@ export class DkgCreateCommand extends IronfishCommand {
 
   async performRound1(
     client: RpcClient,
+    multisigClient: MultisigTcpClient | null,
     participantName: string,
     currentIdentity: string,
     ledger: LedgerDkg | undefined,
@@ -284,40 +313,83 @@ export class DkgCreateCommand extends IronfishCommand {
   }> {
     this.log('\nCollecting Participant Info and Performing Round 1...')
 
-    const totalParticipants = await ui.inputNumberPrompt(
-      this.logger,
-      'Enter the total number of participants',
-      { required: true, integer: true },
-    )
-
-    if (totalParticipants < 2) {
-      throw new Error('Total number of participants must be at least 2')
-    }
-
-    if (ledger && totalParticipants > 4) {
-      throw new Error('DKG with Ledger supports a maximum of 4 participants')
-    }
-
-    this.log(
-      `\nEnter ${
-        totalParticipants - 1
-      } identities of all other participants (excluding yours) `,
-    )
-    const identities = await ui.collectStrings('Participant Identity', totalParticipants - 1, {
-      additionalStrings: [currentIdentity],
-      errorOnDuplicate: true,
-    })
-
-    const minSigners = await ui.inputNumberPrompt(
-      this.logger,
-      'Enter the number of minimum signers',
-      { required: true, integer: true },
-    )
-
-    if (minSigners < 2 || minSigners > totalParticipants) {
-      throw new Error(
-        'Minimum number of signers must be between 2 and the total number of participants',
+    let totalParticipants
+    let minSigners
+    if (!multisigClient) {
+      totalParticipants = await ui.inputNumberPrompt(
+        this.logger,
+        'Enter the total number of participants',
+        { required: true, integer: true },
       )
+
+      if (totalParticipants < 2) {
+        throw new Error('Total number of participants must be at least 2')
+      }
+
+      if (ledger && totalParticipants > 4) {
+        throw new Error('DKG with Ledger supports a maximum of 4 participants')
+      }
+
+      minSigners = await ui.inputNumberPrompt(
+        this.logger,
+        'Enter the number of minimum signers',
+        { required: true, integer: true },
+      )
+
+      if (minSigners < 2 || minSigners > totalParticipants) {
+        throw new Error(
+          'Minimum number of signers must be between 2 and the total number of participants',
+        )
+      }
+    } else {
+      let waiting = true
+      multisigClient.onDkgStatus.on((message) => {
+        totalParticipants = message.maxSigners
+        minSigners = message.minSigners
+        waiting = false
+      })
+      multisigClient.getDkgStatus()
+
+      ux.action.start('Waiting for signer config from server')
+      while (waiting) {
+        await PromiseUtils.sleep(3000)
+      }
+      multisigClient.onDkgStatus.clear()
+      ux.action.stop()
+    }
+    Assert.isNotUndefined(totalParticipants)
+    Assert.isNotUndefined(minSigners)
+
+    let identities: string[] = []
+    if (!multisigClient) {
+      this.log(
+        `\nEnter ${
+          totalParticipants - 1
+        } identities of all other participants (excluding yours) `,
+      )
+      identities = await ui.collectStrings('Participant Identity', totalParticipants - 1, {
+        additionalStrings: [currentIdentity],
+        errorOnDuplicate: true,
+      })
+    } else {
+      multisigClient.onDkgStatus.on((message) => {
+        identities = message.identities
+      })
+      multisigClient.onIdentity.on((message) => {
+        if (!identities.includes(message.identity)) {
+          identities.push(message.identity)
+        }
+      })
+      multisigClient.getDkgStatus()
+      multisigClient.submitIdentity(currentIdentity)
+
+      ux.action.start('Waiting for other Identities from server')
+      while (identities.length < totalParticipants) {
+        await PromiseUtils.sleep(3000)
+      }
+      multisigClient.onDkgStatus.clear()
+      multisigClient.onIdentity.clear()
+      ux.action.stop()
     }
 
     if (ledger) {
@@ -375,6 +447,7 @@ export class DkgCreateCommand extends IronfishCommand {
 
   async performRound2(
     client: RpcClient,
+    multisigClient: MultisigTcpClient | null,
     participantName: string,
     round1Result: { secretPackage: string; publicPackage: string },
     totalParticipants: number,
@@ -383,16 +456,39 @@ export class DkgCreateCommand extends IronfishCommand {
     round2: { secretPackage: string; publicPackage: string }
     round1PublicPackages: string[]
   }> {
-    this.log(`\nEnter ${totalParticipants - 1} Round 1 Public Packages (excluding yours) `)
+    let round1PublicPackages: string[] = []
+    if (!multisigClient) {
+      this.log('\nShare your Round 1 Public Package with other participants.')
+      this.log(`\nEnter ${totalParticipants - 1} Round 1 Public Packages (excluding yours) `)
 
-    const round1PublicPackages = await ui.collectStrings(
-      'Round 1 Public Package',
-      totalParticipants - 1,
-      {
-        additionalStrings: [round1Result.publicPackage],
-        errorOnDuplicate: true,
-      },
-    )
+      round1PublicPackages = await ui.collectStrings(
+        'Round 1 Public Package',
+        totalParticipants - 1,
+        {
+          additionalStrings: [round1Result.publicPackage],
+          errorOnDuplicate: true,
+        },
+      )
+    } else {
+      multisigClient.onDkgStatus.on((message) => {
+        round1PublicPackages = message.round1PublicPackages
+      })
+      multisigClient.onRound1PublicPackage.on((message) => {
+        if (!round1PublicPackages.includes(message.package)) {
+          round1PublicPackages.push(message.package)
+        }
+      })
+      multisigClient.getDkgStatus()
+      multisigClient.submitRound1PublicPackage(round1Result.publicPackage)
+
+      ux.action.start('Waiting for other Round 1 Public Packages from server')
+      while (round1PublicPackages.length < totalParticipants) {
+        await PromiseUtils.sleep(3000)
+      }
+      multisigClient.onDkgStatus.clear()
+      multisigClient.onRound1PublicPackage.clear()
+      ux.action.stop()
+    }
 
     this.log('\nPerforming DKG Round 2...')
 
@@ -523,6 +619,7 @@ export class DkgCreateCommand extends IronfishCommand {
 
   async performRound3(
     client: RpcClient,
+    multisigClient: MultisigTcpClient | null,
     accountName: string,
     participantName: string,
     round2Result: { secretPackage: string; publicPackage: string },
@@ -531,16 +628,39 @@ export class DkgCreateCommand extends IronfishCommand {
     ledger: LedgerDkg | undefined,
     accountCreatedAt?: number,
   ): Promise<void> {
-    this.log(`\nEnter ${totalParticipants - 1} Round 2 Public Packages (excluding yours) `)
+    let round2PublicPackages: string[] = []
+    if (!multisigClient) {
+      this.log('\nShare your Round 2 Public Package with other participants.')
+      this.log(`\nEnter ${totalParticipants - 1} Round 2 Public Packages (excluding yours) `)
 
-    const round2PublicPackages = await ui.collectStrings(
-      'Round 2 Public Package',
-      totalParticipants - 1,
-      {
-        additionalStrings: [round2Result.publicPackage],
-        errorOnDuplicate: true,
-      },
-    )
+      round2PublicPackages = await ui.collectStrings(
+        'Round 2 Public Package',
+        totalParticipants - 1,
+        {
+          additionalStrings: [round2Result.publicPackage],
+          errorOnDuplicate: true,
+        },
+      )
+    } else {
+      multisigClient.onDkgStatus.on((message) => {
+        round2PublicPackages = message.round2PublicPackages
+      })
+      multisigClient.onRound2PublicPackage.on((message) => {
+        if (!round2PublicPackages.includes(message.package)) {
+          round2PublicPackages.push(message.package)
+        }
+      })
+      multisigClient.getDkgStatus()
+      multisigClient.submitRound2PublicPackage(round2Result.publicPackage)
+
+      ux.action.start('Waiting for other Round 2 Public Packages from server')
+      while (round2PublicPackages.length < totalParticipants) {
+        await PromiseUtils.sleep(3000)
+      }
+      multisigClient.onDkgStatus.clear()
+      multisigClient.onRound2PublicPackage.clear()
+      ux.action.stop()
+    }
 
     if (ledger) {
       await this.performRound3WithLedger(
