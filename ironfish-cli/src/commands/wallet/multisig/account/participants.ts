@@ -23,11 +23,29 @@ export class MultisigAccountParticipants extends IronfishCommand {
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
 
-    const response = await client.wallet.multisig.getAccountIdentities({
-      account: flags.account,
-    })
+    const accountIdentities = (
+      await client.wallet.multisig.getAccountIdentities({
+        account: flags.account,
+      })
+    ).content.identities
 
-    for (const identity of response.content.identities) {
+    const participants = (await client.wallet.multisig.getIdentities()).content.identities
+
+    const matchingIdentities = participants.filter((identity) =>
+      accountIdentities.includes(identity.identity),
+    )
+
+    let participant: string | undefined
+    if (matchingIdentities.length === 1) {
+      participant = matchingIdentities[0].identity
+      this.log(`Your identity:\n${participant}`)
+      this.log('\nOther participating identities:')
+    }
+
+    for (const identity of accountIdentities) {
+      if (participant && participant === identity) {
+        continue
+      }
       this.log(identity)
     }
   }
