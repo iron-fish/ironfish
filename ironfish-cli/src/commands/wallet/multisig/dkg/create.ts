@@ -308,6 +308,10 @@ export class DkgCreateCommand extends IronfishCommand {
     const minSigners = parseInt(input)
     if (isNaN(minSigners) || minSigners < 2) {
       throw new Error('Minimum number of signers must be at least 2')
+    } else if (minSigners > totalParticipants) {
+      throw new Error(
+        'Minimum number of signers cannot be more than total number of participants',
+      )
     }
 
     if (ledger) {
