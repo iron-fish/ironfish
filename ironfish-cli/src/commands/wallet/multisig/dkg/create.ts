@@ -284,9 +284,13 @@ export class DkgCreateCommand extends IronfishCommand {
   }> {
     this.log('\nCollecting Participant Info and Performing Round 1...')
 
-    let input = await ui.inputPrompt('Enter the total number of participants', true)
-    const totalParticipants = parseInt(input)
-    if (isNaN(totalParticipants) || totalParticipants < 2) {
+    const totalParticipants = await ui.inputNumberPrompt(
+      this.logger,
+      'Enter the total number of participants',
+      { required: true, integer: true },
+    )
+
+    if (totalParticipants < 2) {
       throw new Error('Total number of participants must be at least 2')
     }
 
@@ -304,13 +308,15 @@ export class DkgCreateCommand extends IronfishCommand {
       errorOnDuplicate: true,
     })
 
-    input = await ui.inputPrompt('Enter the number of minimum signers', true)
-    const minSigners = parseInt(input)
-    if (isNaN(minSigners) || minSigners < 2) {
-      throw new Error('Minimum number of signers must be at least 2')
-    } else if (minSigners > totalParticipants) {
+    const minSigners = await ui.inputNumberPrompt(
+      this.logger,
+      'Enter the number of minimum signers',
+      { required: true, integer: true },
+    )
+
+    if (minSigners < 2 || minSigners > totalParticipants) {
       throw new Error(
-        'Minimum number of signers cannot be more than total number of participants',
+        'Minimum number of signers must be between 2 and the total number of participants',
       )
     }
 
@@ -322,6 +328,7 @@ export class DkgCreateCommand extends IronfishCommand {
         identities,
         minSigners,
       )
+
       return {
         ...result,
         totalParticipants,
