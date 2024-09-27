@@ -8,6 +8,8 @@ import { RemoteFlags } from '../../flags'
 import { inputPrompt } from '../../ui'
 
 export class DecryptCommand extends IronfishCommand {
+  static hidden = true
+
   static description = 'decrypt accounts in the wallet'
 
   static flags = {

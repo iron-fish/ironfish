@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BoxKeyPair, FishHashContext } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
-import { AssetsVerifier, getDefaultAssetVerificationEndpoint } from './assets'
+import { AssetsVerifier } from './assets'
 import { Blockchain } from './blockchain'
 import { BlockHasher } from './blockHasher'
 import {
@@ -223,6 +223,16 @@ export class FullNode {
     const peerStore = new PeerStore(files, dataDir)
     await peerStore.load()
 
+    const verifiedAssetsCache = new VerifiedAssetsCacheStore(files, dataDir)
+    await verifiedAssetsCache.load()
+
+    const assetsVerifier = new AssetsVerifier({
+      files,
+      apiUrl: config.get('assetVerificationApi'),
+      cache: verifiedAssetsCache,
+      logger,
+    })
+
     const numWorkers = calculateWorkers(config.get('nodeWorkers'), config.get('nodeWorkersMax'))
 
     const workerPool = new WorkerPool({ logger, metrics, numWorkers })
@@ -238,17 +248,6 @@ export class FullNode {
     )
 
     const network = new Network(networkDefinition)
-
-    const verifiedAssetsCache = new VerifiedAssetsCacheStore(files, dataDir)
-    await verifiedAssetsCache.load()
-
-    const assetsVerifier = new AssetsVerifier({
-      files,
-      apiUrl:
-        config.get('assetVerificationApi') || getDefaultAssetVerificationEndpoint(network.id),
-      cache: verifiedAssetsCache,
-      logger,
-    })
 
     if (!config.isSet('bootstrapNodes')) {
       config.setOverride('bootstrapNodes', network.bootstrapNodes)

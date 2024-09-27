@@ -73,11 +73,6 @@ export async function assetPrompt(
     )
   }
 
-  const filter = options.filter
-  if (filter) {
-    balances = balances.filter((balance) => filter(assetLookup[balance.assetId]))
-  }
-
   if (balances.length === 0) {
     return undefined
   }
@@ -88,6 +83,11 @@ export async function assetPrompt(
       id: balances[0].assetId,
       name: assetLookup[balances[0].assetId].name,
     }
+  }
+
+  const filter = options.filter
+  if (filter) {
+    balances = balances.filter((balance) => filter(assetLookup[balance.assetId]))
   }
 
   // Show verified assets at top of the list

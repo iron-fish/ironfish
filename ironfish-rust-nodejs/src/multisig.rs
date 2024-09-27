@@ -190,11 +190,6 @@ impl NativeSignatureShare {
                 .as_slice(),
         )
     }
-
-    #[napi]
-    pub fn serialize(&self) -> Buffer {
-        Buffer::from(self.signature_share.serialize().as_slice())
-    }
 }
 
 #[napi(namespace = "multisig")]

@@ -1,12 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { RpcClient } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
-import { LedgerDkg } from '../../../../utils/ledger'
+import { Ledger } from '../../../../utils/ledger'
 
 export class DkgRound1Command extends IronfishCommand {
   static description = 'Perform round1 of the DKG protocol for multisig account creation'
@@ -72,7 +71,7 @@ export class DkgRound1Command extends IronfishCommand {
     }
 
     if (flags.ledger) {
-      await this.performRound1WithLedger(client, participantName, identities, minSigners)
+      await this.performRound1WithLedger()
       return
     }
 
@@ -94,13 +93,8 @@ export class DkgRound1Command extends IronfishCommand {
     this.log('Send the round 1 public package to each participant')
   }
 
-  async performRound1WithLedger(
-    client: RpcClient,
-    participantName: string,
-    identities: string[],
-    minSigners: number,
-  ): Promise<void> {
-    const ledger = new LedgerDkg(this.logger)
+  async performRound1WithLedger(): Promise<void> {
+    const ledger = new Ledger(this.logger)
     try {
       await ledger.connect()
     } catch (e) {
@@ -110,26 +104,5 @@ export class DkgRound1Command extends IronfishCommand {
         throw e
       }
     }
-
-    const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
-    const identity = identityResponse.content.identity
-
-    if (!identities.includes(identity)) {
-      identities.push(identity)
-    }
-
-    // TODO(hughy): determine how to handle multiple identities using index
-    const { publicPackage, secretPackage } = await ledger.dkgRound1(0, identities, minSigners)
-
-    this.log('\nRound 1 Encrypted Secret Package:\n')
-    this.log(secretPackage.toString('hex'))
-    this.log()
-
-    this.log('\nRound 1 Public Package:\n')
-    this.log(publicPackage.toString('hex'))
-    this.log()
-
-    this.log('Next step:')
-    this.log('Send the round 1 public package to each participant')
   }
 }
