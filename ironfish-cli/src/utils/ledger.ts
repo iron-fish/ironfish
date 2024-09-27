@@ -17,36 +17,32 @@ import TransportNodeHid from '@ledgerhq/hw-transport-node-hid'
 import { Errors, ux } from '@oclif/core'
 import IronfishApp, {
   IronfishKeys,
+  KeyResponse,
   ResponseAddress,
+  ResponseDkgRound1,
+  ResponseDkgRound2,
+  ResponseIdentity,
   ResponseProofGenKey,
   ResponseSign,
   ResponseViewKey,
 } from '@zondax/ledger-ironfish'
-import {
-  default as IronfishDkgApp,
-  KeyResponse,
-  ResponseAddress as ResponseAddressDkg,
-  ResponseDkgRound1,
-  ResponseDkgRound2,
-  ResponseIdentity,
-  ResponseProofGenKey as ResponseProofGenKeyDkg,
-  ResponseViewKey as ResponseViewKeyDkg,
-} from '@zondax/ledger-ironfish-dkg'
 import { ResponseError } from '@zondax/ledger-js'
 import * as ui from '../ui'
 import { watchTransaction } from './transaction'
 
-export class LedgerDkg {
-  app: IronfishDkgApp | undefined
+class LedgerBase {
+  app: IronfishApp | undefined
   logger: Logger
   PATH = "m/44'/1338'/0"
+  isDkg: boolean
 
-  constructor(logger?: Logger) {
+  constructor(isDkg: boolean, logger?: Logger) {
     this.app = undefined
     this.logger = logger ? logger : createRootLogger()
+    this.isDkg = isDkg
   }
 
-  tryInstruction = async <T>(instruction: (app: IronfishDkgApp) => Promise<T>) => {
+  tryInstruction = async <T>(instruction: (app: IronfishApp) => Promise<T>) => {
     await this.refreshConnection()
     Assert.isNotUndefined(this.app, 'Unable to establish connection with Ledger device')
 
@@ -82,7 +78,7 @@ export class LedgerDkg {
       this.logger.debug(`${transport.deviceModel.productName} found.`)
     }
 
-    const app = new IronfishDkgApp(transport, true)
+    const app = new IronfishApp(transport, this.isDkg)
 
     // If the app isn't open or the device is locked, this will throw an error.
     await app.getVersion()
@@ -92,10 +88,16 @@ export class LedgerDkg {
     return { app, PATH: this.PATH }
   }
 
-  private refreshConnection = async () => {
+  protected refreshConnection = async () => {
     if (!this.app) {
       await this.connect()
     }
+  }
+}
+
+export class LedgerDkg extends LedgerBase {
+  constructor(logger?: Logger) {
+    super(true, logger)
   }
 
   dkgGetIdentity = async (index: number): Promise<Buffer> => {
@@ -193,20 +195,12 @@ export class LedgerDkg {
   }
 
   dkgGetPublicPackage = async (): Promise<Buffer> => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
     const response = await this.tryInstruction((app) => app.dkgGetPublicPackage())
 
     return response.publicPackage
   }
 
   reviewTransaction = async (transaction: string): Promise<Buffer> => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
     this.logger.info(
       'Please review and approve the outputs of this transaction on your ledger device.',
     )
@@ -217,10 +211,6 @@ export class LedgerDkg {
   }
 
   dkgGetCommitments = async (transactionHash: string): Promise<Buffer> => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
     const { commitments } = await this.tryInstruction((app) =>
       app.dkgGetCommitments(transactionHash),
     )
@@ -233,10 +223,6 @@ export class LedgerDkg {
     frostSigningPackage: string,
     transactionHash: string,
   ): Promise<Buffer> => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
     const { signature } = await this.tryInstruction((app) =>
       app.dkgSign(randomness, frostSigningPackage, transactionHash),
     )
@@ -245,10 +231,6 @@ export class LedgerDkg {
   }
 
   dkgBackupKeys = async (): Promise<Buffer> => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
     this.logger.log('Please approve the request on your ledger device.')
 
     const { encryptedKeys } = await this.tryInstruction((app) => app.dkgBackupKeys())
@@ -257,131 +239,57 @@ export class LedgerDkg {
   }
 
   dkgRestoreKeys = async (encryptedKeys: string): Promise<void> => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
     this.logger.log('Please approve the request on your ledger device.')
 
     await this.tryInstruction((app) => app.dkgRestoreKeys(encryptedKeys))
   }
 }
 
-export class Ledger {
-  app: IronfishApp | undefined
-  logger: Logger
-  PATH = "m/44'/1338'/0"
-
+export class Ledger extends LedgerBase {
   constructor(logger?: Logger) {
-    this.app = undefined
-    this.logger = logger ? logger : createRootLogger()
-  }
-
-  connect = async () => {
-    const transport = await TransportNodeHid.create(3000)
-
-    if (transport.deviceModel) {
-      this.logger.debug(`${transport.deviceModel.productName} found.`)
-    }
-
-    const app = new IronfishApp(transport)
-
-    const appInfo = await app.appInfo()
-    this.logger.debug(appInfo.appName ?? 'no app name')
-
-    if (appInfo.appName !== 'Ironfish') {
-      this.logger.debug(appInfo.appName ?? 'no app name')
-      this.logger.debug(appInfo.returnCode.toString(16))
-      this.logger.debug(appInfo.errorMessage.toString())
-
-      // references:
-      // https://github.com/LedgerHQ/ledger-live/blob/173bb3c84cc855f83ab8dc49362bc381afecc31e/libs/ledgerjs/packages/errors/src/index.ts#L263
-      // https://github.com/Zondax/ledger-ironfish/blob/bf43a4b8d403d15138699ee3bb1a3d6dfdb428bc/docs/APDUSPEC.md?plain=1#L25
-      if (appInfo.returnCode === 0x5515) {
-        throw new LedgerError('Please unlock your Ledger device.')
-      }
-
-      throw new LedgerError('Please open the Iron Fish app on your ledger device.')
-    }
-
-    if (appInfo.appVersion) {
-      this.logger.debug(`Ironfish App Version: ${appInfo.appVersion}`)
-    }
-
-    this.app = app
-
-    return { app, PATH: this.PATH }
+    super(false, logger)
   }
 
   getPublicAddress = async () => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
-    const response: ResponseAddress = await this.app.retrieveKeys(
-      this.PATH,
-      IronfishKeys.PublicAddress,
-      false,
+    const response: KeyResponse = await this.tryInstruction((app) =>
+      app.retrieveKeys(this.PATH, IronfishKeys.PublicAddress, false),
     )
 
-    if (!response.publicAddress) {
-      this.logger.debug(`No public address returned.`)
-      this.logger.debug(response.returnCode.toString())
-      throw new Error(response.errorMessage)
+    if (!isResponseAddress(response)) {
+      throw new Error(`No public address returned.`)
     }
 
     return response.publicAddress.toString('hex')
   }
 
   importAccount = async () => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
-    const responseAddress: ResponseAddress = await this.app.retrieveKeys(
-      this.PATH,
-      IronfishKeys.PublicAddress,
-      false,
-    )
-
-    if (!responseAddress.publicAddress) {
-      this.logger.debug(`No public address returned.`)
-      this.logger.debug(responseAddress.returnCode.toString())
-      throw new Error(responseAddress.errorMessage)
-    }
+    const publicAddress = await this.getPublicAddress()
 
     this.logger.log('Please confirm the request on your ledger device.')
 
-    const responseViewKey: ResponseViewKey = await this.app.retrieveKeys(
-      this.PATH,
-      IronfishKeys.ViewKey,
-      true,
+    const responseViewKey: KeyResponse = await this.tryInstruction((app) =>
+      app.retrieveKeys(this.PATH, IronfishKeys.ViewKey, true),
     )
 
-    if (!responseViewKey.viewKey || !responseViewKey.ovk || !responseViewKey.ivk) {
-      this.logger.debug(`No view key returned.`)
-      this.logger.debug(responseViewKey.returnCode.toString())
-      throw new Error(responseViewKey.errorMessage)
+    if (!isResponseViewKey(responseViewKey)) {
+      throw new Error(`No view key returned.`)
     }
 
-    const responsePGK: ResponseProofGenKey = await this.app.retrieveKeys(
-      this.PATH,
-      IronfishKeys.ProofGenerationKey,
-      false,
+    const responsePGK: KeyResponse = await this.tryInstruction((app) =>
+      app.retrieveKeys(this.PATH, IronfishKeys.ProofGenerationKey, false),
     )
 
-    if (!responsePGK.ak || !responsePGK.nsk) {
-      this.logger.debug(`No proof authorizing key returned.`)
-      throw new Error(responsePGK.errorMessage)
+    if (!isResponseProofGenKey(responsePGK)) {
+      throw new Error(`No proof authorizing key returned.`)
     }
 
     const accountImport: AccountImport = {
       version: ACCOUNT_SCHEMA_VERSION,
       name: 'ledger',
+      publicAddress,
       viewKey: responseViewKey.viewKey.toString('hex'),
       incomingViewKey: responseViewKey.ivk.toString('hex'),
       outgoingViewKey: responseViewKey.ovk.toString('hex'),
-      publicAddress: responseAddress.publicAddress.toString('hex'),
       proofAuthorizingKey: responsePGK.nsk.toString('hex'),
       spendingKey: null,
       createdAt: null,
@@ -391,12 +299,6 @@ export class Ledger {
   }
 
   sign = async (message: string): Promise<Buffer> => {
-    if (!this.app) {
-      throw new Error('Connect to Ledger first')
-    }
-
-    this.logger.log('Please confirm the request on your ledger device.')
-
     const buffer = Buffer.from(message, 'hex')
 
     // max size of a transaction is 16kb
@@ -404,28 +306,24 @@ export class Ledger {
       throw new Error('Transaction size is too large, must be less than 16kb.')
     }
 
-    const response: ResponseSign = await this.app.sign(this.PATH, buffer)
-
-    if (!response.signature) {
-      this.logger.debug(`No signatures returned.`)
-      this.logger.debug(response.returnCode.toString())
-      throw new Error(response.errorMessage)
-    }
+    const response: ResponseSign = await this.tryInstruction((app) =>
+      app.sign(this.PATH, buffer),
+    )
 
     return response.signature
   }
 }
 
-function isResponseAddress(response: KeyResponse): response is ResponseAddressDkg {
+function isResponseAddress(response: KeyResponse): response is ResponseAddress {
   return 'publicAddress' in response
 }
 
-function isResponseViewKey(response: KeyResponse): response is ResponseViewKeyDkg {
+function isResponseViewKey(response: KeyResponse): response is ResponseViewKey {
   return 'viewKey' in response
 }
 
-function isResponseProofGenKey(response: KeyResponse): response is ResponseProofGenKeyDkg {
-  return 'ak' in response
+function isResponseProofGenKey(response: KeyResponse): response is ResponseProofGenKey {
+  return 'ak' in response && 'nsk' in response
 }
 
 function isResponseError(error: unknown): error is ResponseError {
