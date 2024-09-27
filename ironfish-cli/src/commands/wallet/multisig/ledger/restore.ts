@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Flags } from '@oclif/core'
+import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import * as ui from '../../../../ui'
 import { LedgerDkg } from '../../../../utils/ledger'
@@ -9,17 +9,17 @@ import { LedgerDkg } from '../../../../utils/ledger'
 export class MultisigLedgerRestore extends IronfishCommand {
   static description = `restore encrypted multisig keys to a Ledger device`
 
-  static flags = {
-    backup: Flags.string({
+  static args = {
+    backup: Args.string({
+      required: false,
       description: 'Encrypted multisig key backup from your Ledger device',
-      char: 'b',
     }),
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(MultisigLedgerRestore)
+    const { args } = await this.parse(MultisigLedgerRestore)
 
-    let encryptedKeys = flags.backup
+    let encryptedKeys = args.backup
     if (!encryptedKeys) {
       encryptedKeys = await ui.longPrompt(
         'Enter the encrypted multisig key backup to restore to your Ledger device',
