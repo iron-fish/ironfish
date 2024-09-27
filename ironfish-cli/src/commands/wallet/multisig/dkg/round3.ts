@@ -1,11 +1,22 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import {
+  deserializePublicPackage,
+  deserializeRound2CombinedPublicPackage,
+} from '@ironfish/rust-nodejs'
+import {
+  ACCOUNT_SCHEMA_VERSION,
+  AccountFormat,
+  encodeAccountImport,
+  RpcClient,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
-import { Ledger } from '../../../../utils/ledger'
+import { importAccount } from '../../../../utils'
+import { LedgerDkg } from '../../../../utils/ledger'
 
 export class DkgRound3Command extends IronfishCommand {
   static description = 'Perform round3 of the DKG protocol for multisig account creation'
@@ -41,6 +52,10 @@ export class DkgRound3Command extends IronfishCommand {
       default: false,
       description: 'Perform operation with a ledger device',
       hidden: true,
+    }),
+    createdAt: Flags.integer({
+      description:
+        "Block sequence to begin scanning from for the created account. Uses node's chain head by default.",
     }),
   }
 
@@ -106,8 +121,21 @@ export class DkgRound3Command extends IronfishCommand {
     }
     round2PublicPackages = round2PublicPackages.map((i) => i.trim())
 
+    let accountCreatedAt = flags.createdAt
+    if (!accountCreatedAt) {
+      const statusResponse = await client.node.getStatus()
+      accountCreatedAt = statusResponse.content.blockchain.head.sequence
+    }
+
     if (flags.ledger) {
-      await this.performRound3WithLedger()
+      await this.performRound3WithLedger(
+        client,
+        participantName,
+        round1PublicPackages,
+        round2PublicPackages,
+        round2SecretPackage,
+        accountCreatedAt,
+      )
       return
     }
 
@@ -117,6 +145,7 @@ export class DkgRound3Command extends IronfishCommand {
       round2SecretPackage,
       round1PublicPackages,
       round2PublicPackages,
+      accountCreatedAt,
     })
 
     this.log()
@@ -125,8 +154,15 @@ export class DkgRound3Command extends IronfishCommand {
     )
   }
 
-  async performRound3WithLedger(): Promise<void> {
-    const ledger = new Ledger(this.logger)
+  async performRound3WithLedger(
+    client: RpcClient,
+    participantName: string,
+    round1PublicPackagesStr: string[],
+    round2PublicPackagesStr: string[],
+    round2SecretPackage: string,
+    accountCreatedAt?: number,
+  ): Promise<void> {
+    const ledger = new LedgerDkg(this.logger)
     try {
       await ledger.connect()
     } catch (e) {
@@ -136,5 +172,93 @@ export class DkgRound3Command extends IronfishCommand {
         throw e
       }
     }
+
+    const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
+    const identity = identityResponse.content.identity
+
+    // Sort packages by identity
+    const round1PublicPackages = round1PublicPackagesStr
+      .map(deserializePublicPackage)
+      .sort((a, b) => a.identity.localeCompare(b.identity))
+
+    // Filter out packages not intended for participant and sort by sender identity
+    const round2CombinedPublicPackages = round2PublicPackagesStr.map(
+      deserializeRound2CombinedPublicPackage,
+    )
+    const round2PublicPackages = round2CombinedPublicPackages
+      .flatMap((combined) =>
+        combined.packages.filter((pkg) => pkg.recipientIdentity === identity),
+      )
+      .sort((a, b) => a.senderIdentity.localeCompare(b.senderIdentity))
+
+    // Extract raw parts from round1 and round2 public packages
+    const participants = []
+    const round1FrostPackages = []
+    const gskBytes = []
+    for (const pkg of round1PublicPackages) {
+      // Exclude participant's own identity and round1 public package
+      if (pkg.identity !== identity) {
+        participants.push(pkg.identity)
+        round1FrostPackages.push(pkg.frostPackage)
+      }
+
+      gskBytes.push(pkg.groupSecretKeyShardEncrypted)
+    }
+
+    const round2FrostPackages = round2PublicPackages.map((pkg) => pkg.frostPackage)
+
+    // Perform round3 with Ledger
+    await ledger.dkgRound3(
+      0,
+      participants,
+      round1FrostPackages,
+      round2FrostPackages,
+      round2SecretPackage,
+      gskBytes,
+    )
+
+    // Retrieve all multisig account keys and publicKeyPackage
+    const dkgKeys = await ledger.dkgRetrieveKeys()
+
+    const publicKeyPackage = await ledger.dkgGetPublicPackage()
+
+    const accountImport = {
+      ...dkgKeys,
+      multisigKeys: {
+        publicKeyPackage: publicKeyPackage.toString('hex'),
+        identity,
+      },
+      version: ACCOUNT_SCHEMA_VERSION,
+      name: participantName,
+      spendingKey: null,
+      createdAt: null,
+    }
+
+    // Import multisig account
+    const { name } = await importAccount(
+      client,
+      encodeAccountImport(accountImport, AccountFormat.Base64Json),
+      this.logger,
+      participantName,
+      accountCreatedAt,
+    )
+
+    this.log()
+    this.log(`Account ${name} imported with public address: ${dkgKeys.publicAddress}`)
+
+    this.log()
+    this.log('Creating an encrypted backup of multisig keys from your Ledger device...')
+    this.log()
+
+    const encryptedKeys = await ledger.dkgBackupKeys()
+
+    this.log()
+    this.log('Encrypted Ledger Multisig Backup:')
+    this.log(encryptedKeys.toString('hex'))
+    this.log()
+    this.log('Please save the encrypted keys shown above.')
+    this.log(
+      'Use `ironfish wallet:multisig:ledger:restore` if you need to restore the keys to your Ledger.',
+    )
   }
 }

@@ -4,8 +4,8 @@
 import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
+import { makeFakeWitness } from '../devUtils'
 import { IsNoteWitnessEqual } from '../merkletree/witness'
-import { makeFakeWitness } from '../testUtilities'
 import {
   useAccountFixture,
   useMinerBlockFixture,
