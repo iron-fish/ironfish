@@ -79,8 +79,8 @@ export class AssetsVerificationApi {
 
   readonly url: string
 
-  constructor(options: { files: FileSystem; url?: string; timeout?: number }) {
-    this.url = options?.url || 'https://api.ironfish.network/assets/verified_metadata'
+  constructor(options: { files: FileSystem; url: string; timeout?: number }) {
+    this.url = options.url
     this.timeout = options?.timeout ?? 30 * 1000 // 30 seconds
     this.adapter = isFileUrl(this.url)
       ? axiosFileAdapter(options.files)
@@ -128,6 +128,14 @@ export class AssetsVerificationApi {
         throw error
       })
   }
+}
+
+export function getDefaultAssetVerificationEndpoint(networkId?: number): string {
+  if (networkId === 0) {
+    return 'https://testnet.api.ironfish.network/assets/verified_metadata'
+  }
+
+  return 'https://api.ironfish.network/assets/verified_metadata'
 }
 
 const isFileUrl = (url: string): boolean => {

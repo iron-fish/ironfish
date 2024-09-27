@@ -8,8 +8,6 @@ import { RemoteFlags } from '../../flags'
 import { inputPrompt } from '../../ui'
 
 export class UnlockCommand extends IronfishCommand {
-  static hidden = true
-
   static description = 'unlock accounts in the wallet'
 
   static flags = {

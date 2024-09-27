@@ -6,8 +6,6 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class LockCommand extends IronfishCommand {
-  static hidden = true
-
   static description = 'lock accounts in the wallet'
 
   static flags = {

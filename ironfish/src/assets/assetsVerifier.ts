@@ -35,13 +35,13 @@ export class AssetsVerifier {
 
   constructor(options: {
     files: FileSystem
-    apiUrl?: string
+    apiUrl: string
     cache?: VerifiedAssetsCacheStore
     logger?: Logger
   }) {
-    this.logger = options?.logger ?? createRootLogger()
-    this.api = new AssetsVerificationApi({ url: options?.apiUrl, files: options.files })
-    this.cache = options?.cache
+    this.logger = options.logger ?? createRootLogger()
+    this.api = new AssetsVerificationApi({ url: options.apiUrl, files: options.files })
+    this.cache = options.cache
     this.started = false
 
     if (this.cache?.config?.apiUrl === this.api.url) {

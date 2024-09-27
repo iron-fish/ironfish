@@ -1,18 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  AccountFormat,
-  encodeAccountImport,
-  RPC_ERROR_CODES,
-  RpcRequestError,
-} from '@ironfish/sdk'
+import { AccountFormat, encodeAccountImport } from '@ironfish/sdk'
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { checkWalletUnlocked, inputPrompt } from '../../ui'
 import { importFile, importPipe, longPrompt } from '../../ui/longPrompt'
-import { Ledger } from '../../utils/ledger'
+import { importAccount } from '../../utils'
+import { Ledger, LedgerError } from '../../utils/ledger'
 
 export class ImportCommand extends IronfishCommand {
   static description = `import an account`
@@ -102,49 +98,15 @@ export class ImportCommand extends IronfishCommand {
       flags.name = name
     }
 
-    let result
+    const { name, isDefaultAccount } = await importAccount(
+      client,
+      account,
+      this.logger,
+      flags.name,
+      flags.createdAt,
+      flags.rescan,
+    )
 
-    while (!result) {
-      try {
-        result = await client.wallet.importAccount({
-          account,
-          rescan: flags.rescan,
-          name: flags.name,
-          createdAt: flags.createdAt,
-        })
-      } catch (e) {
-        if (
-          e instanceof RpcRequestError &&
-          (e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString() ||
-            e.code === RPC_ERROR_CODES.IMPORT_ACCOUNT_NAME_REQUIRED.toString() ||
-            e.code === RPC_ERROR_CODES.DUPLICATE_IDENTITY_NAME.toString())
-        ) {
-          const message = 'Enter a name for the account'
-
-          if (e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString()) {
-            this.log()
-            this.log(e.codeMessage)
-          }
-
-          if (e.code === RPC_ERROR_CODES.DUPLICATE_IDENTITY_NAME.toString()) {
-            this.log()
-            this.log(e.codeMessage)
-          }
-
-          const name = await inputPrompt(message, true)
-          if (name === flags.name) {
-            this.error(`Entered the same name: '${name}'`)
-          }
-
-          flags.name = name
-          continue
-        }
-
-        throw e
-      }
-    }
-
-    const { name, isDefaultAccount } = result.content
     this.log(`Account ${name} imported.`)
 
     if (isDefaultAccount) {
@@ -161,8 +123,9 @@ export class ImportCommand extends IronfishCommand {
       const account = await ledger.importAccount()
       return encodeAccountImport(account, AccountFormat.Base64Json)
     } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
+      if (e instanceof LedgerError) {
+        this.logger.error(e.message + '\n')
+        this.exit(1)
       } else {
         this.error('Unknown error while importing account from ledger device.')
       }

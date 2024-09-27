@@ -45,13 +45,12 @@ routes.register<typeof ImportParticipantRequestSchema, ImportParticipantResponse
       )
     }
 
-    if (
-      await context.wallet.walletDb.getMultisigIdentity(
-        Buffer.from(request.data.identity, 'hex'),
-      )
-    ) {
+    const existingIdentity = await context.wallet.walletDb.getMultisigIdentity(
+      Buffer.from(request.data.identity, 'hex'),
+    )
+    if (existingIdentity) {
       throw new RpcValidationError(
-        `Multisig identity ${request.data.identity} already exists`,
+        `Multisig identity ${request.data.identity} already exists with the name ${existingIdentity.name}`,
         400,
       )
     }
