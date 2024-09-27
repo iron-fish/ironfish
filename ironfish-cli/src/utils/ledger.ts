@@ -53,10 +53,8 @@ export class LedgerDkg {
         this.logger.debug(`Ledger ResponseError returnCode: ${error.returnCode.toString(16)}`)
         if (error.returnCode === LedgerDeviceLockedError.returnCode) {
           throw new LedgerDeviceLockedError('Please unlock your Ledger device.')
-        } else if (error.returnCode === LedgerAppNotOpenError.returnCode) {
-          throw new LedgerAppNotOpenError(
-            'Please open the Iron Fish app on your Ledger device.',
-          )
+        } else if (LedgerAppUnavailableError.returnCodes.includes(error.returnCode)) {
+          throw new LedgerAppUnavailableError()
         }
 
         throw new LedgerError(error.errorMessage)
@@ -445,8 +443,18 @@ export class LedgerDeviceLockedError extends LedgerError {
   static returnCode = 0x5515
 }
 
-export class LedgerAppNotOpenError extends LedgerError {
-  static returnCode = 0x6f00
+export class LedgerAppUnavailableError extends LedgerError {
+  static returnCodes = [
+    0x6d00, // Instruction not supported
+    0xffff, // Unknown transport error
+    0x6f00, // Technical error
+  ]
+
+  constructor() {
+    super(
+      `Unable to connect to Ironfish app on Ledger. Please check that the device is unlocked and the app is open.`,
+    )
+  }
 }
 
 export async function sendTransactionWithLedger(
