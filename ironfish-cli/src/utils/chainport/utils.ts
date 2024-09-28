@@ -119,7 +119,7 @@ export const displayChainportTransactionSummary = async (
   if (data.type === TransactionType.RECEIVE) {
     logger.log(`
 Direction:                    Incoming
-Source Network:               ${network.name}
+Source Network:               ${network.label}
        Address:               ${data.address}
        Explorer Account:      ${network.explorer_url + 'address/' + data.address}
 Target (Ironfish) Network:    ${defaultNetworkName(networkId)}`)
@@ -134,7 +134,7 @@ Source Network:               ${defaultNetworkName(networkId)}
        Transaction Status:    ${transaction.status}
        Transaction Hash:      ${transaction.hash}
 ==============================================
-Target Network:               ${network.name}
+Target Network:               ${network.label}
        Address:               ${data.address}
        Explorer Account:      ${network.explorer_url + 'address/' + data.address}`
 
@@ -146,7 +146,6 @@ Target Network:               ${network.name}
 
   ux.action.start('Fetching transaction information on target network')
   const transactionStatus = await fetchChainportTransactionStatus(networkId, transaction.hash)
-  logger.log(`Transaction status fetched`)
   ux.action.stop()
 
   logger.log(basicInfo)
@@ -159,12 +158,11 @@ If this issue persists, please contact chainport support: https://helpdesk.chain
     return
   }
 
-  if (!transactionStatus.base_tx_hash || !transactionStatus.base_tx_status) {
-    logger.log(`       Transaction Status:    pending`)
-    return
-  }
-
-  if (transactionStatus.target_tx_hash === null) {
+  if (
+    !transactionStatus.base_tx_hash ||
+    !transactionStatus.base_tx_status ||
+    !transactionStatus.target_tx_hash
+  ) {
     logger.log(`       Transaction Status:    pending`)
     return
   }
