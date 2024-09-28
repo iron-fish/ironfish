@@ -342,12 +342,7 @@ export class BridgeCommand extends IronfishCommand {
     )
     const ironfishNetworkFee = CurrencyUtils.render(raw.fee, true)
 
-    const targetNetworkFee = CurrencyUtils.render(
-      BigInt(txn.gas_fee_output.amount),
-      true,
-      asset.web3_address,
-      assetData.verification,
-    )
+    const targetNetworkFee = CurrencyUtils.render(BigInt(txn.gas_fee_output.amount), true)
 
     let chainportFee: string
 
