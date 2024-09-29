@@ -311,6 +311,7 @@ export class BridgeCommand extends IronfishCommand {
     if (params.fee === null && params.feeRate === null) {
       rawTransaction = await selectFee({
         client,
+        account: from,
         transaction: params,
         logger: this.logger,
       })
