@@ -122,6 +122,7 @@ export class TransactionInfoCommand extends IronfishCommand {
 
       for (const note of transaction.notes) {
         const asset = await client.wallet.getAsset({
+          account: account,
           id: note.assetId,
         })
 
