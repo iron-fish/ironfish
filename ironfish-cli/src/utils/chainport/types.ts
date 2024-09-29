@@ -32,7 +32,7 @@ export type ChainportNetwork = {
   label: string
   // blockchain_type: string
   // native_token_symbol: string
-  // network_icon: string
+  network_icon: string
 }
 
 export type ChainportToken = {
