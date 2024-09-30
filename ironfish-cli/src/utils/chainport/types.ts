@@ -25,13 +25,8 @@ export type ChainportBridgeTransaction = {
 
 export type ChainportNetwork = {
   chainport_network_id: number
-  // shortname: string
-  // name: string
-  // chain_id: number
   explorer_url: string
   label: string
-  // blockchain_type: string
-  // native_token_symbol: string
   network_icon: string
 }
 
