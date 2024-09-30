@@ -98,3 +98,35 @@ export const DkgStatusSchema: yup.ObjectSchema<DkgStatusMessage> = yup
     round2PublicPackages: yup.array(yup.string().defined()).defined(),
   })
   .defined()
+
+// Add these new type definitions
+export type CommitmentMessage = {
+  commitment: string
+}
+
+export type SigningPackageMessage = {
+  package: string
+}
+
+export type SignatureShareMessage = {
+  share: string
+}
+
+// Add these new schema definitions
+export const CommitmentSchema: yup.ObjectSchema<CommitmentMessage> = yup
+  .object({
+    commitment: yup.string().defined(),
+  })
+  .defined()
+
+export const SigningPackageSchema: yup.ObjectSchema<SigningPackageMessage> = yup
+  .object({
+    package: yup.string().defined(),
+  })
+  .defined()
+
+export const SignatureShareSchema: yup.ObjectSchema<SignatureShareMessage> = yup
+  .object({
+    share: yup.string().defined(),
+  })
+  .defined()

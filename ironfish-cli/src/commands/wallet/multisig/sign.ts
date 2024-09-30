@@ -237,22 +237,17 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         errorOnDuplicate: true,
       })
     } else {
-      multisigClient.onDkgStatus.on((message) => {
-        signatureShares = message.signatureShares
-      })
       multisigClient.onSignatureShare.on((message) => {
-        if (!signatureShares.includes(message.signatureShare)) {
-          signatureShares.push(message.signatureShare)
+        if (!signatureShares.includes(message.share)) {
+          signatureShares.push(message.share)
         }
       })
-      multisigClient.getDkgStatus()
       multisigClient.submitSignatureShare(signatureShare)
 
       ux.action.start('Waiting for other Signature Shares from server')
       while (signatureShares.length < totalParticipants) {
         await PromiseUtils.sleep(3000)
       }
-      multisigClient.onDkgStatus.clear()
       multisigClient.onSignatureShare.clear()
       ux.action.stop()
     }
@@ -357,22 +352,17 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         errorOnDuplicate: true,
       })
     } else {
-      multisigClient.onDkgStatus.on((message) => {
-        commitments = message.commitments
-      })
       multisigClient.onCommitment.on((message) => {
         if (!commitments.includes(message.commitment)) {
           commitments.push(message.commitment)
         }
       })
-      multisigClient.getDkgStatus()
       multisigClient.submitCommitment(commitment)
 
       ux.action.start('Waiting for other Commitments from server')
       while (commitments.length < identities.length) {
         await PromiseUtils.sleep(3000)
       }
-      multisigClient.onDkgStatus.clear()
       multisigClient.onCommitment.clear()
       ux.action.stop()
     }
@@ -398,7 +388,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     this.log(`Identity for ${participant.name}: \n${participant.identity} \n`)
     this.log('Share your participant identity with other signers.')
 
-    let totalParticipants: number
+    let totalParticipants: number | undefined
     let identities: string[] = []
 
     if (!multisigClient) {
@@ -423,18 +413,16 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     } else {
       multisigClient.onDkgStatus.on((message) => {
         totalParticipants = message.maxSigners
-        identities = message.identities
       })
       multisigClient.onIdentity.on((message) => {
         if (!identities.includes(message.identity)) {
           identities.push(message.identity)
         }
       })
-      multisigClient.getDkgStatus()
       multisigClient.submitIdentity(participant.identity)
 
       ux.action.start('Waiting for other Identities from server')
-      while (identities.length < totalParticipants) {
+      while (totalParticipants === undefined || identities.length < totalParticipants) {
         await PromiseUtils.sleep(3000)
       }
       multisigClient.onDkgStatus.clear()

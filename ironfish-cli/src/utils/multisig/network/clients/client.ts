@@ -11,6 +11,9 @@ import {
 } from '@ironfish/sdk'
 import { ServerMessageMalformedError } from '../errors'
 import {
+  // Add these new imports
+  CommitmentMessage,
+  CommitmentSchema,
   DkgGetStatusMessage,
   DkgStatusMessage,
   DkgStatusSchema,
@@ -20,6 +23,10 @@ import {
   Round1PublicPackageSchema,
   Round2PublicPackageMessage,
   Round2PublicPackageSchema,
+  SignatureShareMessage,
+  SignatureShareSchema,
+  SigningPackageMessage,
+  SigningPackageSchema,
   StratumMessage,
   StratumMessageSchema,
   StratumMessageWithError,
@@ -46,6 +53,11 @@ export abstract class MultisigClient {
   readonly onRound2PublicPackage = new Event<[Round2PublicPackageMessage]>()
   readonly onDkgStatus = new Event<[DkgStatusMessage]>()
   readonly onStratumError = new Event<[StratumMessageWithError]>()
+
+  // Add these new events for the signing process
+  readonly onCommitment = new Event<[CommitmentMessage]>()
+  readonly onSigningPackage = new Event<[SigningPackageMessage]>()
+  readonly onSignatureShare = new Event<[SignatureShareMessage]>()
 
   constructor(options: { logger: Logger }) {
     this.logger = options.logger
@@ -130,6 +142,19 @@ export abstract class MultisigClient {
     this.send('dkg.round2', { package: round2PublicPackage })
   }
 
+  // Add these new methods for the signing process
+  submitCommitment(commitment: string): void {
+    this.send('multisig.commitment', { commitment })
+  }
+
+  submitSigningPackage(signingPackage: string): void {
+    this.send('multisig.signing_package', { package: signingPackage })
+  }
+
+  submitSignatureShare(signatureShare: string): void {
+    this.send('multisig.signature_share', { share: signatureShare })
+  }
+
   getDkgStatus(): void {
     this.send('dkg.get_status', {})
   }
@@ -138,6 +163,10 @@ export abstract class MultisigClient {
   private send(method: 'dkg.round1', body: Round1PublicPackageMessage): void
   private send(method: 'dkg.round2', body: Round2PublicPackageMessage): void
   private send(method: 'dkg.get_status', body: DkgGetStatusMessage): void
+  // Add these new overloads for the signing process
+  private send(method: 'multisig.commitment', body: CommitmentMessage): void
+  private send(method: 'multisig.signing_package', body: SigningPackageMessage): void
+  private send(method: 'multisig.signature_share', body: SignatureShareMessage): void
   private send(method: string, body?: unknown): void {
     if (!this.connected) {
       return
@@ -237,6 +266,36 @@ export abstract class MultisigClient {
           }
 
           this.onDkgStatus.emit(body.result)
+          break
+        }
+        case 'multisig.commitment': {
+          const body = await YupUtils.tryValidate(CommitmentSchema, header.result.body)
+
+          if (body.error) {
+            throw new ServerMessageMalformedError(body.error, header.result.method)
+          }
+
+          this.onCommitment.emit(body.result)
+          break
+        }
+        case 'multisig.signing_package': {
+          const body = await YupUtils.tryValidate(SigningPackageSchema, header.result.body)
+
+          if (body.error) {
+            throw new ServerMessageMalformedError(body.error, header.result.method)
+          }
+
+          this.onSigningPackage.emit(body.result)
+          break
+        }
+        case 'multisig.signature_share': {
+          const body = await YupUtils.tryValidate(SignatureShareSchema, header.result.body)
+
+          if (body.error) {
+            throw new ServerMessageMalformedError(body.error, header.result.method)
+          }
+
+          this.onSignatureShare.emit(body.result)
           break
         }
 
