@@ -283,7 +283,7 @@ export class BridgeCommand extends IronfishCommand {
   ) {
     const { flags } = await this.parse(BridgeCommand)
 
-    ux.action.start('Fetching bridge transaction fees')
+    ux.action.start('Fetching bridge transaction details')
     const txn = await fetchChainportBridgeTransaction(
       networkId,
       amount,
