@@ -19,28 +19,12 @@ export class MultisigServerCommand extends IronfishCommand {
       description: 'port for the multisig server',
       default: 9035,
     }),
-    maxSigners: Flags.integer({
-      description: 'total number of participants in multisig account',
-      required: true,
-    }),
-    minSigners: Flags.integer({
-      description: 'minimum number of multisig signers',
-      required: true,
-    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(MultisigServerCommand)
 
-    const status = {
-      maxSigners: flags.maxSigners,
-      minSigners: flags.minSigners,
-      identities: [],
-      round1PublicPackages: [],
-      round2PublicPackages: [],
-    }
-
-    const server = new MultisigServer(status, { logger: this.logger })
+    const server = new MultisigServer({ logger: this.logger })
 
     const adapter = new MultisigTcpAdapter({
       logger: this.logger,

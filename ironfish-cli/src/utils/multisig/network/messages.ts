@@ -6,20 +6,24 @@ import * as yup from 'yup'
 export type StratumMessage = {
   id: number
   method: string
+  sessionId: string
   body?: unknown
 }
 
-export interface StratumMessageWithError extends Omit<StratumMessage, 'method' | 'body'> {
+export interface StratumMessageWithError
+  extends Omit<StratumMessage, 'method' | 'body' | 'sessionId'> {
   error: {
     id: number
     message: string
   }
 }
 
-export type DkgConfigMessage = {
+export type DkgStartSessionMessage = {
   minSigners: number
   maxSigners: number
 }
+
+export type JoinSessionMessage = object | undefined
 
 export type IdentityMessage = {
   identity: string
@@ -47,6 +51,7 @@ export const StratumMessageSchema: yup.ObjectSchema<StratumMessage> = yup
   .object({
     id: yup.number().required(),
     method: yup.string().required(),
+    sessionId: yup.string().required(),
     body: yup.mixed().notRequired(),
   })
   .required()
@@ -63,12 +68,17 @@ export const StratumMessageWithErrorSchema: yup.ObjectSchema<StratumMessageWithE
   })
   .required()
 
-export const DkgConfigSchema: yup.ObjectSchema<DkgConfigMessage> = yup
+export const DkgStartSessionSchema: yup.ObjectSchema<DkgStartSessionMessage> = yup
   .object({
     minSigners: yup.number().defined(),
     maxSigners: yup.number().defined(),
   })
   .defined()
+
+export const JoinSessionSchema: yup.ObjectSchema<JoinSessionMessage> = yup
+  .object({})
+  .notRequired()
+  .default(undefined)
 
 export const IdentitySchema: yup.ObjectSchema<IdentityMessage> = yup
   .object({
