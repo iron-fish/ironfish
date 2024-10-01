@@ -14,6 +14,8 @@ import {
   RpcClient,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
+import fs from 'fs'
+import path from 'path'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import * as ui from '../../../../ui'
@@ -519,6 +521,18 @@ export class DkgCreateCommand extends IronfishCommand {
     this.log(
       'Use `ironfish wallet:multisig:ledger:restore` if you need to restore the keys to your Ledger.',
     )
+
+    const dataDir = this.sdk.fileSystem.resolve(this.sdk.dataDir)
+    const backupKeysPath = path.join(dataDir, `ironfish-ledger-${accountName}.txt`)
+
+    if (fs.existsSync(backupKeysPath)) {
+      await ui.confirmOrQuit(
+        `Error when backing up your keys: \nThe file ${backupKeysPath} already exists. \nOverwrite?`,
+      )
+    }
+
+    await fs.promises.writeFile(backupKeysPath, encryptedKeys.toString('hex'))
+    this.log(`A copy of your encrypted keys have been saved at ${backupKeysPath}`)
   }
 
   async performRound3(
