@@ -245,7 +245,7 @@ export class LedgerDkg extends LedgerBase {
   }
 }
 
-export class Ledger extends LedgerBase {
+export class LedgerSingleSigner extends LedgerBase {
   constructor(logger?: Logger) {
     super(false, logger)
   }
@@ -350,7 +350,7 @@ export async function sendTransactionWithLedger(
   confirm: boolean,
   logger?: Logger,
 ): Promise<void> {
-  const ledger = new Ledger(logger)
+  const ledger = new LedgerSingleSigner(logger)
   try {
     await ledger.connect()
   } catch (e) {
