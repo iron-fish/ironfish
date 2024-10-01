@@ -23,6 +23,14 @@ import {
   Round1PublicPackageSchema,
   Round2PublicPackageMessage,
   Round2PublicPackageSchema,
+  SignatureShareMessage,
+  SignatureShareSchema,
+  SigningCommitmentMessage,
+  SigningCommitmentSchema,
+  SigningGetStatusMessage,
+  SigningStartSessionMessage,
+  SigningStatusMessage,
+  SigningStatusSchema,
   StratumMessage,
   StratumMessageSchema,
   StratumMessageWithError,
@@ -48,6 +56,9 @@ export abstract class MultisigClient {
   readonly onRound1PublicPackage = new Event<[Round1PublicPackageMessage]>()
   readonly onRound2PublicPackage = new Event<[Round2PublicPackageMessage]>()
   readonly onDkgStatus = new Event<[DkgStatusMessage]>()
+  readonly onSigningCommitment = new Event<[SigningCommitmentMessage]>()
+  readonly onSignatureShare = new Event<[SignatureShareMessage]>()
+  readonly onSigningStatus = new Event<[SigningStatusMessage]>()
   readonly onStratumError = new Event<[StratumMessageWithError]>()
 
   sessionId: string | null = null
@@ -133,6 +144,11 @@ export abstract class MultisigClient {
     this.send('dkg.start_session', { maxSigners, minSigners })
   }
 
+  startSigningSession(numSigners: number, unsignedTransaction: string): void {
+    this.sessionId = uuid()
+    this.send('sign.start_session', { numSigners, unsignedTransaction })
+  }
+
   submitIdentity(identity: string): void {
     this.send('identity', { identity })
   }
@@ -149,12 +165,28 @@ export abstract class MultisigClient {
     this.send('dkg.get_status', {})
   }
 
+  submitSigningCommitment(signingCommitment: string): void {
+    this.send('sign.commitment', { signingCommitment })
+  }
+
+  submitSignatureShare(signatureShare: string): void {
+    this.send('sign.share', { signatureShare })
+  }
+
+  getSigningStatus(): void {
+    this.send('sign.get_status', {})
+  }
+
   private send(method: 'join_session', body: JoinSessionMessage): void
   private send(method: 'dkg.start_session', body: DkgStartSessionMessage): void
+  private send(method: 'sign.start_session', body: SigningStartSessionMessage): void
   private send(method: 'identity', body: IdentityMessage): void
   private send(method: 'dkg.round1', body: Round1PublicPackageMessage): void
   private send(method: 'dkg.round2', body: Round2PublicPackageMessage): void
   private send(method: 'dkg.get_status', body: DkgGetStatusMessage): void
+  private send(method: 'sign.commitment', body: SigningCommitmentMessage): void
+  private send(method: 'sign.share', body: SignatureShareMessage): void
+  private send(method: 'sign.get_status', body: SigningGetStatusMessage): void
   private send(method: string, body?: unknown): void {
     if (!this.sessionId) {
       throw new Error('Client must join a session before sending messages')
@@ -259,6 +291,36 @@ export abstract class MultisigClient {
           }
 
           this.onDkgStatus.emit(body.result)
+          break
+        }
+        case 'sign.commitment': {
+          const body = await YupUtils.tryValidate(SigningCommitmentSchema, header.result.body)
+
+          if (body.error) {
+            throw new ServerMessageMalformedError(body.error, header.result.method)
+          }
+
+          this.onSigningCommitment.emit(body.result)
+          break
+        }
+        case 'sign.share': {
+          const body = await YupUtils.tryValidate(SignatureShareSchema, header.result.body)
+
+          if (body.error) {
+            throw new ServerMessageMalformedError(body.error, header.result.method)
+          }
+
+          this.onSignatureShare.emit(body.result)
+          break
+        }
+        case 'sign.status': {
+          const body = await YupUtils.tryValidate(SigningStatusSchema, header.result.body)
+
+          if (body.error) {
+            throw new ServerMessageMalformedError(body.error, header.result.method)
+          }
+
+          this.onSigningStatus.emit(body.result)
           break
         }
 
