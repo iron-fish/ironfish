@@ -16,7 +16,7 @@ import * as ui from '../../../ui'
 import {
   displayChainportTransactionSummary,
   extractChainportDataFromTransaction,
-  fetchChainportNetworkMap,
+  fetchChainportNetworks,
   getAssetsByIDs,
   useAccount,
 } from '../../../utils'
@@ -100,14 +100,17 @@ export class TransactionInfoCommand extends IronfishCommand {
       this.log(`\n---Chainport Bridge Transaction Summary---\n`)
 
       ux.action.start('Fetching network details')
-      const chainportNetworks = await fetchChainportNetworkMap(networkId)
+      const chainportNetworks = await fetchChainportNetworks(networkId)
+      const network = chainportNetworks.find(
+        (n) => n.chainport_network_id === chainportTxnDetails.chainportNetworkId,
+      )
       ux.action.stop()
 
       await displayChainportTransactionSummary(
         networkId,
         transaction,
         chainportTxnDetails,
-        chainportNetworks[chainportTxnDetails.chainportNetworkId],
+        network,
         this.logger,
       )
     }

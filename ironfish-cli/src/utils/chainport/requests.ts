@@ -1,14 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { MAINNET } from '@ironfish/sdk'
 import axios from 'axios'
 import { getConfig } from './config'
 import {
   ChainportBridgeTransaction,
   ChainportNetwork,
+  ChainportToken,
   ChainportTransactionStatus,
-  ChainportVerifiedToken,
 } from './types'
 
 // Wrappers around chainport API requests. Documentation here: https://docs.chainport.io/for-developers/integrate-chainport/iron-fish/iron-fish-to-evm
@@ -18,50 +17,52 @@ export const fetchChainportTransactionStatus = async (
   hash: string,
 ): Promise<ChainportTransactionStatus> => {
   const config = getConfig(networkId)
-  const url = `${config.endpoint}/api/port?base_tx_hash=${hash}&base_network_id=${config.chainportId}`
+  const url = new URL(`/bridges/transactions/status`, config.endpoint)
+  url.searchParams.append('hash', hash)
 
-  return await makeChainportRequest<ChainportTransactionStatus>(url)
+  return await makeChainportRequest<ChainportTransactionStatus>(url.toString())
 }
 
-export const fetchChainportNetworkMap = async (
+export const fetchChainportNetworks = async (
   networkId: number,
-): Promise<{ [key: string]: ChainportNetwork }> => {
+): Promise<ChainportNetwork[]> => {
   const config = getConfig(networkId)
-  const url = `${config.endpoint}/meta`
+  const url = new URL('/bridges/networks', config.endpoint).toString()
 
-  return (
-    await makeChainportRequest<{ cp_network_ids: { [key: string]: ChainportNetwork } }>(url)
-  ).cp_network_ids
+  return (await makeChainportRequest<{ data: ChainportNetwork[] }>(url)).data
 }
 
-export const fetchChainportVerifiedTokens = async (
-  networkId: number,
-): Promise<ChainportVerifiedToken[]> => {
+export const fetchChainportTokens = async (networkId: number): Promise<ChainportToken[]> => {
   const config = getConfig(networkId)
-  let url
-  if (networkId === MAINNET.id) {
-    url = `${config.endpoint}/token/list?network_name=IRONFISH`
-  } else {
-    url = `${config.endpoint}/token_list?network_name=IRONFISH`
-  }
+  const url = new URL('/bridges/tokens', config.endpoint).toString()
 
-  return (await makeChainportRequest<{ verified_tokens: ChainportVerifiedToken[] }>(url))
-    .verified_tokens
+  return (await makeChainportRequest<{ data: ChainportToken[] }>(url)).data
+}
+
+export const fetchChainportTokenPaths = async (
+  networkId: number,
+  tokenId: number,
+): Promise<ChainportNetwork[]> => {
+  const config = getConfig(networkId)
+  const url = new URL(`/bridges/tokens/${tokenId}/networks`, config.endpoint).toString()
+  return (await makeChainportRequest<{ data: ChainportNetwork[] }>(url)).data
 }
 
 export const fetchChainportBridgeTransaction = async (
   networkId: number,
   amount: bigint,
-  to: string,
-  network: ChainportNetwork,
-  asset: ChainportVerifiedToken,
+  assetId: string,
+  targetNetworkId: number,
+  targetAddress: string,
 ): Promise<ChainportBridgeTransaction> => {
   const config = getConfig(networkId)
-  const url = `${config.endpoint}/ironfish/metadata?raw_amount=${amount.toString()}&asset_id=${
-    asset.web3_address
-  }&target_network_id=${network.chainport_network_id.toString()}&target_web3_address=${to}`
+  const url = new URL(`/bridges/transactions/create`, config.endpoint)
+  url.searchParams.append('amount', amount.toString())
+  url.searchParams.append('asset_id', assetId)
+  url.searchParams.append('target_network_id', targetNetworkId.toString())
+  url.searchParams.append('target_address', targetAddress.toString())
 
-  return await makeChainportRequest<ChainportBridgeTransaction>(url)
+  return await makeChainportRequest<ChainportBridgeTransaction>(url.toString())
 }
 
 const makeChainportRequest = async <T extends object>(url: string): Promise<T> => {
