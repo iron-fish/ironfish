@@ -11,7 +11,6 @@ import {
   AccountFormat,
   Assert,
   encodeAccountImport,
-  ErrorUtils,
   RpcClient,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
@@ -524,31 +523,16 @@ export class DkgCreateCommand extends IronfishCommand {
     )
 
     const dataDir = this.sdk.fileSystem.resolve(this.sdk.dataDir)
+    const backupKeysPath = path.join(dataDir, `ironfish-ledger-${accountName}.txt`)
 
-    const fileName = `ironfish-ledger-${accountName}.txt`
-
-    const fullPath = path.join(dataDir, fileName)
-
-    const resolved = this.sdk.fileSystem.resolve(fullPath)
-
-    try {
-      if (fs.existsSync(resolved)) {
-        await ui.confirmOrQuit(
-          `There is already a file at ${dataDir}` +
-            `\n\nOverwrite the encrypted keys backup with new file?`,
-        )
-      }
-
-      await fs.promises.writeFile(resolved, encryptedKeys.toString('hex'))
-      this.log(`Stored encrypted keys to ${resolved}`)
-    } catch (err: unknown) {
-      if (ErrorUtils.isNoEntityError(err)) {
-        await fs.promises.mkdir(path.dirname(resolved), { recursive: true })
-        await fs.promises.writeFile(resolved, encryptedKeys.toString('hex'))
-      } else {
-        throw err
-      }
+    if (fs.existsSync(backupKeysPath)) {
+      await ui.confirmOrQuit(
+        `Error when backing up your keys: \nThe file ${backupKeysPath} already exists. \nOverwrite?`,
+      )
     }
+
+    await fs.promises.writeFile(backupKeysPath, encryptedKeys.toString('hex'))
+    this.log(`A copy of your encrypted keys have been saved at ${backupKeysPath}`)
   }
 
   async performRound3(
