@@ -23,6 +23,8 @@ import {
   Round1PublicPackageSchema,
   Round2PublicPackageMessage,
   Round2PublicPackageSchema,
+  SignStatusMessage,
+  SignStatusSchema,
   SignatureShareMessage,
   SignatureShareSchema,
   SigningPackageMessage,
@@ -58,6 +60,8 @@ export abstract class MultisigClient {
   readonly onCommitment = new Event<[CommitmentMessage]>()
   readonly onSigningPackage = new Event<[SigningPackageMessage]>()
   readonly onSignatureShare = new Event<[SignatureShareMessage]>()
+
+  readonly onSignStatus = new Event<[SignStatusMessage]>()
 
   constructor(options: { logger: Logger }) {
     this.logger = options.logger
@@ -159,6 +163,10 @@ export abstract class MultisigClient {
     this.send('dkg.get_status', {})
   }
 
+  getSignStatus(): void {
+    this.send('multisig.get_status', {})
+  }
+
   private send(method: 'identity', body: IdentityMessage): void
   private send(method: 'dkg.round1', body: Round1PublicPackageMessage): void
   private send(method: 'dkg.round2', body: Round2PublicPackageMessage): void
@@ -167,6 +175,7 @@ export abstract class MultisigClient {
   private send(method: 'multisig.commitment', body: CommitmentMessage): void
   private send(method: 'multisig.signing_package', body: SigningPackageMessage): void
   private send(method: 'multisig.signature_share', body: SignatureShareMessage): void
+  private send(method: 'multisig.get_status', body: object): void
   private send(method: string, body?: unknown): void {
     if (!this.connected) {
       return
@@ -296,6 +305,16 @@ export abstract class MultisigClient {
           }
 
           this.onSignatureShare.emit(body.result)
+          break
+        }
+        case 'multisig.status': {
+          const body = await YupUtils.tryValidate(SignStatusSchema, header.result.body)
+
+          if (body.error) {
+            throw new ServerMessageMalformedError(body.error, header.result.method)
+          }
+
+          this.onSignStatus.emit(body.result)
           break
         }
 

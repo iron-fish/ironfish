@@ -130,3 +130,23 @@ export const SignatureShareSchema: yup.ObjectSchema<SignatureShareMessage> = yup
     share: yup.string().defined(),
   })
   .defined()
+
+export type SignStatusMessage = {
+  unsignedTransaction: string
+  totalParticipants: number
+  identities: string[]
+  commitments: string[]
+  signingPackage: string | null
+  signatureShares: string[]
+}
+
+export const SignStatusSchema: yup.ObjectSchema<SignStatusMessage> = yup
+  .object({
+    unsignedTransaction: yup.string().defined(),
+    totalParticipants: yup.number().defined(),
+    identities: yup.array(yup.string().defined()).defined(),
+    commitments: yup.array(yup.string().defined()).defined(),
+    signingPackage: yup.string().nullable().defined(),
+    signatureShares: yup.array(yup.string().defined()).defined(),
+  })
+  .defined()

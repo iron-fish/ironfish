@@ -1,0 +1,283 @@
+diff --git a/ironfish-cli/src/commands/wallet/multisig/sign.ts b/ironfish-cli/src/commands/wallet/multisig/sign.ts
+index ddcb68a18..b563b476e 100644
+--- a/ironfish-cli/src/commands/wallet/multisig/sign.ts
++++ b/ironfish-cli/src/commands/wallet/multisig/sign.ts
+@@ -20,6 +20,7 @@ import { RemoteFlags } from '../../../flags'
+ import * as ui from '../../../ui'
+ import { LedgerDkg } from '../../../utils/ledger'
+ import { MultisigTcpClient } from '../../../utils/multisig/network'
++import { SignStatusMessage } from '../../../utils/multisig/network/messages'
+ import { renderUnsignedTransactionDetails, watchTransaction } from '../../../utils/transaction'
+ 
+ // todo(patnir): this command does not differentiate between a participant and an account.
+@@ -139,7 +140,11 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
+       this.logger,
+     )
+ 
+-    const { commitment, identities } = await ui.retryStep(
++    if (multisigClient) {
++      multisigClient.getSignStatus()
++    }
++
++    const { commitment, identities, totalParticipants } = await ui.retryStep(
+       async () => {
+         return this.performCreateSigningCommitment(
+           client,
+@@ -169,6 +174,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
+         multisigAccountName,
+         commitment,
+         identities,
++        totalParticipants,
+         unsignedTransaction,
+       )
+     }, this.logger)
+@@ -207,7 +213,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
+           multisigAccountName,
+           signingPackage,
+           signatureShare,
+-          identities.length,
++          totalParticipants,
+         ),
+       this.logger,
+     )
+@@ -228,8 +234,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
+ 
+     if (!multisigClient) {
+       this.log(
+-        `Enter ${totalParticipants - 1
+-        } signature shares of the participants (excluding your own)`,
++        `Enter ${totalParticipants - 1} signature shares of the participants (excluding your own)`,
+       )
+ 
+       signatureShares = await ui.collectStrings('Signature Share', totalParticipants - 1, {
+@@ -237,19 +242,28 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
+         errorOnDuplicate: true,
+       })
+     } else {
+-      multisigClient.onSignatureShare.on((message) => {
+-        if (!signatureShares.includes(message.share)) {
+-          signatureShares.push(message.share)
+-        }
++      let signStatus: SignStatusMessage | null = null
++      multisigClient.onSignStatus.on((message) => {
++        signStatus = message
++        signatureShares = message.signatureShares
+       })
+-      multisigClient.submitSignatureShare(signatureShare)
++      multisigClient.getSignStatus()
+ 
+-      ux.action.start('Waiting for other Signature Shares from server')
+-      while (signatureShares.length < totalParticipants) {
++      ux.action.start('Waiting for Sign Status from server')
++      while (!signStatus) {
+         await PromiseUtils.sleep(3000)
+       }
+-      multisigClient.onSignatureShare.clear()
++      multisigClient.onSignStatus.clear()
+       ux.action.stop()
++
++      if (!signatureShares.includes(signatureShare)) {
++        multisigClient.submitSignatureShare(signatureShare)
++      }
++
++      while (signatureShares.length < totalParticipants) {
++        await PromiseUtils.sleep(3000)
++        multisigClient.getSignStatus()
++      }
+     }
+ 
+     const broadcast = await ui.confirmPrompt('Do you want to broadcast the transaction?')
+@@ -338,33 +352,43 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
+     accountName: string,
+     commitment: string,
+     identities: string[],
++    totalParticipants: number,
+     unsignedTransaction: UnsignedTransaction,
+   ) {
+     let commitments: string[] = []
+ 
+     if (!multisigClient) {
+       this.log(
+-        `Enter ${identities.length - 1} commitments of the participants (excluding your own)`,
++        `Enter ${totalParticipants - 1} commitments of the participants (excluding your own)`,
+       )
+ 
+-      commitments = await ui.collectStrings('Commitment', identities.length - 1, {
++      commitments = await ui.collectStrings('Commitment', totalParticipants - 1, {
+         additionalStrings: [commitment],
+         errorOnDuplicate: true,
+       })
+     } else {
+-      multisigClient.onCommitment.on((message) => {
+-        if (!commitments.includes(message.commitment)) {
+-          commitments.push(message.commitment)
+-        }
++      let signStatus: SignStatusMessage | null = null
++      multisigClient.onSignStatus.on((message) => {
++        signStatus = message
++        commitments = message.commitments
+       })
+-      multisigClient.submitCommitment(commitment)
++      multisigClient.getSignStatus()
+ 
+-      ux.action.start('Waiting for other Commitments from server')
+-      while (commitments.length < identities.length) {
++      ux.action.start('Waiting for Sign Status from server')
++      while (!signStatus) {
+         await PromiseUtils.sleep(3000)
+       }
+-      multisigClient.onCommitment.clear()
++      multisigClient.onSignStatus.clear()
+       ux.action.stop()
++
++      if (!commitments.includes(commitment)) {
++        multisigClient.submitCommitment(commitment)
++      }
++
++      while (commitments.length < totalParticipants) {
++        await PromiseUtils.sleep(3000)
++        multisigClient.getSignStatus()
++      }
+     }
+ 
+     const signingPackageResponse = await client.wallet.multisig.createSigningPackage({
+@@ -388,7 +412,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
+     this.log(`Identity for ${participant.name}: \n${participant.identity} \n`)
+     this.log('Share your participant identity with other signers.')
+ 
+-    let totalParticipants: number | undefined
++    let totalParticipants: number
+     let identities: string[] = []
+ 
+     if (!multisigClient) {
+@@ -411,23 +435,24 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
+         errorOnDuplicate: true,
+       })
+     } else {
+-      multisigClient.onDkgStatus.on((message) => {
+-        totalParticipants = message.maxSigners
+-      })
+-      multisigClient.onIdentity.on((message) => {
+-        if (!identities.includes(message.identity)) {
+-          identities.push(message.identity)
+-        }
++      let signStatus: SignStatusMessage | null = null
++      multisigClient.onSignStatus.on((message) => {
++        signStatus = message
++        totalParticipants = message.totalParticipants
++        identities = message.identities
+       })
+-      multisigClient.submitIdentity(participant.identity)
++      multisigClient.getSignStatus()
+ 
+-      ux.action.start('Waiting for other Identities from server')
+-      while (totalParticipants === undefined || identities.length < totalParticipants) {
++      ux.action.start('Waiting for Sign Status from server')
++      while (!signStatus) {
+         await PromiseUtils.sleep(3000)
+       }
+-      multisigClient.onDkgStatus.clear()
+-      multisigClient.onIdentity.clear()
++      multisigClient.onSignStatus.clear()
+       ux.action.stop()
++
++      if (!signStatus.identities.includes(participant.identity)) {
++        multisigClient.submitIdentity(participant.identity)
++      }
+     }
+ 
+     let commitment
+@@ -454,6 +479,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
+     return {
+       commitment,
+       identities,
++      totalParticipants,
+     }
+   }
+ 
+diff --git a/ironfish-cli/src/utils/multisig/network/clients/client.ts b/ironfish-cli/src/utils/multisig/network/clients/client.ts
+index 6cd3b0231..ddfcbe7d3 100644
+--- a/ironfish-cli/src/utils/multisig/network/clients/client.ts
++++ b/ironfish-cli/src/utils/multisig/network/clients/client.ts
+@@ -23,6 +23,8 @@ import {
+   Round1PublicPackageSchema,
+   Round2PublicPackageMessage,
+   Round2PublicPackageSchema,
++  SignStatusMessage,
++  SignStatusSchema,
+   SignatureShareMessage,
+   SignatureShareSchema,
+   SigningPackageMessage,
+@@ -59,6 +61,8 @@ export abstract class MultisigClient {
+   readonly onSigningPackage = new Event<[SigningPackageMessage]>()
+   readonly onSignatureShare = new Event<[SignatureShareMessage]>()
+ 
++  readonly onSignStatus = new Event<[SignStatusMessage]>()
++
+   constructor(options: { logger: Logger }) {
+     this.logger = options.logger
+     this.version = 3
+@@ -159,6 +163,10 @@ export abstract class MultisigClient {
+     this.send('dkg.get_status', {})
+   }
+ 
++  getSignStatus(): void {
++    this.send('multisig.get_status', {})
++  }
++
+   private send(method: 'identity', body: IdentityMessage): void
+   private send(method: 'dkg.round1', body: Round1PublicPackageMessage): void
+   private send(method: 'dkg.round2', body: Round2PublicPackageMessage): void
+@@ -167,6 +175,7 @@ export abstract class MultisigClient {
+   private send(method: 'multisig.commitment', body: CommitmentMessage): void
+   private send(method: 'multisig.signing_package', body: SigningPackageMessage): void
+   private send(method: 'multisig.signature_share', body: SignatureShareMessage): void
++  private send(method: 'multisig.get_status', body: object): void
+   private send(method: string, body?: unknown): void {
+     if (!this.connected) {
+       return
+@@ -298,6 +307,16 @@ export abstract class MultisigClient {
+           this.onSignatureShare.emit(body.result)
+           break
+         }
++        case 'multisig.status': {
++          const body = await YupUtils.tryValidate(SignStatusSchema, header.result.body)
++
++          if (body.error) {
++            throw new ServerMessageMalformedError(body.error, header.result.method)
++          }
++
++          this.onSignStatus.emit(body.result)
++          break
++        }
+ 
+         default:
+           throw new ServerMessageMalformedError(`Invalid message ${header.result.method}`)
+diff --git a/ironfish-cli/src/utils/multisig/network/messages.ts b/ironfish-cli/src/utils/multisig/network/messages.ts
+index 01096d288..0d31c7843 100644
+--- a/ironfish-cli/src/utils/multisig/network/messages.ts
++++ b/ironfish-cli/src/utils/multisig/network/messages.ts
+@@ -130,3 +130,23 @@ export const SignatureShareSchema: yup.ObjectSchema<SignatureShareMessage> = yup
+     share: yup.string().defined(),
+   })
+   .defined()
++
++export type SignStatusMessage = {
++  unsignedTransaction: string
++  totalParticipants: number
++  identities: string[]
++  commitments: string[]
++  signingPackage: string | null
++  signatureShares: string[]
++}
++
++export const SignStatusSchema: yup.ObjectSchema<SignStatusMessage> = yup
++  .object({
++    unsignedTransaction: yup.string().defined(),
++    totalParticipants: yup.number().defined(),
++    identities: yup.array(yup.string().defined()).defined(),
++    commitments: yup.array(yup.string().defined()).defined(),
++    signingPackage: yup.string().nullable().defined(),
++    signatureShares: yup.array(yup.string().defined()).defined(),
++  })
++  .defined()
