@@ -9,13 +9,16 @@ import {
   SetTimeoutToken,
   YupUtils,
 } from '@ironfish/sdk'
+import { v4 as uuid } from 'uuid'
 import { ServerMessageMalformedError } from '../errors'
 import {
   DkgGetStatusMessage,
+  DkgStartSessionMessage,
   DkgStatusMessage,
   DkgStatusSchema,
   IdentityMessage,
   IdentitySchema,
+  JoinSessionMessage,
   Round1PublicPackageMessage,
   Round1PublicPackageSchema,
   Round2PublicPackageMessage,
@@ -46,6 +49,8 @@ export abstract class MultisigClient {
   readonly onRound2PublicPackage = new Event<[Round2PublicPackageMessage]>()
   readonly onDkgStatus = new Event<[DkgStatusMessage]>()
   readonly onStratumError = new Event<[StratumMessageWithError]>()
+
+  sessionId: string | null = null
 
   constructor(options: { logger: Logger }) {
     this.logger = options.logger
@@ -118,6 +123,16 @@ export abstract class MultisigClient {
     return this.connected
   }
 
+  joinSession(sessionId: string): void {
+    this.sessionId = sessionId
+    this.send('join_session', {})
+  }
+
+  startDkgSession(maxSigners: number, minSigners: number): void {
+    this.sessionId = uuid()
+    this.send('dkg.start_session', { maxSigners, minSigners })
+  }
+
   submitIdentity(identity: string): void {
     this.send('identity', { identity })
   }
@@ -134,19 +149,26 @@ export abstract class MultisigClient {
     this.send('dkg.get_status', {})
   }
 
+  private send(method: 'join_session', body: JoinSessionMessage): void
+  private send(method: 'dkg.start_session', body: DkgStartSessionMessage): void
   private send(method: 'identity', body: IdentityMessage): void
   private send(method: 'dkg.round1', body: Round1PublicPackageMessage): void
   private send(method: 'dkg.round2', body: Round2PublicPackageMessage): void
   private send(method: 'dkg.get_status', body: DkgGetStatusMessage): void
   private send(method: string, body?: unknown): void {
+    if (!this.sessionId) {
+      throw new Error('Client must join a session before sending messages')
+    }
+
     if (!this.connected) {
       return
     }
 
     const message: StratumMessage = {
       id: this.nextMessageId++,
-      method: method,
-      body: body,
+      method,
+      sessionId: this.sessionId,
+      body,
     }
 
     this.writeData(JSON.stringify(message) + '\n')

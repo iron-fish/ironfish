@@ -6,6 +6,8 @@ import net from 'net'
 import { IStratumAdapter } from './adapters'
 import { ClientMessageMalformedError } from './errors'
 import {
+  DkgGetStatusSchema,
+  DkgStartSessionSchema,
   DkgStatusMessage,
   IdentityMessage,
   IdentitySchema,
@@ -35,14 +37,12 @@ export class MultisigServer {
   nextClientId: number
   nextMessageId: number
 
-  status: DkgStatus
+  sessions: Map<string, DkgStatus> = new Map()
 
   private _isRunning = false
   private _startPromise: Promise<unknown> | null = null
 
-  constructor(status: DkgStatus, options: { logger: Logger; banning?: boolean }) {
-    this.status = status
-
+  constructor(options: { logger: Logger; banning?: boolean }) {
     this.logger = options.logger
 
     this.clients = new Map()
@@ -109,8 +109,6 @@ export class MultisigServer {
 
     this.logger.debug(`Client ${client.id} connected: ${client.remoteAddress}`)
     this.clients.set(client.id, client)
-
-    this.send(client.socket, 'dkg.status', this.status)
   }
 
   private onDisconnect(client: MultisigServerClient): void {
@@ -133,22 +131,30 @@ export class MultisigServer {
       )
 
       if (parseError) {
+        this.sendStratumError(client, 0, `Error parsing message`)
         return
       }
 
       this.logger.debug(`Client ${client.id} sent ${message.method} message`)
 
-      if (message.method === 'identity') {
-        await this.handleIdentityMessage(message)
+      if (message.method === 'dkg.start_session') {
+        await this.handleDkgStartSessionMessage(client, message)
+        return
+      } else if (message.method === 'join_session') {
+        this.handleJoinSessionMessage(client, message)
+        return
+      } else if (message.method === 'identity') {
+        await this.handleIdentityMessage(client, message)
         return
       } else if (message.method === 'dkg.round1') {
-        await this.handleRound1PublicPackageMessage(message)
+        await this.handleRound1PublicPackageMessage(client, message)
         return
       } else if (message.method === 'dkg.round2') {
-        await this.handleRound2PublicPackageMessage(message)
+        await this.handleRound2PublicPackageMessage(client, message)
         return
       } else if (message.method === 'dkg.get_status') {
-        this.send(client.socket, 'dkg.status', this.status)
+        await this.handleDkgGetStatusMessage(client, message)
+        return
       } else {
         throw new ClientMessageMalformedError(client, `Invalid message ${message.method}`)
       }
@@ -169,20 +175,30 @@ export class MultisigServer {
     this.clients.delete(client.id)
   }
 
-  private broadcast(method: 'identity', body: IdentityMessage): void
-  private broadcast(method: 'dkg.round1', body: Round1PublicPackageMessage): void
-  private broadcast(method: 'dkg.round2', body: Round2PublicPackageMessage): void
-  private broadcast(method: string, body?: unknown): void {
+  private broadcast(method: 'identity', sessionId: string, body: IdentityMessage): void
+  private broadcast(
+    method: 'dkg.round1',
+    sessionId: string,
+    body: Round1PublicPackageMessage,
+  ): void
+  private broadcast(
+    method: 'dkg.round2',
+    sessionId: string,
+    body: Round2PublicPackageMessage,
+  ): void
+  private broadcast(method: string, sessionId: string, body?: unknown): void {
     const message: StratumMessage = {
       id: this.nextMessageId++,
-      method: method,
-      body: body,
+      method,
+      sessionId,
+      body,
     }
 
     const serialized = JSON.stringify(message) + '\n'
 
     this.logger.debug('broadcasting to clients', {
       method,
+      sessionId,
       id: message.id,
       numClients: this.clients.size,
       messageLength: serialized.length,
@@ -191,6 +207,10 @@ export class MultisigServer {
     let broadcasted = 0
 
     for (const client of this.clients.values()) {
+      if (client.sessionId !== sessionId) {
+        continue
+      }
+
       if (!client.connected) {
         continue
       }
@@ -201,18 +221,25 @@ export class MultisigServer {
 
     this.logger.debug('completed broadcast to clients', {
       method,
+      sessionId,
       id: message.id,
       numClients: broadcasted,
       messageLength: serialized.length,
     })
   }
 
-  send(socket: net.Socket, method: 'dkg.status', body: DkgStatusMessage): void
-  send(socket: net.Socket, method: string, body?: unknown): void {
+  send(
+    socket: net.Socket,
+    method: 'dkg.status',
+    sessionId: string,
+    body: DkgStatusMessage,
+  ): void
+  send(socket: net.Socket, method: string, sessionId: string, body?: unknown): void {
     const message: StratumMessage = {
       id: this.nextMessageId++,
-      method: method,
-      body: body,
+      method,
+      sessionId,
+      body,
     }
 
     const serialized = JSON.stringify(message) + '\n'
@@ -231,45 +258,126 @@ export class MultisigServer {
     client.socket.write(serialized)
   }
 
-  async handleIdentityMessage(message: StratumMessage) {
+  async handleDkgStartSessionMessage(client: MultisigServerClient, message: StratumMessage) {
+    const body = await YupUtils.tryValidate(DkgStartSessionSchema, message.body)
+
+    if (body.error) {
+      return
+    }
+
+    const sessionId = message.sessionId
+
+    if (this.sessions.has(sessionId)) {
+      this.sendStratumError(client, message.id, `Duplicate sessionId: ${sessionId}`)
+      return
+    }
+
+    this.sessions.set(sessionId, {
+      maxSigners: body.result.maxSigners,
+      minSigners: body.result.minSigners,
+      identities: [],
+      round1PublicPackages: [],
+      round2PublicPackages: [],
+    })
+
+    this.logger.debug(`Client ${client.id} started session ${message.sessionId}`)
+
+    client.sessionId = message.sessionId
+  }
+
+  handleJoinSessionMessage(client: MultisigServerClient, message: StratumMessage) {
+    if (!this.sessions.has(message.sessionId)) {
+      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      return
+    }
+
+    this.logger.debug(`Client ${client.id} joined session ${message.sessionId}`)
+
+    client.sessionId = message.sessionId
+  }
+
+  async handleIdentityMessage(client: MultisigServerClient, message: StratumMessage) {
     const body = await YupUtils.tryValidate(IdentitySchema, message.body)
 
     if (body.error) {
       return
     }
 
+    const session = this.sessions.get(message.sessionId)
+    if (!session) {
+      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      return
+    }
+
     const identity = body.result.identity
-    if (!this.status.identities.includes(identity)) {
-      this.status.identities.push(identity)
-      this.broadcast('identity', { identity })
+    if (!session.identities.includes(identity)) {
+      session.identities.push(identity)
+      this.sessions.set(message.sessionId, session)
+      this.broadcast('identity', message.sessionId, { identity })
     }
   }
 
-  async handleRound1PublicPackageMessage(message: StratumMessage) {
+  async handleRound1PublicPackageMessage(
+    client: MultisigServerClient,
+    message: StratumMessage,
+  ) {
     const body = await YupUtils.tryValidate(Round1PublicPackageSchema, message.body)
 
     if (body.error) {
       return
     }
 
+    const session = this.sessions.get(message.sessionId)
+    if (!session) {
+      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      return
+    }
+
     const round1PublicPackage = body.result.package
-    if (!this.status.round1PublicPackages.includes(round1PublicPackage)) {
-      this.status.round1PublicPackages.push(round1PublicPackage)
-      this.broadcast('dkg.round1', { package: round1PublicPackage })
+    if (!session.round1PublicPackages.includes(round1PublicPackage)) {
+      session.round1PublicPackages.push(round1PublicPackage)
+      this.sessions.set(message.sessionId, session)
+      this.broadcast('dkg.round1', message.sessionId, { package: round1PublicPackage })
     }
   }
 
-  async handleRound2PublicPackageMessage(message: StratumMessage) {
+  async handleRound2PublicPackageMessage(
+    client: MultisigServerClient,
+    message: StratumMessage,
+  ) {
     const body = await YupUtils.tryValidate(Round2PublicPackageSchema, message.body)
 
     if (body.error) {
       return
     }
 
-    const round2PublicPackage = body.result.package
-    if (!this.status.round2PublicPackages.includes(round2PublicPackage)) {
-      this.status.round2PublicPackages.push(round2PublicPackage)
-      this.broadcast('dkg.round2', { package: round2PublicPackage })
+    const session = this.sessions.get(message.sessionId)
+    if (!session) {
+      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      return
     }
+
+    const round2PublicPackage = body.result.package
+    if (!session.round2PublicPackages.includes(round2PublicPackage)) {
+      session.round2PublicPackages.push(round2PublicPackage)
+      this.sessions.set(message.sessionId, session)
+      this.broadcast('dkg.round2', message.sessionId, { package: round2PublicPackage })
+    }
+  }
+
+  async handleDkgGetStatusMessage(client: MultisigServerClient, message: StratumMessage) {
+    const body = await YupUtils.tryValidate(DkgGetStatusSchema, message.body)
+
+    if (body.error) {
+      return
+    }
+
+    const session = this.sessions.get(message.sessionId)
+    if (!session) {
+      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      return
+    }
+
+    this.send(client.socket, 'dkg.status', message.sessionId, session)
   }
 }
