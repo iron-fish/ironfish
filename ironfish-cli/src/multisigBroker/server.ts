@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ErrorUtils, Logger, YupUtils } from '@ironfish/sdk'
 import net from 'net'
-import { IStratumAdapter } from './adapters'
+import { IMultisigBrokerAdapter } from './adapters'
 import { ClientMessageMalformedError } from './errors'
 import {
   DkgGetStatusSchema,
@@ -11,6 +11,9 @@ import {
   DkgStatusMessage,
   IdentityMessage,
   IdentitySchema,
+  MultisigBrokerMessage,
+  MultisigBrokerMessageSchema,
+  MultisigBrokerMessageWithError,
   Round1PublicPackageMessage,
   Round1PublicPackageSchema,
   Round2PublicPackageMessage,
@@ -22,9 +25,6 @@ import {
   SigningGetStatusSchema,
   SigningStartSessionSchema,
   SigningStatusMessage,
-  StratumMessage,
-  StratumMessageSchema,
-  StratumMessageWithError,
 } from './messages'
 import { MultisigServerClient } from './serverClient'
 
@@ -67,7 +67,7 @@ export type SigningStatus = {
 
 export class MultisigServer {
   readonly logger: Logger
-  readonly adapters: IStratumAdapter[] = []
+  readonly adapters: IMultisigBrokerAdapter[] = []
 
   clients: Map<number, MultisigServerClient>
   nextClientId: number
@@ -90,7 +90,7 @@ export class MultisigServer {
     return this._isRunning
   }
 
-  /** Starts the Stratum server and tells any attached adapters to start serving requests */
+  /** Starts the MultisigBroker server and tells any attached adapters to start serving requests */
   async start(): Promise<void> {
     if (this._isRunning) {
       return
@@ -101,7 +101,7 @@ export class MultisigServer {
     await this._startPromise
   }
 
-  /** Stops the Stratum server and tells any attached adapters to stop serving requests */
+  /** Stops the MultisigBroker server and tells any attached adapters to stop serving requests */
   async stop(): Promise<void> {
     if (!this._isRunning) {
       return
@@ -115,8 +115,8 @@ export class MultisigServer {
     this._isRunning = false
   }
 
-  /** Adds an adapter to the Stratum server and starts it if the server has already been started */
-  mount(adapter: IStratumAdapter): void {
+  /** Adds an adapter to the MultisigBroker server and starts it if the server has already been started */
+  mount(adapter: IMultisigBrokerAdapter): void {
     this.adapters.push(adapter)
     adapter.attach(this)
 
@@ -162,12 +162,12 @@ export class MultisigServer {
     for (const split of client.messageBuffer.readMessages()) {
       const payload: unknown = JSON.parse(split)
       const { error: parseError, result: message } = await YupUtils.tryValidate(
-        StratumMessageSchema,
+        MultisigBrokerMessageSchema,
         payload,
       )
 
       if (parseError) {
-        this.sendStratumError(client, 0, `Error parsing message`)
+        this.sendErrorMessage(client, 0, `Error parsing message`)
         return
       }
 
@@ -241,7 +241,7 @@ export class MultisigServer {
   ): void
   private broadcast(method: 'sign.share', sessionId: string, body: SignatureShareMessage): void
   private broadcast(method: string, sessionId: string, body?: unknown): void {
-    const message: StratumMessage = {
+    const message: MultisigBrokerMessage = {
       id: this.nextMessageId++,
       method,
       sessionId,
@@ -295,7 +295,7 @@ export class MultisigServer {
     body: SigningStatusMessage,
   ): void
   send(socket: net.Socket, method: string, sessionId: string, body?: unknown): void {
-    const message: StratumMessage = {
+    const message: MultisigBrokerMessage = {
       id: this.nextMessageId++,
       method,
       sessionId,
@@ -306,8 +306,8 @@ export class MultisigServer {
     socket.write(serialized)
   }
 
-  sendStratumError(client: MultisigServerClient, id: number, message: string): void {
-    const msg: StratumMessageWithError = {
+  sendErrorMessage(client: MultisigServerClient, id: number, message: string): void {
+    const msg: MultisigBrokerMessageWithError = {
       id: this.nextMessageId++,
       error: {
         id: id,
@@ -318,7 +318,10 @@ export class MultisigServer {
     client.socket.write(serialized)
   }
 
-  async handleDkgStartSessionMessage(client: MultisigServerClient, message: StratumMessage) {
+  async handleDkgStartSessionMessage(
+    client: MultisigServerClient,
+    message: MultisigBrokerMessage,
+  ) {
     const body = await YupUtils.tryValidate(DkgStartSessionSchema, message.body)
 
     if (body.error) {
@@ -328,7 +331,7 @@ export class MultisigServer {
     const sessionId = message.sessionId
 
     if (this.sessions.has(sessionId)) {
-      this.sendStratumError(client, message.id, `Duplicate sessionId: ${sessionId}`)
+      this.sendErrorMessage(client, message.id, `Duplicate sessionId: ${sessionId}`)
       return
     }
 
@@ -353,7 +356,7 @@ export class MultisigServer {
 
   async handleSigningStartSessionMessage(
     client: MultisigServerClient,
-    message: StratumMessage,
+    message: MultisigBrokerMessage,
   ) {
     const body = await YupUtils.tryValidate(SigningStartSessionSchema, message.body)
 
@@ -364,7 +367,7 @@ export class MultisigServer {
     const sessionId = message.sessionId
 
     if (this.sessions.has(sessionId)) {
-      this.sendStratumError(client, message.id, `Duplicate sessionId: ${sessionId}`)
+      this.sendErrorMessage(client, message.id, `Duplicate sessionId: ${sessionId}`)
       return
     }
 
@@ -387,9 +390,9 @@ export class MultisigServer {
     client.sessionId = message.sessionId
   }
 
-  handleJoinSessionMessage(client: MultisigServerClient, message: StratumMessage) {
+  handleJoinSessionMessage(client: MultisigServerClient, message: MultisigBrokerMessage) {
     if (!this.sessions.has(message.sessionId)) {
-      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
       return
     }
 
@@ -398,7 +401,7 @@ export class MultisigServer {
     client.sessionId = message.sessionId
   }
 
-  async handleIdentityMessage(client: MultisigServerClient, message: StratumMessage) {
+  async handleIdentityMessage(client: MultisigServerClient, message: MultisigBrokerMessage) {
     const body = await YupUtils.tryValidate(IdentitySchema, message.body)
 
     if (body.error) {
@@ -407,7 +410,7 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
       return
     }
 
@@ -421,7 +424,7 @@ export class MultisigServer {
 
   async handleRound1PublicPackageMessage(
     client: MultisigServerClient,
-    message: StratumMessage,
+    message: MultisigBrokerMessage,
   ) {
     const body = await YupUtils.tryValidate(Round1PublicPackageSchema, message.body)
 
@@ -431,12 +434,12 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
       return
     }
 
     if (!isDkgSession(session)) {
-      this.sendStratumError(
+      this.sendErrorMessage(
         client,
         message.id,
         `Session is not a dkg session: ${message.sessionId}`,
@@ -454,7 +457,7 @@ export class MultisigServer {
 
   async handleRound2PublicPackageMessage(
     client: MultisigServerClient,
-    message: StratumMessage,
+    message: MultisigBrokerMessage,
   ) {
     const body = await YupUtils.tryValidate(Round2PublicPackageSchema, message.body)
 
@@ -464,12 +467,12 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
       return
     }
 
     if (!isDkgSession(session)) {
-      this.sendStratumError(
+      this.sendErrorMessage(
         client,
         message.id,
         `Session is not a dkg session: ${message.sessionId}`,
@@ -485,7 +488,10 @@ export class MultisigServer {
     }
   }
 
-  async handleDkgGetStatusMessage(client: MultisigServerClient, message: StratumMessage) {
+  async handleDkgGetStatusMessage(
+    client: MultisigServerClient,
+    message: MultisigBrokerMessage,
+  ) {
     const body = await YupUtils.tryValidate(DkgGetStatusSchema, message.body)
 
     if (body.error) {
@@ -494,12 +500,12 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
       return
     }
 
     if (!isDkgSession(session)) {
-      this.sendStratumError(
+      this.sendErrorMessage(
         client,
         message.id,
         `Session is not a dkg session: ${message.sessionId}`,
@@ -510,7 +516,10 @@ export class MultisigServer {
     this.send(client.socket, 'dkg.status', message.sessionId, session.status)
   }
 
-  async handleSigningCommitmentMessage(client: MultisigServerClient, message: StratumMessage) {
+  async handleSigningCommitmentMessage(
+    client: MultisigServerClient,
+    message: MultisigBrokerMessage,
+  ) {
     const body = await YupUtils.tryValidate(SigningCommitmentSchema, message.body)
 
     if (body.error) {
@@ -519,12 +528,12 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
       return
     }
 
     if (!isSigningSession(session)) {
-      this.sendStratumError(
+      this.sendErrorMessage(
         client,
         message.id,
         `Session is not a signing session: ${message.sessionId}`,
@@ -540,7 +549,10 @@ export class MultisigServer {
     }
   }
 
-  async handleSignatureShareMessage(client: MultisigServerClient, message: StratumMessage) {
+  async handleSignatureShareMessage(
+    client: MultisigServerClient,
+    message: MultisigBrokerMessage,
+  ) {
     const body = await YupUtils.tryValidate(SignatureShareSchema, message.body)
 
     if (body.error) {
@@ -549,12 +561,12 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
       return
     }
 
     if (!isSigningSession(session)) {
-      this.sendStratumError(
+      this.sendErrorMessage(
         client,
         message.id,
         `Session is not a signing session: ${message.sessionId}`,
@@ -570,7 +582,10 @@ export class MultisigServer {
     }
   }
 
-  async handleSigningGetStatusMessage(client: MultisigServerClient, message: StratumMessage) {
+  async handleSigningGetStatusMessage(
+    client: MultisigServerClient,
+    message: MultisigBrokerMessage,
+  ) {
     const body = await YupUtils.tryValidate(SigningGetStatusSchema, message.body)
 
     if (body.error) {
@@ -579,12 +594,12 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
       return
     }
 
     if (!isSigningSession(session)) {
-      this.sendStratumError(
+      this.sendErrorMessage(
         client,
         message.id,
         `Session is not a signing session: ${message.sessionId}`,

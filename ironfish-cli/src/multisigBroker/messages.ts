@@ -3,15 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 
-export type StratumMessage = {
+export type MultisigBrokerMessage = {
   id: number
   method: string
   sessionId: string
   body?: unknown
 }
 
-export interface StratumMessageWithError
-  extends Omit<StratumMessage, 'method' | 'body' | 'sessionId'> {
+export interface MultisigBrokerMessageWithError
+  extends Omit<MultisigBrokerMessage, 'method' | 'body' | 'sessionId'> {
   error: {
     id: number
     message: string
@@ -70,7 +70,7 @@ export type SigningStatusMessage = {
   signatureShares: string[]
 }
 
-export const StratumMessageSchema: yup.ObjectSchema<StratumMessage> = yup
+export const MultisigBrokerMessageSchema: yup.ObjectSchema<MultisigBrokerMessage> = yup
   .object({
     id: yup.number().required(),
     method: yup.string().required(),
@@ -79,17 +79,18 @@ export const StratumMessageSchema: yup.ObjectSchema<StratumMessage> = yup
   })
   .required()
 
-export const StratumMessageWithErrorSchema: yup.ObjectSchema<StratumMessageWithError> = yup
-  .object({
-    id: yup.number().required(),
-    error: yup
-      .object({
-        id: yup.number().required(),
-        message: yup.string().required(),
-      })
-      .required(),
-  })
-  .required()
+export const MultisigBrokerMessageWithErrorSchema: yup.ObjectSchema<MultisigBrokerMessageWithError> =
+  yup
+    .object({
+      id: yup.number().required(),
+      error: yup
+        .object({
+          id: yup.number().required(),
+          message: yup.string().required(),
+        })
+        .required(),
+    })
+    .required()
 
 export const DkgStartSessionSchema: yup.ObjectSchema<DkgStartSessionMessage> = yup
   .object({

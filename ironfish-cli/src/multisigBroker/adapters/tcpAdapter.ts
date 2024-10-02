@@ -4,9 +4,9 @@
 import { Logger } from '@ironfish/sdk'
 import net from 'net'
 import { MultisigServer } from '../server'
-import { IStratumAdapter } from './adapter'
+import { IMultisigBrokerAdapter } from './adapter'
 
-export class MultisigTcpAdapter implements IStratumAdapter {
+export class MultisigTcpAdapter implements IMultisigBrokerAdapter {
   server: net.Server | null = null
   multisigServer: MultisigServer | null = null
   readonly logger: Logger
