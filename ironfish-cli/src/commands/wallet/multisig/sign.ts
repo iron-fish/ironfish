@@ -251,7 +251,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       while (waiting) {
         await PromiseUtils.sleep(3000)
       }
-      multisigClient.onDkgStatus.clear()
+      multisigClient.onSigningStatus.clear()
       ux.action.stop()
 
       const unsignedTransaction = new UnsignedTransaction(
@@ -324,8 +324,8 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         await PromiseUtils.sleep(3000)
       }
 
-      multisigClient.onDkgStatus.clear()
-      multisigClient.onIdentity.clear()
+      multisigClient.onSigningStatus.clear()
+      multisigClient.onSignatureShare.clear()
       ux.action.stop()
     }
 
@@ -446,8 +446,8 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         await PromiseUtils.sleep(3000)
       }
 
-      multisigClient.onDkgStatus.clear()
-      multisigClient.onIdentity.clear()
+      multisigClient.onSigningStatus.clear()
+      multisigClient.onSigningCommitment.clear()
       ux.action.stop()
     }
 
