@@ -239,10 +239,10 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         unsignedTransactionHex = message.unsignedTransaction
         waiting = false
       })
-      multisigClient.getSigningStatus()
 
       ux.action.start('Waiting for signer config from server')
       while (waiting) {
+        multisigClient.getSigningStatus()
         await PromiseUtils.sleep(3000)
       }
       multisigClient.onSigningStatus.clear()
@@ -314,11 +314,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       multisigClient.onSigningStatus.on((message) => {
         signatureShares = message.signatureShares
       })
-      multisigClient.onSignatureShare.on((message) => {
-        if (!signatureShares.includes(message.signatureShare)) {
-          signatureShares.push(message.signatureShare)
-        }
-      })
 
       ux.action.start('Waiting for other Signature Shares from server')
       while (signatureShares.length < totalParticipants) {
@@ -327,7 +322,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       }
 
       multisigClient.onSigningStatus.clear()
-      multisigClient.onSignatureShare.clear()
       ux.action.stop()
     }
 
@@ -448,11 +442,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       multisigClient.onSigningStatus.on((message) => {
         commitments = message.signingCommitments
       })
-      multisigClient.onSigningCommitment.on((message) => {
-        if (!commitments.includes(message.signingCommitment)) {
-          commitments.push(message.signingCommitment)
-        }
-      })
 
       ux.action.start('Waiting for other Signing Commitments from server')
       while (commitments.length < totalParticipants) {
@@ -461,7 +450,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       }
 
       multisigClient.onSigningStatus.clear()
-      multisigClient.onSigningCommitment.clear()
       ux.action.stop()
     }
 
@@ -497,15 +485,10 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         errorOnDuplicate: true,
       })
     } else {
-      multisigClient.submitIdentity(participant.identity)
+      multisigClient.submitSigningIdentity(participant.identity)
 
       multisigClient.onSigningStatus.on((message) => {
         identities = message.identities
-      })
-      multisigClient.onIdentity.on((message) => {
-        if (!identities.includes(message.identity)) {
-          identities.push(message.identity)
-        }
       })
 
       ux.action.start('Waiting for other Identities from server')
@@ -515,7 +498,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       }
 
       multisigClient.onSigningStatus.clear()
-      multisigClient.onIdentity.clear()
       ux.action.stop()
     }
 

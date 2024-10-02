@@ -405,15 +405,10 @@ export class DkgCreateCommand extends IronfishCommand {
         errorOnDuplicate: true,
       })
     } else {
-      multisigClient.submitIdentity(currentIdentity)
+      multisigClient.submitDkgIdentity(currentIdentity)
 
       multisigClient.onDkgStatus.on((message) => {
         identities = message.identities
-      })
-      multisigClient.onIdentity.on((message) => {
-        if (!identities.includes(message.identity)) {
-          identities.push(message.identity)
-        }
       })
 
       ux.action.start('Waiting for other Identities from server')
@@ -423,7 +418,6 @@ export class DkgCreateCommand extends IronfishCommand {
       }
 
       multisigClient.onDkgStatus.clear()
-      multisigClient.onIdentity.clear()
       ux.action.stop()
     }
 
@@ -511,11 +505,6 @@ export class DkgCreateCommand extends IronfishCommand {
       multisigClient.onDkgStatus.on((message) => {
         round1PublicPackages = message.round1PublicPackages
       })
-      multisigClient.onRound1PublicPackage.on((message) => {
-        if (!round1PublicPackages.includes(message.package)) {
-          round1PublicPackages.push(message.package)
-        }
-      })
 
       ux.action.start('Waiting for other Round 1 Public Packages from server')
       while (round1PublicPackages.length < totalParticipants) {
@@ -524,7 +513,6 @@ export class DkgCreateCommand extends IronfishCommand {
       }
 
       multisigClient.onDkgStatus.clear()
-      multisigClient.onRound1PublicPackage.clear()
       ux.action.stop()
     }
 
@@ -703,11 +691,6 @@ export class DkgCreateCommand extends IronfishCommand {
       multisigClient.onDkgStatus.on((message) => {
         round2PublicPackages = message.round2PublicPackages
       })
-      multisigClient.onRound2PublicPackage.on((message) => {
-        if (!round2PublicPackages.includes(message.package)) {
-          round2PublicPackages.push(message.package)
-        }
-      })
 
       ux.action.start('Waiting for other Round 2 Public Packages from server')
       while (round2PublicPackages.length < totalParticipants) {
@@ -716,7 +699,6 @@ export class DkgCreateCommand extends IronfishCommand {
       }
 
       multisigClient.onDkgStatus.clear()
-      multisigClient.onRound2PublicPackage.clear()
       ux.action.stop()
     }
 
