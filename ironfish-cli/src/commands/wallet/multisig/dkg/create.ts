@@ -11,18 +11,16 @@ import {
   AccountFormat,
   Assert,
   encodeAccountImport,
-  parseUrl,
   PromiseUtils,
   RpcClient,
 } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
-import dns from 'dns'
 import fs from 'fs'
 import path from 'path'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { LedgerMultiSigner } from '../../../../ledger'
-import { MultisigTcpClient } from '../../../../multisigBroker'
+import { MultisigBrokerUtils, MultisigClient } from '../../../../multisigBroker'
 import * as ui from '../../../../ui'
 
 export class DkgCreateCommand extends IronfishCommand {
@@ -52,6 +50,12 @@ export class DkgCreateCommand extends IronfishCommand {
     sessionId: Flags.string({
       description: 'Unique ID for a multisig server session to join',
       dependsOn: ['server'],
+    }),
+    tls: Flags.boolean({
+      description: 'connect to the multisig server over TLS',
+      dependsOn: ['server'],
+      allowNo: true,
+      default: true,
     }),
   }
 
@@ -83,18 +87,12 @@ export class DkgCreateCommand extends IronfishCommand {
       accountCreatedAt = statusResponse.content.blockchain.head.sequence
     }
 
-    let multisigClient: MultisigTcpClient | null = null
+    let multisigClient: MultisigClient | null = null
     if (flags.server) {
-      const parsed = parseUrl(flags.server)
-
-      Assert.isNotNull(parsed.hostname)
-      Assert.isNotNull(parsed.port)
-
-      const resolved = await dns.promises.lookup(parsed.hostname)
-      const host = resolved.address
-      const port = parsed.port
-
-      multisigClient = new MultisigTcpClient({ host, port, logger: this.logger })
+      multisigClient = await MultisigBrokerUtils.createClient(flags.server, {
+        tls: flags.tls,
+        logger: this.logger,
+      })
       multisigClient.start()
 
       if (flags.sessionId) {
@@ -304,7 +302,7 @@ export class DkgCreateCommand extends IronfishCommand {
   }
 
   async getDkgConfig(
-    multisigClient: MultisigTcpClient | null,
+    multisigClient: MultisigClient | null,
     ledger: boolean,
   ): Promise<{ totalParticipants: number; minSigners: number }> {
     if (multisigClient?.sessionId) {
@@ -391,7 +389,7 @@ export class DkgCreateCommand extends IronfishCommand {
 
   async performRound1(
     client: RpcClient,
-    multisigClient: MultisigTcpClient | null,
+    multisigClient: MultisigClient | null,
     participantName: string,
     currentIdentity: string,
     totalParticipants: number,
@@ -485,7 +483,7 @@ export class DkgCreateCommand extends IronfishCommand {
 
   async performRound2(
     client: RpcClient,
-    multisigClient: MultisigTcpClient | null,
+    multisigClient: MultisigClient | null,
     participantName: string,
     round1Result: { secretPackage: string; publicPackage: string },
     totalParticipants: number,
@@ -670,7 +668,7 @@ export class DkgCreateCommand extends IronfishCommand {
 
   async performRound3(
     client: RpcClient,
-    multisigClient: MultisigTcpClient | null,
+    multisigClient: MultisigClient | null,
     accountName: string,
     participantName: string,
     round2Result: { secretPackage: string; publicPackage: string },

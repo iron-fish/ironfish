@@ -4,3 +4,4 @@
 
 export * from './clients'
 export { MultisigServer } from './server'
+export * from './utils'
