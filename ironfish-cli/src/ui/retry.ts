@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Logger } from '@ironfish/sdk'
+import { ErrorUtils, Logger } from '@ironfish/sdk'
 import { confirmPrompt } from './prompt'
 
 export async function retryStep<T>(
@@ -17,7 +17,8 @@ export async function retryStep<T>(
       const result = await stepFunction()
       return result
     } catch (error) {
-      logger.log(`An Error Occurred: ${(error as Error).message}`)
+      logger.log(`An Error Occurred: ${ErrorUtils.renderError(error)}`)
+
       if (askToRetry) {
         const continueResponse = await confirmPrompt('Do you want to retry this step?')
         if (!continueResponse) {
