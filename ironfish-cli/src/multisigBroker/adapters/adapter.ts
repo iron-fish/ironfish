@@ -8,7 +8,7 @@ import { MultisigServer } from '../server'
  * An adapter represents a network transport that accepts connections from
  * clients and routes them into the server.
  */
-export interface IStratumAdapter {
+export interface IMultisigBrokerAdapter {
   /**
    * Called when the adapter is added to a MultisigServer.
    */

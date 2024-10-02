@@ -19,6 +19,10 @@ import {
   IdentityMessage,
   IdentitySchema,
   JoinSessionMessage,
+  MultisigBrokerMessage,
+  MultisigBrokerMessageSchema,
+  MultisigBrokerMessageWithError,
+  MultisigBrokerMessageWithErrorSchema,
   Round1PublicPackageMessage,
   Round1PublicPackageSchema,
   Round2PublicPackageMessage,
@@ -31,10 +35,6 @@ import {
   SigningStartSessionMessage,
   SigningStatusMessage,
   SigningStatusSchema,
-  StratumMessage,
-  StratumMessageSchema,
-  StratumMessageWithError,
-  StratumMessageWithErrorSchema,
 } from '../messages'
 
 export abstract class MultisigClient {
@@ -59,7 +59,7 @@ export abstract class MultisigClient {
   readonly onSigningCommitment = new Event<[SigningCommitmentMessage]>()
   readonly onSignatureShare = new Event<[SignatureShareMessage]>()
   readonly onSigningStatus = new Event<[SigningStatusMessage]>()
-  readonly onStratumError = new Event<[StratumMessageWithError]>()
+  readonly onMultisigBrokerError = new Event<[MultisigBrokerMessageWithError]>()
 
   sessionId: string | null = null
 
@@ -196,7 +196,7 @@ export abstract class MultisigClient {
       return
     }
 
-    const message: StratumMessage = {
+    const message: MultisigBrokerMessage = {
       id: this.nextMessageId++,
       method,
       sessionId: this.sessionId,
@@ -232,12 +232,12 @@ export abstract class MultisigClient {
     for (const message of this.messageBuffer.readMessages()) {
       const payload: unknown = JSON.parse(message)
 
-      const header = await YupUtils.tryValidate(StratumMessageSchema, payload)
+      const header = await YupUtils.tryValidate(MultisigBrokerMessageSchema, payload)
 
       if (header.error) {
         // Try the error message instead.
         const headerWithError = await YupUtils.tryValidate(
-          StratumMessageWithErrorSchema,
+          MultisigBrokerMessageWithErrorSchema,
           payload,
         )
         if (headerWithError.error) {
@@ -246,7 +246,7 @@ export abstract class MultisigClient {
         this.logger.debug(
           `Server sent error ${headerWithError.result.error.message} for id ${headerWithError.result.error.id}`,
         )
-        this.onStratumError.emit(headerWithError.result)
+        this.onMultisigBrokerError.emit(headerWithError.result)
         return
       }
 
