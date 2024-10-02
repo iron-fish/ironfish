@@ -70,6 +70,7 @@
     "@types/keccak": "3.0.4",
     "@types/tar": "6.1.1",
     "@zondax/ledger-ironfish": "0.5.1",
+    "@zondax/ledger-js": "1.0.1",
     "axios": "1.7.2",
     "bech32": "2.0.0",
     "blessed": "0.1.81",

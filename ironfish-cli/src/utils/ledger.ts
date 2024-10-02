@@ -26,7 +26,7 @@ import IronfishApp, {
   ResponseSign,
   ResponseViewKey,
 } from '@zondax/ledger-ironfish'
-import { ResponseError } from '@zondax/ledger-js'
+import { ResponseError } from '@zondax/ledger-js' // todo: ResponseError will be exported from @zondax/ledger-ironfish in the future. Remove this line when it happens.
 import * as ui from '../ui'
 import { watchTransaction } from './transaction'
 
