@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { xchacha20poly1305 } from '@ironfish/rust-nodejs'
 import {
   ErrorUtils,
   Event,
@@ -62,8 +63,9 @@ export abstract class MultisigClient {
   readonly onMultisigBrokerError = new Event<[MultisigBrokerMessageWithError]>()
 
   sessionId: string | null = null
+  passphrase: string
 
-  constructor(options: { logger: Logger }) {
+  constructor(options: { passphrase: string; logger: Logger }) {
     this.logger = options.logger
     this.version = 3
 
@@ -72,6 +74,20 @@ export abstract class MultisigClient {
     this.connected = false
     this.connectWarned = false
     this.connectTimeout = null
+
+    this.passphrase = options.passphrase
+  }
+
+  get key(): xchacha20poly1305.XChaCha20Poly1305Key {
+    if (!this.sessionId) {
+      throw new Error('Client must join a session before encrypting/decrypting messages')
+    }
+
+    const sessionIdBytes = Buffer.from(this.sessionId)
+    const salt = sessionIdBytes.subarray(0, 32)
+    const nonce = sessionIdBytes.subarray(sessionIdBytes.length - 24)
+
+    return xchacha20poly1305.XChaCha20Poly1305Key.fromParts(this.passphrase, salt, nonce)
   }
 
   protected abstract connect(): Promise<void>
@@ -200,7 +216,7 @@ export abstract class MultisigClient {
       id: this.nextMessageId++,
       method,
       sessionId: this.sessionId,
-      body,
+      body: this.encryptMessageBody(body),
     }
 
     this.writeData(JSON.stringify(message) + '\n')
@@ -251,6 +267,9 @@ export abstract class MultisigClient {
       }
 
       this.logger.debug(`Server sent ${header.result.method} message`)
+
+      // Decrypt fields in the message body
+      header.result.body = this.decryptMessageBody(header.result.body)
 
       switch (header.result.method) {
         case 'identity': {
@@ -328,5 +347,63 @@ export abstract class MultisigClient {
           throw new ServerMessageMalformedError(`Invalid message ${header.result.method}`)
       }
     }
+  }
+
+  private encryptMessageBody(body: unknown): object {
+    let encrypted = body as object
+    for (const [key, value] of Object.entries(body as object)) {
+      if (typeof value === 'string') {
+        encrypted = {
+          ...encrypted,
+          [key]: this.key.encrypt(Buffer.from(value)).toString('hex'),
+        }
+      } else if (value instanceof Array) {
+        const encryptedItems = []
+        for (const item of value) {
+          if (typeof item === 'string') {
+            encryptedItems.push(this.key.encrypt(Buffer.from(item)).toString('hex'))
+          } else {
+            encryptedItems.push(item)
+          }
+        }
+        encrypted = {
+          ...encrypted,
+          [key]: encryptedItems,
+        }
+      }
+    }
+
+    return encrypted
+  }
+
+  private decryptMessageBody(body?: unknown): object | undefined {
+    if (!body) {
+      return
+    }
+
+    let decrypted = body as object
+    for (const [key, value] of Object.entries(body as object)) {
+      if (typeof value === 'string') {
+        decrypted = {
+          ...decrypted,
+          [key]: this.key.decrypt(Buffer.from(value, 'hex')).toString(),
+        }
+      } else if (value instanceof Array) {
+        const decryptedItems = []
+        for (const item of value) {
+          if (typeof item === 'string') {
+            decryptedItems.push(this.key.decrypt(Buffer.from(item, 'hex')).toString())
+          } else {
+            decryptedItems.push(item)
+          }
+        }
+        decrypted = {
+          ...decrypted,
+          [key]: decryptedItems,
+        }
+      }
+    }
+
+    return decrypted
   }
 }
