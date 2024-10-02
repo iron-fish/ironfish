@@ -15,11 +15,39 @@ import {
   Round1PublicPackageSchema,
   Round2PublicPackageMessage,
   Round2PublicPackageSchema,
+  SignatureShareMessage,
+  SignatureShareSchema,
+  SigningCommitmentMessage,
+  SigningCommitmentSchema,
+  SigningGetStatusSchema,
+  SigningStartSessionSchema,
+  SigningStatusMessage,
   StratumMessage,
   StratumMessageSchema,
   StratumMessageWithError,
 } from './messages'
 import { MultisigServerClient } from './serverClient'
+
+enum MultisigSessionType {
+  DKG = 'DKG',
+  SIGNING = 'SIGNING',
+}
+
+interface MultisigSession {
+  id: string
+  type: MultisigSessionType
+  status: DkgStatus | SigningStatus
+}
+
+interface DkgSession extends MultisigSession {
+  type: MultisigSessionType.DKG
+  status: DkgStatus
+}
+
+interface SigningSession extends MultisigSession {
+  type: MultisigSessionType.SIGNING
+  status: SigningStatus
+}
 
 export type DkgStatus = {
   minSigners: number
@@ -27,6 +55,14 @@ export type DkgStatus = {
   identities: string[]
   round1PublicPackages: string[]
   round2PublicPackages: string[]
+}
+
+export type SigningStatus = {
+  numSigners: number
+  unsignedTransaction: string
+  identities: string[]
+  signingCommitments: string[]
+  signatureShares: string[]
 }
 
 export class MultisigServer {
@@ -37,7 +73,7 @@ export class MultisigServer {
   nextClientId: number
   nextMessageId: number
 
-  sessions: Map<string, DkgStatus> = new Map()
+  sessions: Map<string, MultisigSession> = new Map()
 
   private _isRunning = false
   private _startPromise: Promise<unknown> | null = null
@@ -140,6 +176,9 @@ export class MultisigServer {
       if (message.method === 'dkg.start_session') {
         await this.handleDkgStartSessionMessage(client, message)
         return
+      } else if (message.method === 'sign.start_session') {
+        await this.handleSigningStartSessionMessage(client, message)
+        return
       } else if (message.method === 'join_session') {
         this.handleJoinSessionMessage(client, message)
         return
@@ -154,6 +193,15 @@ export class MultisigServer {
         return
       } else if (message.method === 'dkg.get_status') {
         await this.handleDkgGetStatusMessage(client, message)
+        return
+      } else if (message.method === 'sign.commitment') {
+        await this.handleSigningCommitmentMessage(client, message)
+        return
+      } else if (message.method === 'sign.share') {
+        await this.handleSignatureShareMessage(client, message)
+        return
+      } else if (message.method === 'sign.get_status') {
+        await this.handleSigningGetStatusMessage(client, message)
         return
       } else {
         throw new ClientMessageMalformedError(client, `Invalid message ${message.method}`)
@@ -186,6 +234,12 @@ export class MultisigServer {
     sessionId: string,
     body: Round2PublicPackageMessage,
   ): void
+  private broadcast(
+    method: 'sign.commitment',
+    sessionId: string,
+    body: SigningCommitmentMessage,
+  ): void
+  private broadcast(method: 'sign.share', sessionId: string, body: SignatureShareMessage): void
   private broadcast(method: string, sessionId: string, body?: unknown): void {
     const message: StratumMessage = {
       id: this.nextMessageId++,
@@ -234,6 +288,12 @@ export class MultisigServer {
     sessionId: string,
     body: DkgStatusMessage,
   ): void
+  send(
+    socket: net.Socket,
+    method: 'sign.status',
+    sessionId: string,
+    body: SigningStatusMessage,
+  ): void
   send(socket: net.Socket, method: string, sessionId: string, body?: unknown): void {
     const message: StratumMessage = {
       id: this.nextMessageId++,
@@ -272,15 +332,57 @@ export class MultisigServer {
       return
     }
 
-    this.sessions.set(sessionId, {
-      maxSigners: body.result.maxSigners,
-      minSigners: body.result.minSigners,
-      identities: [],
-      round1PublicPackages: [],
-      round2PublicPackages: [],
-    })
+    const session = {
+      id: sessionId,
+      type: MultisigSessionType.DKG,
+      status: {
+        maxSigners: body.result.maxSigners,
+        minSigners: body.result.minSigners,
+        identities: [],
+        round1PublicPackages: [],
+        round2PublicPackages: [],
+      },
+    }
 
-    this.logger.debug(`Client ${client.id} started session ${message.sessionId}`)
+    this.sessions.set(sessionId, session)
+
+    this.logger.debug(`Client ${client.id} started dkg session ${message.sessionId}`)
+
+    client.sessionId = message.sessionId
+  }
+
+  async handleSigningStartSessionMessage(
+    client: MultisigServerClient,
+    message: StratumMessage,
+  ) {
+    const body = await YupUtils.tryValidate(SigningStartSessionSchema, message.body)
+
+    if (body.error) {
+      return
+    }
+
+    const sessionId = message.sessionId
+
+    if (this.sessions.has(sessionId)) {
+      this.sendStratumError(client, message.id, `Duplicate sessionId: ${sessionId}`)
+      return
+    }
+
+    const session = {
+      id: sessionId,
+      type: MultisigSessionType.SIGNING,
+      status: {
+        numSigners: body.result.numSigners,
+        unsignedTransaction: body.result.unsignedTransaction,
+        identities: [],
+        signingCommitments: [],
+        signatureShares: [],
+      },
+    }
+
+    this.sessions.set(sessionId, session)
+
+    this.logger.debug(`Client ${client.id} started signing session ${message.sessionId}`)
 
     client.sessionId = message.sessionId
   }
@@ -310,8 +412,8 @@ export class MultisigServer {
     }
 
     const identity = body.result.identity
-    if (!session.identities.includes(identity)) {
-      session.identities.push(identity)
+    if (!session.status.identities.includes(identity)) {
+      session.status.identities.push(identity)
       this.sessions.set(message.sessionId, session)
       this.broadcast('identity', message.sessionId, { identity })
     }
@@ -333,9 +435,18 @@ export class MultisigServer {
       return
     }
 
+    if (!isDkgSession(session)) {
+      this.sendStratumError(
+        client,
+        message.id,
+        `Session is not a dkg session: ${message.sessionId}`,
+      )
+      return
+    }
+
     const round1PublicPackage = body.result.package
-    if (!session.round1PublicPackages.includes(round1PublicPackage)) {
-      session.round1PublicPackages.push(round1PublicPackage)
+    if (!session.status.round1PublicPackages.includes(round1PublicPackage)) {
+      session.status.round1PublicPackages.push(round1PublicPackage)
       this.sessions.set(message.sessionId, session)
       this.broadcast('dkg.round1', message.sessionId, { package: round1PublicPackage })
     }
@@ -357,9 +468,18 @@ export class MultisigServer {
       return
     }
 
+    if (!isDkgSession(session)) {
+      this.sendStratumError(
+        client,
+        message.id,
+        `Session is not a dkg session: ${message.sessionId}`,
+      )
+      return
+    }
+
     const round2PublicPackage = body.result.package
-    if (!session.round2PublicPackages.includes(round2PublicPackage)) {
-      session.round2PublicPackages.push(round2PublicPackage)
+    if (!session.status.round2PublicPackages.includes(round2PublicPackage)) {
+      session.status.round2PublicPackages.push(round2PublicPackage)
       this.sessions.set(message.sessionId, session)
       this.broadcast('dkg.round2', message.sessionId, { package: round2PublicPackage })
     }
@@ -378,6 +498,108 @@ export class MultisigServer {
       return
     }
 
-    this.send(client.socket, 'dkg.status', message.sessionId, session)
+    if (!isDkgSession(session)) {
+      this.sendStratumError(
+        client,
+        message.id,
+        `Session is not a dkg session: ${message.sessionId}`,
+      )
+      return
+    }
+
+    this.send(client.socket, 'dkg.status', message.sessionId, session.status)
   }
+
+  async handleSigningCommitmentMessage(client: MultisigServerClient, message: StratumMessage) {
+    const body = await YupUtils.tryValidate(SigningCommitmentSchema, message.body)
+
+    if (body.error) {
+      return
+    }
+
+    const session = this.sessions.get(message.sessionId)
+    if (!session) {
+      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      return
+    }
+
+    if (!isSigningSession(session)) {
+      this.sendStratumError(
+        client,
+        message.id,
+        `Session is not a signing session: ${message.sessionId}`,
+      )
+      return
+    }
+
+    const signingCommitment = body.result.signingCommitment
+    if (!session.status.signingCommitments.includes(signingCommitment)) {
+      session.status.signingCommitments.push(signingCommitment)
+      this.sessions.set(message.sessionId, session)
+      this.broadcast('sign.commitment', message.sessionId, { signingCommitment })
+    }
+  }
+
+  async handleSignatureShareMessage(client: MultisigServerClient, message: StratumMessage) {
+    const body = await YupUtils.tryValidate(SignatureShareSchema, message.body)
+
+    if (body.error) {
+      return
+    }
+
+    const session = this.sessions.get(message.sessionId)
+    if (!session) {
+      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      return
+    }
+
+    if (!isSigningSession(session)) {
+      this.sendStratumError(
+        client,
+        message.id,
+        `Session is not a signing session: ${message.sessionId}`,
+      )
+      return
+    }
+
+    const signatureShare = body.result.signatureShare
+    if (!session.status.signatureShares.includes(signatureShare)) {
+      session.status.signatureShares.push(signatureShare)
+      this.sessions.set(message.sessionId, session)
+      this.broadcast('sign.share', message.sessionId, { signatureShare })
+    }
+  }
+
+  async handleSigningGetStatusMessage(client: MultisigServerClient, message: StratumMessage) {
+    const body = await YupUtils.tryValidate(SigningGetStatusSchema, message.body)
+
+    if (body.error) {
+      return
+    }
+
+    const session = this.sessions.get(message.sessionId)
+    if (!session) {
+      this.sendStratumError(client, message.id, `Session not found: ${message.sessionId}`)
+      return
+    }
+
+    if (!isSigningSession(session)) {
+      this.sendStratumError(
+        client,
+        message.id,
+        `Session is not a signing session: ${message.sessionId}`,
+      )
+      return
+    }
+
+    this.send(client.socket, 'sign.status', message.sessionId, session.status)
+  }
+}
+
+function isDkgSession(session: MultisigSession): session is DkgSession {
+  return session.type === MultisigSessionType.DKG
+}
+
+function isSigningSession(session: MultisigSession): session is SigningSession {
+  return session.type === MultisigSessionType.SIGNING
 }

@@ -23,6 +23,11 @@ export type DkgStartSessionMessage = {
   maxSigners: number
 }
 
+export type SigningStartSessionMessage = {
+  numSigners: number
+  unsignedTransaction: string
+}
+
 export type JoinSessionMessage = object | undefined
 
 export type IdentityMessage = {
@@ -37,6 +42,14 @@ export type Round2PublicPackageMessage = {
   package: string
 }
 
+export type SigningCommitmentMessage = {
+  signingCommitment: string
+}
+
+export type SignatureShareMessage = {
+  signatureShare: string
+}
+
 export type DkgGetStatusMessage = object | undefined
 
 export type DkgStatusMessage = {
@@ -45,6 +58,16 @@ export type DkgStatusMessage = {
   identities: string[]
   round1PublicPackages: string[]
   round2PublicPackages: string[]
+}
+
+export type SigningGetStatusMessage = object | undefined
+
+export type SigningStatusMessage = {
+  numSigners: number
+  unsignedTransaction: string
+  identities: string[]
+  signingCommitments: string[]
+  signatureShares: string[]
 }
 
 export const StratumMessageSchema: yup.ObjectSchema<StratumMessage> = yup
@@ -75,6 +98,13 @@ export const DkgStartSessionSchema: yup.ObjectSchema<DkgStartSessionMessage> = y
   })
   .defined()
 
+export const SigningStartSessionSchema: yup.ObjectSchema<SigningStartSessionMessage> = yup
+  .object({
+    numSigners: yup.number().defined(),
+    unsignedTransaction: yup.string().defined(),
+  })
+  .defined()
+
 export const JoinSessionSchema: yup.ObjectSchema<JoinSessionMessage> = yup
   .object({})
   .notRequired()
@@ -94,6 +124,14 @@ export const Round2PublicPackageSchema: yup.ObjectSchema<Round2PublicPackageMess
   .object({ package: yup.string().defined() })
   .defined()
 
+export const SigningCommitmentSchema: yup.ObjectSchema<SigningCommitmentMessage> = yup
+  .object({ signingCommitment: yup.string().defined() })
+  .defined()
+
+export const SignatureShareSchema: yup.ObjectSchema<SignatureShareMessage> = yup
+  .object({ signatureShare: yup.string().defined() })
+  .defined()
+
 export const DkgGetStatusSchema: yup.ObjectSchema<DkgGetStatusMessage> = yup
   .object({})
   .notRequired()
@@ -106,5 +144,20 @@ export const DkgStatusSchema: yup.ObjectSchema<DkgStatusMessage> = yup
     identities: yup.array(yup.string().defined()).defined(),
     round1PublicPackages: yup.array(yup.string().defined()).defined(),
     round2PublicPackages: yup.array(yup.string().defined()).defined(),
+  })
+  .defined()
+
+export const SigningGetStatusSchema: yup.ObjectSchema<SigningGetStatusMessage> = yup
+  .object({})
+  .notRequired()
+  .default(undefined)
+
+export const SigningStatusSchema: yup.ObjectSchema<SigningStatusMessage> = yup
+  .object({
+    numSigners: yup.number().defined(),
+    unsignedTransaction: yup.string().defined(),
+    identities: yup.array(yup.string().defined()).defined(),
+    signingCommitments: yup.array(yup.string().defined()).defined(),
+    signatureShares: yup.array(yup.string().defined()).defined(),
   })
   .defined()
