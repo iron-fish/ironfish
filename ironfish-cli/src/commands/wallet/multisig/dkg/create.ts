@@ -174,19 +174,22 @@ export class DkgCreateCommand extends IronfishCommand {
     }
   }
 
-  private async getAccountName(client: RpcClient, accountName?: string) {
-    let name: string
-    if (accountName) {
-      name = accountName
-    } else {
-      name = await ui.inputPrompt('Enter a name for the new multisig account', true)
-    }
+  private async getAccountName(client: RpcClient, name?: string) {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      if (!name) {
+        name = await ui.inputPrompt('Enter a name for the multisig account', true)
+      }
 
-    const accounts = (await client.wallet.getAccounts()).content.accounts
+      const accounts = (await client.wallet.getAccounts()).content.accounts
 
-    if (accounts.find((a) => a === name)) {
-      this.log('An account with the same name already exists')
-      name = await ui.inputPrompt('Enter a new name for the account', true)
+      if (accounts.find((a) => a === name)) {
+        this.log('An account with the same name already exists')
+        name = undefined
+        continue
+      }
+
+      break
     }
 
     return name
