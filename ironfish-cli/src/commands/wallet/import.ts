@@ -8,7 +8,7 @@ import { RemoteFlags } from '../../flags'
 import { checkWalletUnlocked, inputPrompt } from '../../ui'
 import { importFile, importPipe, longPrompt } from '../../ui/longPrompt'
 import { importAccount } from '../../utils'
-import { Ledger, LedgerError } from '../../utils/ledger'
+import { LedgerError, LedgerSingleSigner } from '../../utils/ledger'
 
 export class ImportCommand extends IronfishCommand {
   static description = `import an account`
@@ -118,7 +118,7 @@ export class ImportCommand extends IronfishCommand {
 
   async importLedger(): Promise<string> {
     try {
-      const ledger = new Ledger(this.logger)
+      const ledger = new LedgerSingleSigner(this.logger)
       await ledger.connect()
       const account = await ledger.importAccount()
       return encodeAccountImport(account, AccountFormat.Base64Json)

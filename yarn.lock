@@ -1495,16 +1495,6 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
-"@ledgerhq/devices@^8.0.0", "@ledgerhq/devices@^8.4.2":
-  version "8.4.3"
-  resolved "https://registry.yarnpkg.com/@ledgerhq/devices/-/devices-8.4.3.tgz#4c296df4dd4af6f1085d728609b6931a640baf86"
-  integrity sha512-+ih+M27E6cm6DHrmw3GbS3mEaznCyFc0e62VdQux40XK2psgYhL2yBPftM4KCrBYm1UbHqXzqLN+Jb7rNIzsHg==
-  dependencies:
-    "@ledgerhq/errors" "^6.19.0"
-    "@ledgerhq/logs" "^6.12.0"
-    rxjs "^7.8.1"
-    semver "^7.3.5"
-
 "@ledgerhq/devices@^8.4.0":
   version "8.4.0"
   resolved "https://registry.yarnpkg.com/@ledgerhq/devices/-/devices-8.4.0.tgz#f3a03576d4a53d731bdaa212a00bd0adbfb86fb1"
@@ -1515,15 +1505,25 @@
     rxjs "^7.8.1"
     semver "^7.3.5"
 
-"@ledgerhq/errors@^6.12.3", "@ledgerhq/errors@^6.18.0", "@ledgerhq/errors@^6.19.0":
-  version "6.19.0"
-  resolved "https://registry.yarnpkg.com/@ledgerhq/errors/-/errors-6.19.0.tgz#ed4f01df3dabfcdeb0b073159d66cb5f2d086243"
-  integrity sha512-c3Jid7euMSnpHFp8H7iPtsmKDjwbTjlG46YKdw+RpCclsqtBx1uQDlYmcbP1Yv9201kVlUFUhhP4H623k8xzlQ==
+"@ledgerhq/devices@^8.4.2":
+  version "8.4.3"
+  resolved "https://registry.yarnpkg.com/@ledgerhq/devices/-/devices-8.4.3.tgz#4c296df4dd4af6f1085d728609b6931a640baf86"
+  integrity sha512-+ih+M27E6cm6DHrmw3GbS3mEaznCyFc0e62VdQux40XK2psgYhL2yBPftM4KCrBYm1UbHqXzqLN+Jb7rNIzsHg==
+  dependencies:
+    "@ledgerhq/errors" "^6.19.0"
+    "@ledgerhq/logs" "^6.12.0"
+    rxjs "^7.8.1"
+    semver "^7.3.5"
 
 "@ledgerhq/errors@^6.17.0":
   version "6.17.0"
   resolved "https://registry.yarnpkg.com/@ledgerhq/errors/-/errors-6.17.0.tgz#0d56361fe6eb7de3b239e661710679f933f1fcca"
   integrity sha512-xnOVpy/gUUkusEORdr2Qhw3Vd0MGfjyVGgkGR9Ck6FXE26OIdIQ3tNmG5BdZN+gwMMFJJVxxS4/hr0taQfZ43w==
+
+"@ledgerhq/errors@^6.18.0", "@ledgerhq/errors@^6.19.0":
+  version "6.19.0"
+  resolved "https://registry.yarnpkg.com/@ledgerhq/errors/-/errors-6.19.0.tgz#ed4f01df3dabfcdeb0b073159d66cb5f2d086243"
+  integrity sha512-c3Jid7euMSnpHFp8H7iPtsmKDjwbTjlG46YKdw+RpCclsqtBx1uQDlYmcbP1Yv9201kVlUFUhhP4H623k8xzlQ==
 
 "@ledgerhq/hw-transport-node-hid-noevents@^6.30.1":
   version "6.30.1"
@@ -1549,15 +1549,6 @@
     lodash "^4.17.21"
     node-hid "2.1.2"
     usb "2.9.0"
-
-"@ledgerhq/hw-transport@6.28.1":
-  version "6.28.1"
-  resolved "https://registry.yarnpkg.com/@ledgerhq/hw-transport/-/hw-transport-6.28.1.tgz#cb22fe9bc23af4682c30f2aac7fe6f7ab13ed65a"
-  integrity sha512-RaZe+abn0zBIz82cE9tp7Y7aZkHWWbEaE2yJpfxT8AhFz3fx+BU0kLYzuRN9fmA7vKueNJ1MTVUCY+Ex9/CHSQ==
-  dependencies:
-    "@ledgerhq/devices" "^8.0.0"
-    "@ledgerhq/errors" "^6.12.3"
-    events "^3.3.0"
 
 "@ledgerhq/hw-transport@6.31.2":
   version "6.31.2"
@@ -3911,26 +3902,12 @@
   dependencies:
     argparse "^2.0.1"
 
-"@zondax/ledger-ironfish-dkg@npm:@zondax/ledger-ironfish@0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@zondax/ledger-ironfish/-/ledger-ironfish-0.4.0.tgz#424d213a73688f8ec33035325d45cb0f0d7915da"
-  integrity sha512-ifZPJl0WKKvTxAZCGRPARRJJv+qssU6PJYZEJTPHe+Vy2GSbcpfwbIzoyLqKI1vlPBQ1InbZYBP5BOmU1zRWnQ==
+"@zondax/ledger-ironfish@0.5.1":
+  version "0.5.1"
+  resolved "https://registry.yarnpkg.com/@zondax/ledger-ironfish/-/ledger-ironfish-0.5.1.tgz#c628a625d2f66280c74fc2859c70ac059451e8e4"
+  integrity sha512-yzoyejbz5kRFSD3D3u2pIkEOwmAWWKBXiVr7ssb5TRXdimLUTHFgST7CIMp1iqRrkw8bw6HcM7RKcGol5bd9xQ==
   dependencies:
     "@zondax/ledger-js" "^1.0.1"
-
-"@zondax/ledger-ironfish@0.1.2":
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/@zondax/ledger-ironfish/-/ledger-ironfish-0.1.2.tgz#2ff93139c706734eb0d6800f743a9e0c2ae5268d"
-  integrity sha512-a9qnSOHxAf76pMonJBy5jI9oauR2W7WpVu/cCBs151uEW78NeSu4IMHOLGCo8KNiTPzpGwGa/7+1bpzxlQiEng==
-  dependencies:
-    "@zondax/ledger-js" "^0.2.1"
-
-"@zondax/ledger-js@^0.2.1":
-  version "0.2.2"
-  resolved "https://registry.yarnpkg.com/@zondax/ledger-js/-/ledger-js-0.2.2.tgz#b334cecaa372a8bfb91ae4fc5dd0d1c52411da4e"
-  integrity sha512-7wOUlRF2+kRaRU2KSzKb7XjPfScwEg3Cjg6NH/p+ikQLJ9eMkGC45NhSxYn8lixIIk+TgZ4yzTNOzFvF836gQw==
-  dependencies:
-    "@ledgerhq/hw-transport" "6.28.1"
 
 "@zondax/ledger-js@^1.0.1":
   version "1.0.1"
