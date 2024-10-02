@@ -6,8 +6,8 @@ import { CurrencyUtils, RpcClient, Transaction } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import { LedgerSingleSigner } from '../../../ledger'
 import * as ui from '../../../ui'
-import { LedgerSingleSigner } from '../../../utils/ledger'
 import { renderTransactionDetails, watchTransaction } from '../../../utils/transaction'
 
 export class TransactionsSignCommand extends IronfishCommand {

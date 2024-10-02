@@ -5,10 +5,10 @@ import { AccountFormat, encodeAccountImport } from '@ironfish/sdk'
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { LedgerError, LedgerSingleSigner } from '../../ledger'
 import { checkWalletUnlocked, inputPrompt } from '../../ui'
 import { importFile, importPipe, longPrompt } from '../../ui/longPrompt'
 import { importAccount } from '../../utils'
-import { LedgerError, LedgerSingleSigner } from '../../utils/ledger'
 
 export class ImportCommand extends IronfishCommand {
   static description = `import an account`

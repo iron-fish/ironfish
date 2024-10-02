@@ -5,9 +5,9 @@ import { ACCOUNT_SCHEMA_VERSION, AccountFormat, encodeAccountImport } from '@iro
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
+import { LedgerMultiSigner } from '../../../../ledger'
 import * as ui from '../../../../ui'
 import { importAccount } from '../../../../utils'
-import { LedgerDkg } from '../../../../utils/ledger'
 
 export class MultisigLedgerImport extends IronfishCommand {
   static description = `import a multisig account from a Ledger device`
@@ -31,7 +31,7 @@ export class MultisigLedgerImport extends IronfishCommand {
 
     const name = flags.name ?? (await ui.inputPrompt('Enter a name for the account', true))
 
-    const ledger = new LedgerDkg(this.logger)
+    const ledger = new LedgerMultiSigner(this.logger)
     try {
       await ledger.connect()
     } catch (e) {

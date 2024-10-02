@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
+import { LedgerMultiSigner } from '../../../../ledger'
 import * as ui from '../../../../ui'
-import { LedgerDkg } from '../../../../utils/ledger'
 
 export class MultisigLedgerRestore extends IronfishCommand {
   static description = `restore encrypted multisig keys to a Ledger device`
@@ -26,7 +26,7 @@ export class MultisigLedgerRestore extends IronfishCommand {
       )
     }
 
-    const ledger = new LedgerDkg(this.logger)
+    const ledger = new LedgerMultiSigner(this.logger)
     try {
       await ledger.connect()
     } catch (e) {
