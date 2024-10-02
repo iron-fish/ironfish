@@ -228,7 +228,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       this.logger,
     )
 
-    this.log('Mutlisignature sign process completed!')
+    this.log('Multisignature sign process completed!')
     multisigClient?.stop()
   }
 
