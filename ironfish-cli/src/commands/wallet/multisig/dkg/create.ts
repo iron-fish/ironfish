@@ -21,9 +21,9 @@ import fs from 'fs'
 import path from 'path'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
+import { MultisigTcpClient } from '../../../../multisigBroker'
 import * as ui from '../../../../ui'
 import { LedgerDkg } from '../../../../utils/ledger'
-import { MultisigTcpClient } from '../../../../utils/multisig/network'
 
 export class DkgCreateCommand extends IronfishCommand {
   static description = 'Interactive command to create a multisignature account using DKG'
