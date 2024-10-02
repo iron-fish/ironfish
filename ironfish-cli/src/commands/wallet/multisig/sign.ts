@@ -17,9 +17,9 @@ import { Flags, ux } from '@oclif/core'
 import dns from 'dns'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import { LedgerMultiSigner } from '../../../ledger'
 import { MultisigTcpClient } from '../../../multisigBroker'
 import * as ui from '../../../ui'
-import { LedgerDkg } from '../../../utils/ledger'
 import { renderUnsignedTransactionDetails, watchTransaction } from '../../../utils/transaction'
 
 // todo(patnir): this command does not differentiate between a participant and an account.
@@ -62,10 +62,10 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
 
-    let ledger: LedgerDkg | undefined = undefined
+    let ledger: LedgerMultiSigner | undefined = undefined
 
     if (flags.ledger) {
-      ledger = new LedgerDkg(this.logger)
+      ledger = new LedgerMultiSigner(this.logger)
       try {
         await ledger.connect()
       } catch (e) {
@@ -378,7 +378,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     identity: MultisigParticipant,
     signingPackageString: string,
     unsignedTransaction: UnsignedTransaction,
-    ledger: LedgerDkg | undefined,
+    ledger: LedgerMultiSigner | undefined,
   ): Promise<string> {
     let signatureShare: string
 
@@ -467,7 +467,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     participant: MultisigParticipant,
     totalParticipants: number,
     unsignedTransaction: UnsignedTransaction,
-    ledger: LedgerDkg | undefined,
+    ledger: LedgerMultiSigner | undefined,
   ) {
     let identities: string[] = []
     if (!multisigClient) {
@@ -534,7 +534,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
   }
 
   async createSigningCommitmentWithLedger(
-    ledger: LedgerDkg,
+    ledger: LedgerMultiSigner,
     participant: MultisigParticipant,
     transactionHash: Buffer,
     signers: string[],

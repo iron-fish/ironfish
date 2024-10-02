@@ -14,9 +14,9 @@ import {
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
+import { LedgerMultiSigner } from '../../../../ledger'
 import * as ui from '../../../../ui'
 import { importAccount } from '../../../../utils'
-import { LedgerDkg } from '../../../../utils/ledger'
 
 export class DkgRound3Command extends IronfishCommand {
   static description = 'Perform round3 of the DKG protocol for multisig account creation'
@@ -162,7 +162,7 @@ export class DkgRound3Command extends IronfishCommand {
     round2SecretPackage: string,
     accountCreatedAt?: number,
   ): Promise<void> {
-    const ledger = new LedgerDkg(this.logger)
+    const ledger = new LedgerMultiSigner(this.logger)
     try {
       await ledger.connect()
     } catch (e) {

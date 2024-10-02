@@ -5,8 +5,8 @@ import { RpcClient } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
+import { LedgerMultiSigner } from '../../../../ledger'
 import * as ui from '../../../../ui'
-import { LedgerDkg } from '../../../../utils/ledger'
 
 export class DkgRound1Command extends IronfishCommand {
   static description = 'Perform round1 of the DKG protocol for multisig account creation'
@@ -100,7 +100,7 @@ export class DkgRound1Command extends IronfishCommand {
     identities: string[],
     minSigners: number,
   ): Promise<void> {
-    const ledger = new LedgerDkg(this.logger)
+    const ledger = new LedgerMultiSigner(this.logger)
     try {
       await ledger.connect()
     } catch (e) {
