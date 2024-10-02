@@ -3909,7 +3909,7 @@
   dependencies:
     "@zondax/ledger-js" "^1.0.1"
 
-"@zondax/ledger-js@^1.0.1":
+"@zondax/ledger-js@1.0.1", "@zondax/ledger-js@^1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@zondax/ledger-js/-/ledger-js-1.0.1.tgz#a1c51943c5b7d1370cea588b193197234485d196"
   integrity sha512-9h+aIXyEK+Rdic5Ppsmq+tptDFwPTacG1H6tpZHFdhtBFHYFOLLkKTTmq5rMTv84aAPS1v0tnsF1e2Il6M05Cg==
