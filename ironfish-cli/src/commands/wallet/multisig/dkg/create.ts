@@ -75,7 +75,7 @@ export class DkgCreateCommand extends IronfishCommand {
       }
     }
 
-    const accountName = await this.getAccountName(client, flags.name)
+    const accountName = await this.getAccountName(client, flags.name ?? flags.participant)
 
     let accountCreatedAt = flags.createdAt
     if (!accountCreatedAt) {
@@ -106,12 +106,12 @@ export class DkgCreateCommand extends IronfishCommand {
       ? await ui.retryStep(
           () => {
             Assert.isNotUndefined(ledger)
-            return this.getIdentityFromLedger(ledger, client, flags.participant)
+            return this.getIdentityFromLedger(ledger, client, accountName)
           },
           this.logger,
           true,
         )
-      : await this.getParticipant(client, flags.participant)
+      : await this.getParticipant(client, accountName)
 
     this.log(`Identity for ${participantName}: \n${identity} \n`)
 
@@ -192,38 +192,16 @@ export class DkgCreateCommand extends IronfishCommand {
     multisigClient?.stop()
   }
 
-  private async getParticipant(client: RpcClient, participantName?: string) {
-    const identities = (await client.wallet.multisig.getIdentities()).content.identities
-
-    if (participantName) {
-      const foundIdentity = identities.find((i) => i.name === participantName)
-      if (!foundIdentity) {
-        throw new Error(`Participant with name ${participantName} not found`)
-      }
-
-      return {
-        name: foundIdentity.name,
-        identity: foundIdentity.identity,
-      }
-    }
-
-    const name = await ui.inputPrompt('Enter the name of the participant', true)
-    const foundIdentity = identities.find((i) => i.name === name)
+  private async getParticipant(client: RpcClient, name: string) {
+    const identities = await client.wallet.multisig.getIdentities()
+    const foundIdentity = identities.content.identities.find((i) => i.name === name)
 
     if (foundIdentity) {
-      this.log('Found an identity with the same name')
-
-      return {
-        ...foundIdentity,
-      }
+      return foundIdentity
     }
 
-    const identity = (await client.wallet.multisig.createParticipant({ name })).content.identity
-
-    return {
-      name,
-      identity,
-    }
+    const created = await client.wallet.multisig.createParticipant({ name })
+    return { name, identity: created.content.identity }
   }
 
   private async getAccountName(client: RpcClient, name?: string) {
@@ -250,7 +228,7 @@ export class DkgCreateCommand extends IronfishCommand {
   async getIdentityFromLedger(
     ledger: LedgerMultiSigner,
     client: RpcClient,
-    name?: string,
+    name: string,
   ): Promise<{
     name: string
     identity: string
