@@ -4,8 +4,8 @@
 
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
-import { MultisigServer } from '../../../utils/multisig/network'
-import { MultisigTcpAdapter } from '../../../utils/multisig/network/adapters'
+import { MultisigServer } from '../../../multisigBroker'
+import { MultisigTcpAdapter } from '../../../multisigBroker/adapters'
 
 export class MultisigServerCommand extends IronfishCommand {
   static description = 'start a server to broker messages for a multisig session'

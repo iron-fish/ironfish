@@ -17,9 +17,9 @@ import { Flags, ux } from '@oclif/core'
 import dns from 'dns'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import { MultisigTcpClient } from '../../../multisigBroker'
 import * as ui from '../../../ui'
 import { LedgerDkg } from '../../../utils/ledger'
-import { MultisigTcpClient } from '../../../utils/multisig/network'
 import { renderUnsignedTransactionDetails, watchTransaction } from '../../../utils/transaction'
 
 // todo(patnir): this command does not differentiate between a participant and an account.
