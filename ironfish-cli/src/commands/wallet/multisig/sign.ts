@@ -52,6 +52,10 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       description: 'Unique ID for a multisig server session to join',
       dependsOn: ['server'],
     }),
+    passphrase: Flags.string({
+      description: 'Passphrase to join the multisig server session',
+      dependsOn: ['server'],
+    }),
     tls: Flags.boolean({
       description: 'connect to the multisig server over TLS',
       dependsOn: ['server'],
@@ -120,12 +124,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
     let multisigClient: MultisigClient | null = null
     if (flags.server) {
-      multisigClient = await MultisigBrokerUtils.createClient(flags.server, {
-        tls: flags.tls,
-        logger: this.logger,
-      })
-      multisigClient.start()
-
       let sessionId = flags.sessionId
       if (!sessionId) {
         sessionId = await ui.inputPrompt(
@@ -133,6 +131,18 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
           false,
         )
       }
+
+      let passphrase = flags.passphrase
+      if (!passphrase) {
+        passphrase = await ui.inputPrompt('Enter the passphrase for the multisig session', true)
+      }
+
+      multisigClient = await MultisigBrokerUtils.createClient(flags.server, {
+        passphrase,
+        tls: flags.tls,
+        logger: this.logger,
+      })
+      multisigClient.start()
 
       if (sessionId) {
         multisigClient.joinSession(sessionId)

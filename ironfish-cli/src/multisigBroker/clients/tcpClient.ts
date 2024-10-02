@@ -11,8 +11,8 @@ export class MultisigTcpClient extends MultisigClient {
 
   client: net.Socket | null = null
 
-  constructor(options: { host: string; port: number; logger: Logger }) {
-    super({ logger: options.logger })
+  constructor(options: { host: string; port: number; passphrase: string; logger: Logger }) {
+    super({ passphrase: options.passphrase, logger: options.logger })
     this.host = options.host
     this.port = options.port
   }

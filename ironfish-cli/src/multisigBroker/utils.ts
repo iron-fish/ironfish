@@ -7,7 +7,7 @@ import { MultisigClient, MultisigTcpClient, MultisigTlsClient } from './clients'
 
 async function createClient(
   serverAddress: string,
-  options: { tls: boolean; logger: Logger },
+  options: { passphrase: string; tls: boolean; logger: Logger },
 ): Promise<MultisigClient> {
   const parsed = parseUrl(serverAddress)
 
@@ -19,9 +19,19 @@ async function createClient(
   const port = parsed.port
 
   if (options.tls) {
-    return new MultisigTlsClient({ host, port, logger: options.logger })
+    return new MultisigTlsClient({
+      host,
+      port,
+      passphrase: options.passphrase,
+      logger: options.logger,
+    })
   } else {
-    return new MultisigTcpClient({ host, port, logger: options.logger })
+    return new MultisigTcpClient({
+      host,
+      port,
+      passphrase: options.passphrase,
+      logger: options.logger,
+    })
   }
 }
 
