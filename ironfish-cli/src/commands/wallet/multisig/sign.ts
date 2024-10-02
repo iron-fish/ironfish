@@ -4,21 +4,18 @@
 
 import { multisig } from '@ironfish/rust-nodejs'
 import {
-  Assert,
   CurrencyUtils,
   Identity,
-  parseUrl,
   PromiseUtils,
   RpcClient,
   Transaction,
   UnsignedTransaction,
 } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
-import dns from 'dns'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { LedgerMultiSigner } from '../../../ledger'
-import { MultisigTcpClient } from '../../../multisigBroker'
+import { MultisigBrokerUtils, MultisigClient } from '../../../multisigBroker'
 import * as ui from '../../../ui'
 import { renderUnsignedTransactionDetails, watchTransaction } from '../../../utils/transaction'
 
@@ -54,6 +51,12 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     sessionId: Flags.string({
       description: 'Unique ID for a multisig server session to join',
       dependsOn: ['server'],
+    }),
+    tls: Flags.boolean({
+      description: 'connect to the multisig server over TLS',
+      dependsOn: ['server'],
+      allowNo: true,
+      default: true,
     }),
   }
 
@@ -115,18 +118,12 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       )
     }
 
-    let multisigClient: MultisigTcpClient | null = null
+    let multisigClient: MultisigClient | null = null
     if (flags.server) {
-      const parsed = parseUrl(flags.server)
-
-      Assert.isNotNull(parsed.hostname)
-      Assert.isNotNull(parsed.port)
-
-      const resolved = await dns.promises.lookup(parsed.hostname)
-      const host = resolved.address
-      const port = parsed.port
-
-      multisigClient = new MultisigTcpClient({ host, port, logger: this.logger })
+      multisigClient = await MultisigBrokerUtils.createClient(flags.server, {
+        tls: flags.tls,
+        logger: this.logger,
+      })
       multisigClient.start()
 
       let sessionId = flags.sessionId
@@ -233,7 +230,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
   }
 
   async getSigningConfig(
-    multisigClient: MultisigTcpClient | null,
+    multisigClient: MultisigClient | null,
     unsignedTransactionFlag?: string,
   ): Promise<{ unsignedTransaction: UnsignedTransaction; totalParticipants: number }> {
     if (multisigClient?.sessionId) {
@@ -288,7 +285,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
   private async performAggregateSignatures(
     client: RpcClient,
-    multisigClient: MultisigTcpClient | null,
+    multisigClient: MultisigClient | null,
     accountName: string,
     signingPackage: string,
     signatureShare: string,
@@ -411,7 +408,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
   private async performAggregateCommitments(
     client: RpcClient,
-    multisigClient: MultisigTcpClient | null,
+    multisigClient: MultisigClient | null,
     accountName: string,
     commitment: string,
     identities: string[],
@@ -462,7 +459,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
   private async performCreateSigningCommitment(
     client: RpcClient,
-    multisigClient: MultisigTcpClient | null,
+    multisigClient: MultisigClient | null,
     accountName: string,
     participant: MultisigParticipant,
     totalParticipants: number,
