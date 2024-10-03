@@ -18,6 +18,10 @@ export interface MultisigBrokerMessageWithError
   }
 }
 
+export type MultisigBrokerAckMessage = {
+  messageId: number
+}
+
 export type DkgStartSessionMessage = {
   minSigners: number
   maxSigners: number
@@ -93,6 +97,12 @@ export const MultisigBrokerMessageWithErrorSchema: yup.ObjectSchema<MultisigBrok
         .required(),
     })
     .required()
+
+export const MultisigBrokerAckSchema: yup.ObjectSchema<MultisigBrokerAckMessage> = yup
+  .object({
+    messageId: yup.number().required(),
+  })
+  .required()
 
 export const DkgStartSessionSchema: yup.ObjectSchema<DkgStartSessionMessage> = yup
   .object({

@@ -22,6 +22,7 @@ import {
   IdentityMessage,
   IdentitySchema,
   JoinSessionMessage,
+  MultisigBrokerAckSchema,
   MultisigBrokerMessage,
   MultisigBrokerMessageSchema,
   MultisigBrokerMessageWithError,
@@ -40,6 +41,7 @@ import {
   SigningStatusSchema,
 } from '../messages'
 
+const RETRY_INTERVAL = 5000
 export abstract class MultisigClient {
   readonly logger: Logger
   readonly version: number
@@ -67,6 +69,8 @@ export abstract class MultisigClient {
 
   sessionId: string | null = null
   passphrase: string
+
+  retries: Map<number, NodeJS.Timer> = new Map()
 
   constructor(options: { passphrase: string; logger: Logger }) {
     this.logger = options.logger
@@ -147,6 +151,10 @@ export abstract class MultisigClient {
     if (this.connectTimeout) {
       clearTimeout(this.connectTimeout)
     }
+
+    for (const retryInterval of this.retries.values()) {
+      clearInterval(retryInterval)
+    }
   }
 
   isConnected(): boolean {
@@ -215,14 +223,23 @@ export abstract class MultisigClient {
       return
     }
 
+    const messageId = this.nextMessageId++
+
     const message: MultisigBrokerMessage = {
-      id: this.nextMessageId++,
+      id: messageId,
       method,
       sessionId: this.sessionId,
       body: this.encryptMessageBody(body),
     }
 
     this.writeData(JSON.stringify(message) + '\n')
+
+    this.retries.set(
+      messageId,
+      setInterval(() => {
+        this.writeData(JSON.stringify(message) + '\n')
+      }, RETRY_INTERVAL),
+    )
   }
 
   protected onConnect(): void {
@@ -275,6 +292,18 @@ export abstract class MultisigClient {
       header.result.body = this.decryptMessageBody(header.result.body)
 
       switch (header.result.method) {
+        case 'ack': {
+          const body = await YupUtils.tryValidate(MultisigBrokerAckSchema, header.result.body)
+
+          if (body.error) {
+            throw new ServerMessageMalformedError(body.error, header.result.method)
+          }
+
+          const retryInterval = this.retries.get(body.result.messageId)
+          clearInterval(retryInterval)
+          this.retries.delete(body.result.messageId)
+          break
+        }
         case 'identity': {
           const body = await YupUtils.tryValidate(IdentitySchema, header.result.body)
 
