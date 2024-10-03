@@ -17,6 +17,7 @@ import { Flags, ux } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../../flags'
+import { sendTransactionWithLedger } from '../../../ledger'
 import * as ui from '../../../ui'
 import {
   ChainportBridgeTransaction,
@@ -28,6 +29,7 @@ import {
 } from '../../../utils/chainport'
 import { isEthereumAddress } from '../../../utils/chainport/address'
 import { promptCurrency } from '../../../utils/currency'
+import { promptExpiration } from '../../../utils/expiration'
 import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
 import { watchTransaction } from '../../../utils/transaction'
@@ -74,6 +76,15 @@ export class BridgeCommand extends IronfishCommand {
       default: false,
       description: 'Allow offline transaction creation',
     }),
+    unsignedTransaction: Flags.boolean({
+      default: false,
+      description:
+        'Return a serialized UnsignedTransaction. Use it to create a transaction and build proofs but not post to the network',
+    }),
+    ledger: Flags.boolean({
+      default: false,
+      description: 'Send a transaction using a Ledger device',
+    }),
   }
 
   async start(): Promise<void> {
@@ -98,7 +109,7 @@ export class BridgeCommand extends IronfishCommand {
       }
     }
 
-    const { targetNetwork, from, to, amount, asset, assetData } =
+    const { targetNetwork, from, to, amount, asset, assetData, expiration } =
       await this.getAndValidateInputs(client, networkId)
 
     const rawTransaction = await this.constructBridgeTransaction(
@@ -110,7 +121,30 @@ export class BridgeCommand extends IronfishCommand {
       amount,
       asset,
       assetData,
+      expiration,
     )
+
+    if (flags.unsignedTransaction) {
+      const response = await client.wallet.buildTransaction({
+        account: from,
+        rawTransaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
+      })
+      this.log('Unsigned Bridge Transaction')
+      this.log(response.content.unsignedTransaction)
+      this.exit(0)
+    }
+
+    if (flags.ledger) {
+      await sendTransactionWithLedger(
+        client,
+        rawTransaction,
+        from,
+        flags.watch,
+        true,
+        this.logger,
+      )
+      this.exit(0)
+    }
 
     await ui.confirmOrQuit()
 
@@ -178,7 +212,13 @@ export class BridgeCommand extends IronfishCommand {
       this.error('Invalid to ethereum address')
     }
 
-    if (flags.expiration !== undefined && flags.expiration < 0) {
+    let expiration = flags.expiration
+
+    if (flags.unsignedTransaction && expiration === undefined) {
+      expiration = await promptExpiration({ logger: this.logger, client: client })
+    }
+
+    if (expiration !== undefined && expiration < 0) {
       this.error('Expiration sequence must be non-negative')
     }
 
@@ -268,7 +308,7 @@ export class BridgeCommand extends IronfishCommand {
         },
       })
     }
-    return { targetNetwork, from, to, amount, asset, assetData }
+    return { targetNetwork, from, to, amount, asset, assetData, expiration }
   }
 
   private async constructBridgeTransaction(
@@ -280,6 +320,7 @@ export class BridgeCommand extends IronfishCommand {
     amount: bigint,
     asset: ChainportToken,
     assetData: RpcAsset,
+    expiration: number | undefined,
   ) {
     const { flags } = await this.parse(BridgeCommand)
 
@@ -310,7 +351,7 @@ export class BridgeCommand extends IronfishCommand {
       ],
       fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
       feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
-      expiration: flags.expiration,
+      expiration,
     }
 
     let rawTransaction: RawTransaction
