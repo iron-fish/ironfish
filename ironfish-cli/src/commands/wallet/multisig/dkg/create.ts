@@ -130,16 +130,11 @@ export class DkgCreateCommand extends IronfishCommand {
       }
     }
 
-    const { name: participantName, identity } = ledger
-      ? await ui.retryStep(
-          () => {
-            Assert.isNotUndefined(ledger)
-            return this.getIdentityFromLedger(ledger, client, accountName)
-          },
-          this.logger,
-          true,
-        )
-      : await this.getParticipant(client, accountName)
+    const { name: participantName, identity } = await this.getOrCreateIdentity(
+      client,
+      ledger,
+      accountName,
+    )
 
     const { totalParticipants, minSigners } = await ui.retryStep(
       async () => {
@@ -202,11 +197,46 @@ export class DkgCreateCommand extends IronfishCommand {
     multisigClient?.stop()
   }
 
-  private async getParticipant(client: RpcClient, name: string) {
+  private async getOrCreateIdentity(
+    client: RpcClient,
+    ledger: LedgerMultiSigner | undefined,
+    name: string,
+  ): Promise<{
+    identity: string
+    name: string
+  }> {
     const identities = await client.wallet.multisig.getIdentities()
+
+    if (ledger) {
+      const ledgerIdentity = await ledger.dkgGetIdentity(0)
+
+      const foundIdentity = identities.content.identities.find(
+        (i) => i.identity === ledgerIdentity.toString('hex'),
+      )
+
+      if (foundIdentity) {
+        this.debug('Identity from ledger already exists')
+        return foundIdentity
+      }
+
+      // We must use the ledger's identity
+      while (identities.content.identities.find((i) => i.name === name)) {
+        this.log('An identity with the same name already exists')
+        name = await ui.inputPrompt('Enter a new name for the identity', true)
+      }
+
+      const created = await client.wallet.multisig.importParticipant({
+        name,
+        identity: ledgerIdentity.toString('hex'),
+      })
+
+      return { name, identity: created.content.identity }
+    }
+
     const foundIdentity = identities.content.identities.find((i) => i.name === name)
 
     if (foundIdentity) {
+      this.debug(`Identity already exists with name: ${foundIdentity.name}`)
       return foundIdentity
     }
 
@@ -233,62 +263,6 @@ export class DkgCreateCommand extends IronfishCommand {
     }
 
     return name
-  }
-
-  async getIdentityFromLedger(
-    ledger: LedgerMultiSigner,
-    client: RpcClient,
-    name: string,
-  ): Promise<{
-    name: string
-    identity: string
-  }> {
-    // TODO(hughy): support multiple identities using index
-    const identity = await ledger.dkgGetIdentity(0)
-
-    const allIdentities = (await client.wallet.multisig.getIdentities()).content.identities
-
-    const foundIdentity = allIdentities.find((i) => i.identity === identity.toString('hex'))
-
-    if (foundIdentity) {
-      this.log(`Identity already exists with name: ${foundIdentity.name}`)
-
-      return {
-        name: foundIdentity.name,
-        identity: identity.toString('hex'),
-      }
-    }
-
-    name = await ui.inputPrompt('Enter a name for the identity', true)
-
-    while (allIdentities.find((i) => i.name === name)) {
-      this.log('An identity with the same name already exists')
-      name = await ui.inputPrompt('Enter a new name for the identity', true)
-    }
-
-    await client.wallet.multisig.importParticipant({
-      name,
-      identity: identity.toString('hex'),
-    })
-
-    return {
-      name,
-      identity: identity.toString('hex'),
-    }
-  }
-
-  async createParticipant(
-    client: RpcClient,
-    name: string,
-  ): Promise<{
-    name: string
-    identity: string
-  }> {
-    const identity = (await client.wallet.multisig.createParticipant({ name })).content.identity
-    return {
-      name,
-      identity,
-    }
   }
 
   async getDkgConfig(
