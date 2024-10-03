@@ -52,6 +52,8 @@ export async function sendTransactionWithLedger(
 
   const unsignedTransaction = buildTransactionResponse.content.unsignedTransaction
 
+  ux.stdout('Please confirm the transaction on your Ledger device')
+
   const signature = (await ledger.sign(unsignedTransaction)).toString('hex')
 
   ux.stdout(`\nSignature: ${signature}`)

@@ -17,6 +17,7 @@ import { Flags, ux } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../../flags'
+import { sendTransactionWithLedger } from '../../../ledger'
 import * as ui from '../../../ui'
 import {
   ChainportBridgeTransaction,
@@ -80,6 +81,10 @@ export class BridgeCommand extends IronfishCommand {
       description:
         'Return a serialized UnsignedTransaction. Use it to create a transaction and build proofs but not post to the network',
     }),
+    ledger: Flags.boolean({
+      default: false,
+      description: 'Send a transaction using a Ledger device',
+    }),
   }
 
   async start(): Promise<void> {
@@ -126,6 +131,18 @@ export class BridgeCommand extends IronfishCommand {
       })
       this.log('Unsigned Bridge Transaction')
       this.log(response.content.unsignedTransaction)
+      this.exit(0)
+    }
+
+    if (flags.ledger) {
+      await sendTransactionWithLedger(
+        client,
+        rawTransaction,
+        from,
+        flags.watch,
+        true,
+        this.logger,
+      )
       this.exit(0)
     }
 
