@@ -6,6 +6,7 @@ import net from 'net'
 import { IMultisigBrokerAdapter } from './adapters'
 import { ClientMessageMalformedError } from './errors'
 import {
+  ConnectedMessage,
   DkgGetStatusSchema,
   DkgStartSessionSchema,
   DkgStatusMessage,
@@ -143,6 +144,8 @@ export class MultisigServer {
     socket.on('close', () => this.onDisconnect(client))
     socket.on('error', (e) => this.onError(client, e))
 
+    this.send(socket, 'connected', '0', {})
+
     this.logger.debug(`Client ${client.id} connected: ${client.remoteAddress}`)
     this.clients.set(client.id, client)
   }
@@ -154,6 +157,10 @@ export class MultisigServer {
     client.close()
     client.socket.removeAllListeners('close')
     client.socket.removeAllListeners('error')
+
+    if (client.sessionId && !this.isSessionActive(client.sessionId)) {
+      this.cleanupSession(client.sessionId)
+    }
   }
 
   private async onData(client: MultisigServerClient, data: Buffer): Promise<void> {
@@ -221,6 +228,24 @@ export class MultisigServer {
     client.close()
 
     this.clients.delete(client.id)
+  }
+
+  /**
+   * If a client has the given session ID and is connected, the associated
+   * session should still be considered active
+   */
+  private isSessionActive(sessionId: string): boolean {
+    for (const client of this.clients.values()) {
+      if (client.connected && client.sessionId && client.sessionId === sessionId) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private cleanupSession(sessionId: string): void {
+    this.sessions.delete(sessionId)
+    this.logger.debug(`Session ${sessionId} cleaned up. Active sessions: ${this.sessions.size}`)
   }
 
   private broadcast(method: 'identity', sessionId: string, body: IdentityMessage): void
@@ -294,6 +319,7 @@ export class MultisigServer {
     sessionId: string,
     body: SigningStatusMessage,
   ): void
+  send(socket: net.Socket, method: 'connected', sessionId: string, body: ConnectedMessage): void
   send(socket: net.Socket, method: string, sessionId: string, body?: unknown): void {
     const message: MultisigBrokerMessage = {
       id: this.nextMessageId++,

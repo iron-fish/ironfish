@@ -112,7 +112,20 @@ export class DkgCreateCommand extends IronfishCommand {
       })
       multisigClient.start()
 
+      let connectionConfirmed = false
+
+      multisigClient.onConnectedMessage.on(() => {
+        connectionConfirmed = true
+        Assert.isNotNull(multisigClient)
+        multisigClient.onConnectedMessage.clear()
+      })
+
       if (sessionId) {
+        while (!connectionConfirmed) {
+          await PromiseUtils.sleep(500)
+          continue
+        }
+
         multisigClient.joinSession(sessionId)
       }
     }

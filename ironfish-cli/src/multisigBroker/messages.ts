@@ -70,6 +70,8 @@ export type SigningStatusMessage = {
   signatureShares: string[]
 }
 
+export type ConnectedMessage = object | undefined
+
 export const MultisigBrokerMessageSchema: yup.ObjectSchema<MultisigBrokerMessage> = yup
   .object({
     id: yup.number().required(),
@@ -162,3 +164,8 @@ export const SigningStatusSchema: yup.ObjectSchema<SigningStatusMessage> = yup
     signatureShares: yup.array(yup.string().defined()).defined(),
   })
   .defined()
+
+export const ConnectedMessageSchema: yup.ObjectSchema<ConnectedMessage> = yup
+  .object({})
+  .notRequired()
+  .default(undefined)
