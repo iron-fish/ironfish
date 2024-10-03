@@ -289,7 +289,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     signatureShare: string,
     totalParticipants: number,
   ): Promise<void> {
-    let signatureShares: string[] = []
+    let signatureShares: string[] = [signatureShare]
     if (!multisigClient) {
       this.log('\n============================================')
       this.log('\nSignature Share:')
@@ -420,7 +420,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     totalParticipants: number,
     unsignedTransaction: UnsignedTransaction,
   ) {
-    let commitments: string[] = []
+    let commitments: string[] = [commitment]
     if (!multisigClient) {
       this.log('\n============================================')
       this.log('\nCommitment:')
@@ -473,7 +473,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     unsignedTransaction: UnsignedTransaction,
     ledger: LedgerMultiSigner | undefined,
   ) {
-    let identities: string[] = []
+    let identities: string[] = [participant.identity]
     if (!multisigClient) {
       this.log(`Identity for ${participant.name}: \n${participant.identity} \n`)
       this.log('Share your participant identity with other signers.')

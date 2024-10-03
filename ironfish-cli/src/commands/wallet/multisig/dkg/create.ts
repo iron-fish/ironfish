@@ -365,7 +365,7 @@ export class DkgCreateCommand extends IronfishCommand {
   }> {
     this.log('\nCollecting Participant Info and Performing Round 1...')
 
-    let identities: string[] = []
+    let identities: string[] = [currentIdentity]
     if (!multisigClient) {
       this.log(`Identity for ${participantName}: \n${currentIdentity} \n`)
 
@@ -454,7 +454,7 @@ export class DkgCreateCommand extends IronfishCommand {
     round2: { secretPackage: string; publicPackage: string }
     round1PublicPackages: string[]
   }> {
-    let round1PublicPackages: string[] = []
+    let round1PublicPackages: string[] = [round1Result.publicPackage]
     if (!multisigClient) {
       this.log('\n============================================')
       this.debug('\nRound 1 Encrypted Secret Package:')
@@ -641,7 +641,7 @@ export class DkgCreateCommand extends IronfishCommand {
     ledger: LedgerMultiSigner | undefined,
     accountCreatedAt?: number,
   ): Promise<void> {
-    let round2PublicPackages: string[] = []
+    let round2PublicPackages: string[] = [round2Result.publicPackage]
     if (!multisigClient) {
       this.log('\n============================================')
       this.debug('\nRound 2 Encrypted Secret Package:')
