@@ -10,19 +10,14 @@ import {
   DkgGetStatusSchema,
   DkgStartSessionSchema,
   DkgStatusMessage,
-  IdentityMessage,
   IdentitySchema,
   MultisigBrokerAckMessage,
   MultisigBrokerMessage,
   MultisigBrokerMessageSchema,
   MultisigBrokerMessageWithError,
-  Round1PublicPackageMessage,
   Round1PublicPackageSchema,
-  Round2PublicPackageMessage,
   Round2PublicPackageSchema,
-  SignatureShareMessage,
   SignatureShareSchema,
-  SigningCommitmentMessage,
   SigningCommitmentSchema,
   SigningGetStatusSchema,
   SigningStartSessionSchema,
@@ -191,8 +186,8 @@ export class MultisigServer {
       } else if (message.method === 'join_session') {
         this.handleJoinSessionMessage(client, message)
         return
-      } else if (message.method === 'identity') {
-        await this.handleIdentityMessage(client, message)
+      } else if (message.method === 'dkg.identity') {
+        await this.handleDkgIdentityMessage(client, message)
         return
       } else if (message.method === 'dkg.round1') {
         await this.handleRound1PublicPackageMessage(client, message)
@@ -202,6 +197,9 @@ export class MultisigServer {
         return
       } else if (message.method === 'dkg.get_status') {
         await this.handleDkgGetStatusMessage(client, message)
+        return
+      } else if (message.method === 'sign.identity') {
+        await this.handleSigningIdentityMessage(client, message)
         return
       } else if (message.method === 'sign.commitment') {
         await this.handleSigningCommitmentMessage(client, message)
@@ -250,23 +248,8 @@ export class MultisigServer {
     this.logger.debug(`Session ${sessionId} cleaned up. Active sessions: ${this.sessions.size}`)
   }
 
-  private broadcast(method: 'identity', sessionId: string, body: IdentityMessage): void
-  private broadcast(
-    method: 'dkg.round1',
-    sessionId: string,
-    body: Round1PublicPackageMessage,
-  ): void
-  private broadcast(
-    method: 'dkg.round2',
-    sessionId: string,
-    body: Round2PublicPackageMessage,
-  ): void
-  private broadcast(
-    method: 'sign.commitment',
-    sessionId: string,
-    body: SigningCommitmentMessage,
-  ): void
-  private broadcast(method: 'sign.share', sessionId: string, body: SignatureShareMessage): void
+  private broadcast(method: 'dkg.status', sessionId: string, body?: DkgStatusMessage): void
+  private broadcast(method: 'sign.status', sessionId: string, body?: SigningStatusMessage): void
   private broadcast(method: string, sessionId: string, body?: unknown): void {
     const message: MultisigBrokerMessage = {
       id: this.nextMessageId++,
@@ -435,7 +418,7 @@ export class MultisigServer {
     client.sessionId = message.sessionId
   }
 
-  async handleIdentityMessage(client: MultisigServerClient, message: MultisigBrokerMessage) {
+  async handleDkgIdentityMessage(client: MultisigServerClient, message: MultisigBrokerMessage) {
     const body = await YupUtils.tryValidate(IdentitySchema, message.body)
 
     if (body.error) {
@@ -448,11 +431,61 @@ export class MultisigServer {
       return
     }
 
+    if (!isDkgSession(session)) {
+      this.sendErrorMessage(
+        client,
+        message.id,
+        `Session is not a dkg session: ${message.sessionId}`,
+      )
+      return
+    }
+
     const identity = body.result.identity
     if (!session.status.identities.includes(identity)) {
       session.status.identities.push(identity)
       this.sessions.set(message.sessionId, session)
-      this.broadcast('identity', message.sessionId, { identity })
+
+      // Broadcast status after collecting all identities
+      if (session.status.identities.length === session.status.maxSigners) {
+        this.broadcast('dkg.status', message.sessionId, session.status)
+      }
+    }
+  }
+
+  async handleSigningIdentityMessage(
+    client: MultisigServerClient,
+    message: MultisigBrokerMessage,
+  ) {
+    const body = await YupUtils.tryValidate(IdentitySchema, message.body)
+
+    if (body.error) {
+      return
+    }
+
+    const session = this.sessions.get(message.sessionId)
+    if (!session) {
+      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
+      return
+    }
+
+    if (!isSigningSession(session)) {
+      this.sendErrorMessage(
+        client,
+        message.id,
+        `Session is not a signing session: ${message.sessionId}`,
+      )
+      return
+    }
+
+    const identity = body.result.identity
+    if (!session.status.identities.includes(identity)) {
+      session.status.identities.push(identity)
+      this.sessions.set(message.sessionId, session)
+
+      // Broadcast status after collecting all identities
+      if (session.status.identities.length === session.status.numSigners) {
+        this.broadcast('sign.status', message.sessionId, session.status)
+      }
     }
   }
 
@@ -485,7 +518,11 @@ export class MultisigServer {
     if (!session.status.round1PublicPackages.includes(round1PublicPackage)) {
       session.status.round1PublicPackages.push(round1PublicPackage)
       this.sessions.set(message.sessionId, session)
-      this.broadcast('dkg.round1', message.sessionId, { package: round1PublicPackage })
+
+      // Broadcast status after collecting all packages
+      if (session.status.round1PublicPackages.length === session.status.maxSigners) {
+        this.broadcast('dkg.status', message.sessionId, session.status)
+      }
     }
   }
 
@@ -518,7 +555,11 @@ export class MultisigServer {
     if (!session.status.round2PublicPackages.includes(round2PublicPackage)) {
       session.status.round2PublicPackages.push(round2PublicPackage)
       this.sessions.set(message.sessionId, session)
-      this.broadcast('dkg.round2', message.sessionId, { package: round2PublicPackage })
+
+      // Broadcast status after collecting all packages
+      if (session.status.round2PublicPackages.length === session.status.maxSigners) {
+        this.broadcast('dkg.status', message.sessionId, session.status)
+      }
     }
   }
 
@@ -579,7 +620,11 @@ export class MultisigServer {
     if (!session.status.signingCommitments.includes(signingCommitment)) {
       session.status.signingCommitments.push(signingCommitment)
       this.sessions.set(message.sessionId, session)
-      this.broadcast('sign.commitment', message.sessionId, { signingCommitment })
+
+      // Broadcast status after collecting all signing commitments
+      if (session.status.signingCommitments.length === session.status.numSigners) {
+        this.broadcast('sign.status', message.sessionId, session.status)
+      }
     }
   }
 
@@ -612,7 +657,11 @@ export class MultisigServer {
     if (!session.status.signatureShares.includes(signatureShare)) {
       session.status.signatureShares.push(signatureShare)
       this.sessions.set(message.sessionId, session)
-      this.broadcast('sign.share', message.sessionId, { signatureShare })
+
+      // Broadcast status after collecting all signature shares
+      if (session.status.signatureShares.length === session.status.numSigners) {
+        this.broadcast('sign.status', message.sessionId, session.status)
+      }
     }
   }
 

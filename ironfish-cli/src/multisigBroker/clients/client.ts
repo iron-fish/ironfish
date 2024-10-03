@@ -20,7 +20,6 @@ import {
   DkgStatusMessage,
   DkgStatusSchema,
   IdentityMessage,
-  IdentitySchema,
   JoinSessionMessage,
   MultisigBrokerAckSchema,
   MultisigBrokerMessage,
@@ -28,13 +27,9 @@ import {
   MultisigBrokerMessageWithError,
   MultisigBrokerMessageWithErrorSchema,
   Round1PublicPackageMessage,
-  Round1PublicPackageSchema,
   Round2PublicPackageMessage,
-  Round2PublicPackageSchema,
   SignatureShareMessage,
-  SignatureShareSchema,
   SigningCommitmentMessage,
-  SigningCommitmentSchema,
   SigningGetStatusMessage,
   SigningStartSessionMessage,
   SigningStatusMessage,
@@ -57,12 +52,7 @@ export abstract class MultisigClient {
   private disconnectUntil: number | null = null
 
   readonly onConnected = new Event<[]>()
-  readonly onIdentity = new Event<[IdentityMessage]>()
-  readonly onRound1PublicPackage = new Event<[Round1PublicPackageMessage]>()
-  readonly onRound2PublicPackage = new Event<[Round2PublicPackageMessage]>()
   readonly onDkgStatus = new Event<[DkgStatusMessage]>()
-  readonly onSigningCommitment = new Event<[SigningCommitmentMessage]>()
-  readonly onSignatureShare = new Event<[SignatureShareMessage]>()
   readonly onSigningStatus = new Event<[SigningStatusMessage]>()
   readonly onConnectedMessage = new Event<[ConnectedMessage]>()
   readonly onMultisigBrokerError = new Event<[MultisigBrokerMessageWithError]>()
@@ -176,8 +166,12 @@ export abstract class MultisigClient {
     this.send('sign.start_session', { numSigners, unsignedTransaction })
   }
 
-  submitIdentity(identity: string): void {
-    this.send('identity', { identity })
+  submitDkgIdentity(identity: string): void {
+    this.send('dkg.identity', { identity })
+  }
+
+  submitSigningIdentity(identity: string): void {
+    this.send('sign.identity', { identity })
   }
 
   submitRound1PublicPackage(round1PublicPackage: string): void {
@@ -207,7 +201,8 @@ export abstract class MultisigClient {
   private send(method: 'join_session', body: JoinSessionMessage): void
   private send(method: 'dkg.start_session', body: DkgStartSessionMessage): void
   private send(method: 'sign.start_session', body: SigningStartSessionMessage): void
-  private send(method: 'identity', body: IdentityMessage): void
+  private send(method: 'dkg.identity', body: IdentityMessage): void
+  private send(method: 'sign.identity', body: IdentityMessage): void
   private send(method: 'dkg.round1', body: Round1PublicPackageMessage): void
   private send(method: 'dkg.round2', body: Round2PublicPackageMessage): void
   private send(method: 'dkg.get_status', body: DkgGetStatusMessage): void
@@ -304,36 +299,6 @@ export abstract class MultisigClient {
           this.retries.delete(body.result.messageId)
           break
         }
-        case 'identity': {
-          const body = await YupUtils.tryValidate(IdentitySchema, header.result.body)
-
-          if (body.error) {
-            throw new ServerMessageMalformedError(body.error, header.result.method)
-          }
-
-          this.onIdentity.emit(body.result)
-          break
-        }
-        case 'dkg.round1': {
-          const body = await YupUtils.tryValidate(Round1PublicPackageSchema, header.result.body)
-
-          if (body.error) {
-            throw new ServerMessageMalformedError(body.error, header.result.method)
-          }
-
-          this.onRound1PublicPackage.emit(body.result)
-          break
-        }
-        case 'dkg.round2': {
-          const body = await YupUtils.tryValidate(Round2PublicPackageSchema, header.result.body)
-
-          if (body.error) {
-            throw new ServerMessageMalformedError(body.error, header.result.method)
-          }
-
-          this.onRound2PublicPackage.emit(body.result)
-          break
-        }
         case 'dkg.status': {
           const body = await YupUtils.tryValidate(DkgStatusSchema, header.result.body)
 
@@ -342,26 +307,6 @@ export abstract class MultisigClient {
           }
 
           this.onDkgStatus.emit(body.result)
-          break
-        }
-        case 'sign.commitment': {
-          const body = await YupUtils.tryValidate(SigningCommitmentSchema, header.result.body)
-
-          if (body.error) {
-            throw new ServerMessageMalformedError(body.error, header.result.method)
-          }
-
-          this.onSigningCommitment.emit(body.result)
-          break
-        }
-        case 'sign.share': {
-          const body = await YupUtils.tryValidate(SignatureShareSchema, header.result.body)
-
-          if (body.error) {
-            throw new ServerMessageMalformedError(body.error, header.result.method)
-          }
-
-          this.onSignatureShare.emit(body.result)
           break
         }
         case 'sign.status': {
