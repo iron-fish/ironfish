@@ -34,6 +34,7 @@ enum MultisigSessionType {
 interface MultisigSession {
   id: string
   type: MultisigSessionType
+  clientIds: Set<number>
   status: DkgStatus | SigningStatus
   challenge: string
 }
@@ -156,8 +157,14 @@ export class MultisigServer {
     client.socket.removeAllListeners('close')
     client.socket.removeAllListeners('error')
 
-    if (client.sessionId && !this.isSessionActive(client.sessionId)) {
-      this.cleanupSession(client.sessionId)
+    if (client.sessionId) {
+      const sessionId = client.sessionId
+
+      this.removeClientFromSession(client)
+
+      if (!this.isSessionActive(sessionId)) {
+        this.cleanupSession(sessionId)
+      }
     }
   }
 
@@ -237,17 +244,45 @@ export class MultisigServer {
    * session should still be considered active
    */
   private isSessionActive(sessionId: string): boolean {
-    for (const client of this.clients.values()) {
-      if (client.connected && client.sessionId && client.sessionId === sessionId) {
-        return true
-      }
+    const session = this.sessions.get(sessionId)
+    if (!session) {
+      return false
     }
+
+    if (session.clientIds.size > 0) {
+      return true
+    }
+
     return false
   }
 
   private cleanupSession(sessionId: string): void {
     this.sessions.delete(sessionId)
     this.logger.debug(`Session ${sessionId} cleaned up. Active sessions: ${this.sessions.size}`)
+  }
+
+  private addClientToSession(client: MultisigServerClient, sessionId: string): void {
+    const session = this.sessions.get(sessionId)
+    if (!session) {
+      return
+    }
+
+    client.sessionId = session.id
+    session.clientIds.add(client.id)
+  }
+
+  private removeClientFromSession(client: MultisigServerClient): void {
+    if (!client.sessionId) {
+      return
+    }
+
+    const session = this.sessions.get(client.sessionId)
+    if (!session) {
+      return
+    }
+
+    client.sessionId = null
+    session.clientIds.delete(client.id)
   }
 
   private broadcast(method: 'dkg.status', sessionId: string, body?: DkgStatusMessage): void
@@ -272,8 +307,18 @@ export class MultisigServer {
 
     let broadcasted = 0
 
-    for (const client of this.clients.values()) {
-      if (client.sessionId !== sessionId) {
+    const session = this.sessions.get(sessionId)
+    if (!session) {
+      this.logger.debug(`Session ${sessionId} does not exist, broadcast failed`)
+      return
+    }
+
+    for (const clientId of session.clientIds) {
+      const client = this.clients.get(clientId)
+      if (!client) {
+        this.logger.debug(
+          `Client ${clientId} does not exist, but session ${sessionId} thinks it does`,
+        )
         continue
       }
 
@@ -363,6 +408,7 @@ export class MultisigServer {
     const session = {
       id: sessionId,
       type: MultisigSessionType.DKG,
+      clientIds: new Set<number>(),
       status: {
         maxSigners: body.result.maxSigners,
         minSigners: body.result.minSigners,
@@ -377,7 +423,7 @@ export class MultisigServer {
 
     this.logger.debug(`Client ${client.id} started dkg session ${message.sessionId}`)
 
-    client.sessionId = message.sessionId
+    this.addClientToSession(client, sessionId)
   }
 
   async handleSigningStartSessionMessage(
@@ -400,6 +446,7 @@ export class MultisigServer {
     const session = {
       id: sessionId,
       type: MultisigSessionType.SIGNING,
+      clientIds: new Set<number>(),
       status: {
         numSigners: body.result.numSigners,
         unsignedTransaction: body.result.unsignedTransaction,
@@ -414,7 +461,7 @@ export class MultisigServer {
 
     this.logger.debug(`Client ${client.id} started signing session ${message.sessionId}`)
 
-    client.sessionId = message.sessionId
+    this.addClientToSession(client, sessionId)
   }
 
   handleJoinSessionMessage(client: MultisigServerClient, message: MultisigBrokerMessage) {
@@ -426,7 +473,7 @@ export class MultisigServer {
 
     this.logger.debug(`Client ${client.id} joined session ${message.sessionId}`)
 
-    client.sessionId = message.sessionId
+    this.addClientToSession(client, message.sessionId)
 
     this.send(client.socket, 'joined_session', message.sessionId, {
       challenge: session.challenge,
