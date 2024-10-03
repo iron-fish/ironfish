@@ -153,13 +153,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       flags.unsignedTransaction,
     )
 
-    await renderUnsignedTransactionDetails(
-      client,
-      unsignedTransaction,
-      multisigAccountName,
-      this.logger,
-    )
-
     const { commitment, identities } = await ui.retryStep(
       async () => {
         return this.performCreateSigningCommitment(
@@ -176,13 +169,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       true,
     )
 
-    this.log('\n============================================')
-    this.log('\nCommitment:')
-    this.log(commitment)
-    this.log('\n============================================')
-
-    this.log('\nShare your commitment with other participants.')
-
     const signingPackage = await ui.retryStep(() => {
       return this.performAggregateCommitments(
         client,
@@ -194,11 +180,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         unsignedTransaction,
       )
     }, this.logger)
-
-    this.log('\n============================================')
-    this.log('\nSigning Package:')
-    this.log(signingPackage)
-    this.log('\n============================================')
 
     const signatureShare = await ui.retryStep(
       () =>
@@ -213,13 +194,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       this.logger,
       true,
     )
-
-    this.log('\n============================================')
-    this.log('\nSignature Share:')
-    this.log(signatureShare)
-    this.log('\n============================================')
-
-    this.log('\nShare your signature share with other participants.')
 
     await ui.retryStep(
       () =>
@@ -286,7 +260,8 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
     if (multisigClient) {
       multisigClient.startSigningSession(totalParticipants, unsignedTransactionInput)
-      this.log(`Started new signing session with ID ${multisigClient.sessionId}`)
+      this.log('\nStarted new signing session:')
+      this.log(`${multisigClient.sessionId}`)
     }
 
     return { unsignedTransaction, totalParticipants }
@@ -302,6 +277,13 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
   ): Promise<void> {
     let signatureShares: string[] = []
     if (!multisigClient) {
+      this.log('\n============================================')
+      this.log('\nSignature Share:')
+      this.log(signatureShare)
+      this.log('\n============================================')
+
+      this.log('\nShare your signature share with other participants.')
+
       this.log(
         `Enter ${
           totalParticipants - 1
@@ -386,6 +368,11 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     unsignedTransaction: UnsignedTransaction,
     ledger: LedgerMultiSigner | undefined,
   ): Promise<string> {
+    this.debug('\n============================================')
+    this.debug('\nSigning Package:')
+    this.debug(signingPackageString)
+    this.debug('\n============================================')
+
     let signatureShare: string
 
     const signingPackage = new multisig.SigningPackage(Buffer.from(signingPackageString, 'hex'))
@@ -426,6 +413,13 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
   ) {
     let commitments: string[] = []
     if (!multisigClient) {
+      this.log('\n============================================')
+      this.log('\nCommitment:')
+      this.log(commitment)
+      this.log('\n============================================')
+
+      this.log('\nShare your commitment with other participants.')
+
       this.log(
         `Enter ${identities.length - 1} commitments of the participants (excluding your own)`,
       )
@@ -512,6 +506,13 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     }
 
     const unsignedTransactionHex = unsignedTransaction.serialize().toString('hex')
+
+    await renderUnsignedTransactionDetails(
+      client,
+      unsignedTransaction,
+      accountName,
+      this.logger,
+    )
 
     let commitment
     if (ledger) {
