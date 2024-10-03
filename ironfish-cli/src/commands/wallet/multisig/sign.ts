@@ -315,9 +315,10 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         signatureShares = message.signatureShares
       })
 
-      ux.action.start('Waiting for other Signature Shares from server')
+      ux.action.start('Waiting for Signature Shares from server')
       while (signatureShares.length < totalParticipants) {
         multisigClient.getSigningStatus()
+        ux.action.status = `${signatureShares.length}/${totalParticipants}`
         await PromiseUtils.sleep(3000)
       }
 
@@ -443,9 +444,10 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         commitments = message.signingCommitments
       })
 
-      ux.action.start('Waiting for other Signing Commitments from server')
+      ux.action.start('Waiting for Signing Commitments from server')
       while (commitments.length < totalParticipants) {
         multisigClient.getSigningStatus()
+        ux.action.status = `${commitments.length}/${totalParticipants}`
         await PromiseUtils.sleep(3000)
       }
 
@@ -491,9 +493,10 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         identities = message.identities
       })
 
-      ux.action.start('Waiting for other Identities from server')
+      ux.action.start('Waiting for Identities from server')
       while (identities.length < totalParticipants) {
         multisigClient.getSigningStatus()
+        ux.action.status = `${identities.length}/${totalParticipants}`
         await PromiseUtils.sleep(3000)
       }
 
