@@ -12,6 +12,7 @@ import {
   DkgStatusMessage,
   IdentityMessage,
   IdentitySchema,
+  MultisigBrokerAckMessage,
   MultisigBrokerMessage,
   MultisigBrokerMessageSchema,
   MultisigBrokerMessageWithError,
@@ -179,6 +180,7 @@ export class MultisigServer {
       }
 
       this.logger.debug(`Client ${client.id} sent ${message.method} message`)
+      this.send(client.socket, 'ack', message.sessionId, { messageId: message.id })
 
       if (message.method === 'dkg.start_session') {
         await this.handleDkgStartSessionMessage(client, message)
@@ -320,6 +322,12 @@ export class MultisigServer {
     body: SigningStatusMessage,
   ): void
   send(socket: net.Socket, method: 'connected', sessionId: string, body: ConnectedMessage): void
+  send(
+    socket: net.Socket,
+    method: 'ack',
+    sessionId: string,
+    body: MultisigBrokerAckMessage,
+  ): void
   send(socket: net.Socket, method: string, sessionId: string, body?: unknown): void {
     const message: MultisigBrokerMessage = {
       id: this.nextMessageId++,
