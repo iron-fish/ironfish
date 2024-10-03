@@ -317,8 +317,9 @@ export class MultisigServer {
       const client = this.clients.get(clientId)
       if (!client) {
         this.logger.debug(
-          `Client ${clientId} does not exist, but session ${sessionId} thinks it does`,
+          `Client ${clientId} does not exist, but session ${sessionId} thinks it does, removing.`,
         )
+        session.clientIds.delete(clientId)
         continue
       }
 
