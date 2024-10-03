@@ -20,6 +20,8 @@ import {
   DkgStatusMessage,
   DkgStatusSchema,
   IdentityMessage,
+  JoinedSessionMessage,
+  JoinedSessionSchema,
   JoinSessionMessage,
   MultisigBrokerAckSchema,
   MultisigBrokerMessage,
@@ -55,6 +57,7 @@ export abstract class MultisigClient {
   readonly onDkgStatus = new Event<[DkgStatusMessage]>()
   readonly onSigningStatus = new Event<[SigningStatusMessage]>()
   readonly onConnectedMessage = new Event<[ConnectedMessage]>()
+  readonly onJoinedSession = new Event<[JoinSessionMessage]>()
   readonly onMultisigBrokerError = new Event<[MultisigBrokerMessageWithError]>()
 
   sessionId: string | null = null
@@ -158,12 +161,14 @@ export abstract class MultisigClient {
 
   startDkgSession(maxSigners: number, minSigners: number): void {
     this.sessionId = uuid()
-    this.send('dkg.start_session', { maxSigners, minSigners })
+    const challenge = this.key.encrypt(Buffer.from('DKG')).toString('hex')
+    this.send('dkg.start_session', { maxSigners, minSigners, challenge })
   }
 
   startSigningSession(numSigners: number, unsignedTransaction: string): void {
     this.sessionId = uuid()
-    this.send('sign.start_session', { numSigners, unsignedTransaction })
+    const challenge = this.key.encrypt(Buffer.from('SIGNING')).toString('hex')
+    this.send('sign.start_session', { numSigners, unsignedTransaction, challenge })
   }
 
   submitDkgIdentity(identity: string): void {
@@ -254,6 +259,9 @@ export abstract class MultisigClient {
   }
 
   protected onError = (error: unknown): void => {
+    if (error instanceof SessionDecryptionError) {
+      throw error
+    }
     this.logger.error(`Error ${ErrorUtils.renderError(error)}`)
   }
 
@@ -283,9 +291,6 @@ export abstract class MultisigClient {
 
       this.logger.debug(`Server sent ${header.result.method} message`)
 
-      // Decrypt fields in the message body
-      header.result.body = this.decryptMessageBody(header.result.body)
-
       switch (header.result.method) {
         case 'ack': {
           const body = await YupUtils.tryValidate(MultisigBrokerAckSchema, header.result.body)
@@ -306,7 +311,8 @@ export abstract class MultisigClient {
             throw new ServerMessageMalformedError(body.error, header.result.method)
           }
 
-          this.onDkgStatus.emit(body.result)
+          const decrypted = this.decryptMessageBody<DkgStatusMessage>(body.result)
+          this.onDkgStatus.emit(decrypted)
           break
         }
         case 'sign.status': {
@@ -316,7 +322,8 @@ export abstract class MultisigClient {
             throw new ServerMessageMalformedError(body.error, header.result.method)
           }
 
-          this.onSigningStatus.emit(body.result)
+          const decrypted = this.decryptMessageBody<SigningStatusMessage>(body.result)
+          this.onSigningStatus.emit(decrypted)
           break
         }
         case 'connected': {
@@ -328,6 +335,22 @@ export abstract class MultisigClient {
 
           this.onConnectedMessage.emit(body.result)
           break
+        }
+        case 'joined_session': {
+          const body = await YupUtils.tryValidate(JoinedSessionSchema, header.result.body)
+          if (body.error) {
+            throw new ServerMessageMalformedError(body.error, header.result.method)
+          }
+
+          try {
+            const decrypted = this.decryptMessageBody<JoinedSessionMessage>(body.result)
+            this.onJoinedSession.emit(decrypted)
+            break
+          } catch {
+            throw new SessionDecryptionError(
+              'Failed to decrypt session challenge. Passphrase is incorrect.',
+            )
+          }
         }
 
         default:
@@ -363,13 +386,9 @@ export abstract class MultisigClient {
     return encrypted
   }
 
-  private decryptMessageBody(body?: unknown): object | undefined {
-    if (!body) {
-      return
-    }
-
-    let decrypted = body as object
-    for (const [key, value] of Object.entries(body as object)) {
+  private decryptMessageBody<T extends object>(body: T): T {
+    let decrypted = body
+    for (const [key, value] of Object.entries(body)) {
       if (typeof value === 'string') {
         decrypted = {
           ...decrypted,
@@ -379,7 +398,13 @@ export abstract class MultisigClient {
         const decryptedItems = []
         for (const item of value) {
           if (typeof item === 'string') {
-            decryptedItems.push(this.key.decrypt(Buffer.from(item, 'hex')).toString())
+            try {
+              decryptedItems.push(this.key.decrypt(Buffer.from(item, 'hex')).toString())
+            } catch {
+              this.logger.debug(
+                'Failed to decrypt submitted session data. Skipping invalid data.',
+              )
+            }
           } else {
             decryptedItems.push(item)
           }
@@ -392,5 +417,11 @@ export abstract class MultisigClient {
     }
 
     return decrypted
+  }
+}
+
+class SessionDecryptionError extends Error {
+  constructor(message: string) {
+    super(message)
   }
 }
