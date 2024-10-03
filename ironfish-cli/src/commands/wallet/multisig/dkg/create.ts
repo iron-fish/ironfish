@@ -128,8 +128,6 @@ export class DkgCreateCommand extends IronfishCommand {
         )
       : await this.getParticipant(client, accountName)
 
-    this.log(`Identity for ${participantName}: \n${identity} \n`)
-
     const { totalParticipants, minSigners } = await ui.retryStep(
       async () => {
         return this.getDkgConfig(multisigClient, !!ledger)
@@ -154,14 +152,6 @@ export class DkgCreateCommand extends IronfishCommand {
       true,
     )
 
-    this.log('\n============================================')
-    this.log('\nRound 1 Encrypted Secret Package:')
-    this.log(round1.secretPackage)
-
-    this.log('\nRound 1 Public Package:')
-    this.log(round1.publicPackage)
-    this.log('\n============================================')
-
     const { round2: round2Result, round1PublicPackages } = await ui.retryStep(
       async () => {
         return this.performRound2(
@@ -176,14 +166,6 @@ export class DkgCreateCommand extends IronfishCommand {
       this.logger,
       true,
     )
-
-    this.log('\n============================================')
-    this.log('\nRound 2 Encrypted Secret Package:')
-    this.log(round2Result.secretPackage)
-
-    this.log('\nRound 2 Public Package:')
-    this.log(round2Result.publicPackage)
-    this.log('\n============================================')
 
     await ui.retryStep(
       async () => {
@@ -309,10 +291,10 @@ export class DkgCreateCommand extends IronfishCommand {
         minSigners = message.minSigners
         waiting = false
       })
-      multisigClient.getDkgStatus()
 
       ux.action.start('Waiting for signer config from server')
       while (waiting) {
+        multisigClient.getDkgStatus()
         await PromiseUtils.sleep(3000)
       }
       multisigClient.onDkgStatus.clear()
@@ -349,7 +331,8 @@ export class DkgCreateCommand extends IronfishCommand {
 
     if (multisigClient) {
       multisigClient.startDkgSession(totalParticipants, minSigners)
-      this.log(`Started new DKG server session with ID ${multisigClient.sessionId}`)
+      this.log('\nStarted new DKG session:')
+      this.log(`${multisigClient.sessionId}`)
     }
 
     return { totalParticipants, minSigners }
@@ -397,6 +380,8 @@ export class DkgCreateCommand extends IronfishCommand {
 
     let identities: string[] = []
     if (!multisigClient) {
+      this.log(`Identity for ${participantName}: \n${currentIdentity} \n`)
+
       this.log(
         `\nEnter ${
           totalParticipants - 1
@@ -489,6 +474,14 @@ export class DkgCreateCommand extends IronfishCommand {
   }> {
     let round1PublicPackages: string[] = []
     if (!multisigClient) {
+      this.log('\n============================================')
+      this.debug('\nRound 1 Encrypted Secret Package:')
+      this.debug(round1Result.secretPackage)
+
+      this.log('\nRound 1 Public Package:')
+      this.log(round1Result.publicPackage)
+      this.log('\n============================================')
+
       this.log('\nShare your Round 1 Public Package with other participants.')
       this.log(`\nEnter ${totalParticipants - 1} Round 1 Public Packages (excluding yours) `)
 
@@ -632,7 +625,6 @@ export class DkgCreateCommand extends IronfishCommand {
     this.log(
       `Account ${response.content.name} imported with public address: ${dkgKeys.publicAddress}`,
     )
-
     this.log()
     this.log('Creating an encrypted backup of multisig keys from your Ledger device...')
     this.log()
@@ -674,6 +666,14 @@ export class DkgCreateCommand extends IronfishCommand {
   ): Promise<void> {
     let round2PublicPackages: string[] = []
     if (!multisigClient) {
+      this.log('\n============================================')
+      this.debug('\nRound 2 Encrypted Secret Package:')
+      this.debug(round2Result.secretPackage)
+
+      this.log('\nRound 2 Public Package:')
+      this.log(round2Result.publicPackage)
+      this.log('\n============================================')
+
       this.log('\nShare your Round 2 Public Package with other participants.')
       this.log(`\nEnter ${totalParticipants - 1} Round 2 Public Packages (excluding yours) `)
 
@@ -729,6 +729,7 @@ export class DkgCreateCommand extends IronfishCommand {
       round2PublicPackages,
     })
 
+    this.log()
     this.log(`Account Name: ${response.content.name}`)
     this.log(`Public Address: ${response.content.publicAddress}`)
   }
