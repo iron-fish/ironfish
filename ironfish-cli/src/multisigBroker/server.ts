@@ -11,6 +11,7 @@ import {
   DkgStartSessionSchema,
   DkgStatusMessage,
   IdentitySchema,
+  JoinedSessionMessage,
   MultisigBrokerAckMessage,
   MultisigBrokerMessage,
   MultisigBrokerMessageSchema,
@@ -34,6 +35,7 @@ interface MultisigSession {
   id: string
   type: MultisigSessionType
   status: DkgStatus | SigningStatus
+  challenge: string
 }
 
 interface DkgSession extends MultisigSession {
@@ -307,6 +309,12 @@ export class MultisigServer {
   send(socket: net.Socket, method: 'connected', sessionId: string, body: ConnectedMessage): void
   send(
     socket: net.Socket,
+    method: 'joined_session',
+    sessionId: string,
+    body: JoinedSessionMessage,
+  ): void
+  send(
+    socket: net.Socket,
     method: 'ack',
     sessionId: string,
     body: MultisigBrokerAckMessage,
@@ -362,6 +370,7 @@ export class MultisigServer {
         round1PublicPackages: [],
         round2PublicPackages: [],
       },
+      challenge: body.result.challenge,
     }
 
     this.sessions.set(sessionId, session)
@@ -398,6 +407,7 @@ export class MultisigServer {
         signingCommitments: [],
         signatureShares: [],
       },
+      challenge: body.result.challenge,
     }
 
     this.sessions.set(sessionId, session)
@@ -408,7 +418,8 @@ export class MultisigServer {
   }
 
   handleJoinSessionMessage(client: MultisigServerClient, message: MultisigBrokerMessage) {
-    if (!this.sessions.has(message.sessionId)) {
+    const session = this.sessions.get(message.sessionId)
+    if (!session) {
       this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
       return
     }
@@ -416,6 +427,10 @@ export class MultisigServer {
     this.logger.debug(`Client ${client.id} joined session ${message.sessionId}`)
 
     client.sessionId = message.sessionId
+
+    this.send(client.socket, 'joined_session', message.sessionId, {
+      challenge: session.challenge,
+    })
   }
 
   async handleDkgIdentityMessage(client: MultisigServerClient, message: MultisigBrokerMessage) {

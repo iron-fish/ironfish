@@ -25,14 +25,20 @@ export type MultisigBrokerAckMessage = {
 export type DkgStartSessionMessage = {
   minSigners: number
   maxSigners: number
+  challenge: string
 }
 
 export type SigningStartSessionMessage = {
   numSigners: number
   unsignedTransaction: string
+  challenge: string
 }
 
 export type JoinSessionMessage = object | undefined
+
+export type JoinedSessionMessage = {
+  challenge: string
+}
 
 export type IdentityMessage = {
   identity: string
@@ -108,6 +114,7 @@ export const DkgStartSessionSchema: yup.ObjectSchema<DkgStartSessionMessage> = y
   .object({
     minSigners: yup.number().defined(),
     maxSigners: yup.number().defined(),
+    challenge: yup.string().defined(),
   })
   .defined()
 
@@ -115,6 +122,7 @@ export const SigningStartSessionSchema: yup.ObjectSchema<SigningStartSessionMess
   .object({
     numSigners: yup.number().defined(),
     unsignedTransaction: yup.string().defined(),
+    challenge: yup.string().defined(),
   })
   .defined()
 
@@ -122,6 +130,12 @@ export const JoinSessionSchema: yup.ObjectSchema<JoinSessionMessage> = yup
   .object({})
   .notRequired()
   .default(undefined)
+
+export const JoinedSessionSchema: yup.ObjectSchema<JoinedSessionMessage> = yup
+  .object({
+    challenge: yup.string().required(),
+  })
+  .required()
 
 export const IdentitySchema: yup.ObjectSchema<IdentityMessage> = yup
   .object({
