@@ -59,7 +59,6 @@ export class DkgCreateCommand extends IronfishCommand {
       description: 'connect to the multisig server over TLS',
       dependsOn: ['server'],
       allowNo: true,
-      default: true,
     }),
   }
 
@@ -108,7 +107,7 @@ export class DkgCreateCommand extends IronfishCommand {
 
       multisigClient = await MultisigBrokerUtils.createClient(flags.server, {
         passphrase,
-        tls: flags.tls,
+        tls: flags.tls ?? true,
         logger: this.logger,
       })
       multisigClient.start()
