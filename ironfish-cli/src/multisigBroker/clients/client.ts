@@ -13,6 +13,8 @@ import {
 import { v4 as uuid } from 'uuid'
 import { ServerMessageMalformedError } from '../errors'
 import {
+  ConnectedMessage,
+  ConnectedMessageSchema,
   DkgGetStatusMessage,
   DkgStartSessionMessage,
   DkgStatusMessage,
@@ -60,6 +62,7 @@ export abstract class MultisigClient {
   readonly onSigningCommitment = new Event<[SigningCommitmentMessage]>()
   readonly onSignatureShare = new Event<[SignatureShareMessage]>()
   readonly onSigningStatus = new Event<[SigningStatusMessage]>()
+  readonly onConnectedMessage = new Event<[ConnectedMessage]>()
   readonly onMultisigBrokerError = new Event<[MultisigBrokerMessageWithError]>()
 
   sessionId: string | null = null
@@ -340,6 +343,16 @@ export abstract class MultisigClient {
           }
 
           this.onSigningStatus.emit(body.result)
+          break
+        }
+        case 'connected': {
+          const body = await YupUtils.tryValidate(ConnectedMessageSchema, header.result.body)
+
+          if (body.error) {
+            throw new ServerMessageMalformedError(body.error, header.result.method)
+          }
+
+          this.onConnectedMessage.emit(body.result)
           break
         }
 

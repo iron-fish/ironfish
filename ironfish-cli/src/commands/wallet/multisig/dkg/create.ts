@@ -112,9 +112,13 @@ export class DkgCreateCommand extends IronfishCommand {
       })
       multisigClient.start()
 
-      if (sessionId) {
-        multisigClient.joinSession(sessionId)
-      }
+      multisigClient.onConnectedMessage.on(() => {
+        if (sessionId) {
+          Assert.isNotNull(multisigClient)
+          multisigClient.joinSession(sessionId)
+          multisigClient.onConnectedMessage.clear()
+        }
+      })
     }
 
     const { name: participantName, identity } = ledger

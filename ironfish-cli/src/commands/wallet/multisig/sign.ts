@@ -4,6 +4,7 @@
 
 import { multisig } from '@ironfish/rust-nodejs'
 import {
+  Assert,
   CurrencyUtils,
   Identity,
   PromiseUtils,
@@ -143,9 +144,13 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       })
       multisigClient.start()
 
-      if (sessionId) {
-        multisigClient.joinSession(sessionId)
-      }
+      multisigClient.onConnectedMessage.on(() => {
+        if (sessionId) {
+          Assert.isNotNull(multisigClient)
+          multisigClient.joinSession(sessionId)
+          multisigClient.onConnectedMessage.clear()
+        }
+      })
     }
 
     const { unsignedTransaction, totalParticipants } = await this.getSigningConfig(
