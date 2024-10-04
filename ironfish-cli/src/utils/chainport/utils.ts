@@ -2,18 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import {
-  defaultNetworkName,
-  Logger,
-  RpcWalletTransaction,
-  TransactionStatus,
-  TransactionType,
-} from '@ironfish/sdk'
+import { Logger, RpcWalletTransaction, TransactionStatus, TransactionType } from '@ironfish/sdk'
 import { ux } from '@oclif/core'
 import { getConfig, isNetworkSupportedByChainport } from './config'
 import { ChainportMemoMetadata } from './metadata'
 import { fetchChainportTransactionStatus } from './requests'
-import { ChainportNetwork } from './types'
+import { ChainportNetwork, ChainportTransactionStatus } from './types'
 
 export type ChainportTransactionData =
   | {
@@ -105,50 +99,55 @@ export const displayChainportTransactionSummary = async (
     return
   }
 
-  if (!network) {
-    logger.log(
-      `This transaction is a ${
-        data.type === TransactionType.SEND ? 'outgoing' : 'incoming'
-      } chainport bridge transaction. Error fetching network details.`,
-    )
-    return
-  }
-
   // Chainport does not give us a way to determine the source transaction hash of an incoming bridge transaction
   // So we can only display the source network and address
   if (data.type === TransactionType.RECEIVE) {
     logger.log(`
 Direction:                    Incoming
-Source Network:               ${network.label}
+Source Network:               ${network?.label ?? 'Error fetching network details'}
        Address:               ${data.address}
-       Explorer Account:      ${network.explorer_url + 'address/' + data.address}
-Target (Ironfish) Network:    ${defaultNetworkName(networkId)}`)
+       Explorer Account:      ${
+         network
+           ? new URL('address/' + data.address, network.explorer_url).toString()
+           : 'Error fetching network details'
+       }`)
 
     return
   }
 
   const basicInfo = `
 Direction:                    Outgoing
-==============================================
-Source Network:               ${defaultNetworkName(networkId)}
-       Transaction Status:    ${transaction.status}
-       Transaction Hash:      ${transaction.hash}
-==============================================
-Target Network:               ${network.label}
+Target Network:               ${network?.label ?? 'Error fetching network details'}
        Address:               ${data.address}
-       Explorer Account:      ${network.explorer_url + 'address/' + data.address}`
+       Explorer Account:      ${
+         network
+           ? new URL('address/' + data.address, network.explorer_url).toString()
+           : 'Error fetching network details'
+       }`
 
-  // We'll wait to show the transaction status if the transaction is still pending on Ironfish
+  // We'll wait to show the transaction status if the transaction is still pending on Iron Fish
   if (transaction.status !== TransactionStatus.CONFIRMED) {
     logger.log(basicInfo)
     return
   }
 
   ux.action.start('Fetching transaction information on target network')
-  const transactionStatus = await fetchChainportTransactionStatus(networkId, transaction.hash)
-  ux.action.stop()
+  let transactionStatus: ChainportTransactionStatus | undefined
+  try {
+    transactionStatus = await fetchChainportTransactionStatus(networkId, transaction.hash)
+    ux.action.stop()
+  } catch (e: unknown) {
+    ux.action.stop('error')
+    logger.debug((e as Error).message)
+  }
 
   logger.log(basicInfo)
+
+  if (!transactionStatus) {
+    logger.log(`       Transaction Status:    Error fetching transaction details`)
+    logger.log(`       Transaction Hash:      Error fetching transaction details`)
+    return
+  }
 
   if (Object.keys(transactionStatus).length === 0) {
     logger.log(`
@@ -175,6 +174,8 @@ If this issue persists, please contact chainport support: https://helpdesk.chain
 
   logger.log(`       Transaction Hash:      ${transactionStatus.target_tx_hash}
        Explorer Transaction:  ${
-         network.explorer_url + 'tx/' + transactionStatus.target_tx_hash
+         network
+           ? new URL('address/' + data.address, network.explorer_url).toString()
+           : 'Error fetching network details'
        }`)
 }
