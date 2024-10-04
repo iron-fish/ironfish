@@ -365,7 +365,7 @@ export class DkgCreateCommand extends IronfishCommand {
   }> {
     this.log('\nCollecting Participant Info and Performing Round 1...')
 
-    let identities: string[] = []
+    let identities: string[] = [currentIdentity]
     if (!multisigClient) {
       this.log(`Identity for ${participantName}: \n${currentIdentity} \n`)
 
@@ -385,9 +385,10 @@ export class DkgCreateCommand extends IronfishCommand {
         identities = message.identities
       })
 
-      ux.action.start('Waiting for other Identities from server')
+      ux.action.start('Waiting for Identities from server')
       while (identities.length < totalParticipants) {
         multisigClient.getDkgStatus()
+        ux.action.status = `${identities.length}/${totalParticipants}`
         await PromiseUtils.sleep(3000)
       }
 
@@ -453,7 +454,7 @@ export class DkgCreateCommand extends IronfishCommand {
     round2: { secretPackage: string; publicPackage: string }
     round1PublicPackages: string[]
   }> {
-    let round1PublicPackages: string[] = []
+    let round1PublicPackages: string[] = [round1Result.publicPackage]
     if (!multisigClient) {
       this.log('\n============================================')
       this.debug('\nRound 1 Encrypted Secret Package:')
@@ -480,9 +481,10 @@ export class DkgCreateCommand extends IronfishCommand {
         round1PublicPackages = message.round1PublicPackages
       })
 
-      ux.action.start('Waiting for other Round 1 Public Packages from server')
+      ux.action.start('Waiting for Round 1 Public Packages from server')
       while (round1PublicPackages.length < totalParticipants) {
         multisigClient.getDkgStatus()
+        ux.action.status = `${round1PublicPackages.length}/${totalParticipants}`
         await PromiseUtils.sleep(3000)
       }
 
@@ -639,7 +641,7 @@ export class DkgCreateCommand extends IronfishCommand {
     ledger: LedgerMultiSigner | undefined,
     accountCreatedAt?: number,
   ): Promise<void> {
-    let round2PublicPackages: string[] = []
+    let round2PublicPackages: string[] = [round2Result.publicPackage]
     if (!multisigClient) {
       this.log('\n============================================')
       this.debug('\nRound 2 Encrypted Secret Package:')
@@ -666,9 +668,10 @@ export class DkgCreateCommand extends IronfishCommand {
         round2PublicPackages = message.round2PublicPackages
       })
 
-      ux.action.start('Waiting for other Round 2 Public Packages from server')
+      ux.action.start('Waiting for Round 2 Public Packages from server')
       while (round2PublicPackages.length < totalParticipants) {
         multisigClient.getDkgStatus()
+        ux.action.status = `${round2PublicPackages.length}/${totalParticipants}`
         await PromiseUtils.sleep(3000)
       }
 

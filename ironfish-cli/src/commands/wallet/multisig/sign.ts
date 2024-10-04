@@ -289,7 +289,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     signatureShare: string,
     totalParticipants: number,
   ): Promise<void> {
-    let signatureShares: string[] = []
+    let signatureShares: string[] = [signatureShare]
     if (!multisigClient) {
       this.log('\n============================================')
       this.log('\nSignature Share:')
@@ -315,9 +315,10 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         signatureShares = message.signatureShares
       })
 
-      ux.action.start('Waiting for other Signature Shares from server')
+      ux.action.start('Waiting for Signature Shares from server')
       while (signatureShares.length < totalParticipants) {
         multisigClient.getSigningStatus()
+        ux.action.status = `${signatureShares.length}/${totalParticipants}`
         await PromiseUtils.sleep(3000)
       }
 
@@ -419,7 +420,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     totalParticipants: number,
     unsignedTransaction: UnsignedTransaction,
   ) {
-    let commitments: string[] = []
+    let commitments: string[] = [commitment]
     if (!multisigClient) {
       this.log('\n============================================')
       this.log('\nCommitment:')
@@ -443,9 +444,10 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         commitments = message.signingCommitments
       })
 
-      ux.action.start('Waiting for other Signing Commitments from server')
+      ux.action.start('Waiting for Signing Commitments from server')
       while (commitments.length < totalParticipants) {
         multisigClient.getSigningStatus()
+        ux.action.status = `${commitments.length}/${totalParticipants}`
         await PromiseUtils.sleep(3000)
       }
 
@@ -471,7 +473,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     unsignedTransaction: UnsignedTransaction,
     ledger: LedgerMultiSigner | undefined,
   ) {
-    let identities: string[] = []
+    let identities: string[] = [participant.identity]
     if (!multisigClient) {
       this.log(`Identity for ${participant.name}: \n${participant.identity} \n`)
       this.log('Share your participant identity with other signers.')
@@ -491,9 +493,10 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         identities = message.identities
       })
 
-      ux.action.start('Waiting for other Identities from server')
+      ux.action.start('Waiting for Identities from server')
       while (identities.length < totalParticipants) {
         multisigClient.getSigningStatus()
+        ux.action.status = `${identities.length}/${totalParticipants}`
         await PromiseUtils.sleep(3000)
       }
 
