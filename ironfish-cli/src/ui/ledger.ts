@@ -4,8 +4,10 @@
 
 import { PromiseUtils } from '@ironfish/sdk'
 import { ux } from '@oclif/core'
+import inquirer from 'inquirer'
 import {
   Ledger,
+  LedgerAppLocked,
   LedgerAppNotOpen,
   LedgerClaNotSupportedError,
   LedgerConnectError,
@@ -14,55 +16,77 @@ import {
   LedgerPortIsBusyError,
 } from '../ledger'
 
-export async function ledgerAction<TResult>(
-  ledger: Ledger,
-  handler: () => TResult | Promise<TResult>,
-  action?: string,
-): Promise<TResult> {
+export async function ledger<TResult>({
+  ledger,
+  action,
+  message = 'Ledger',
+  approval,
+}: {
+  ledger: Ledger
+  action: () => TResult | Promise<TResult>
+  message?: string
+  approval?: boolean
+}): Promise<TResult> {
   const wasRunning = ux.action.running
   let statusAdded = false
-  let actionAdded = false
+
+  if (approval) {
+    message = `Approve ${message}`
+  }
+
+  if (!wasRunning) {
+    ux.action.start(message)
+  }
 
   try {
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
-        const result = await handler()
+        const result = await action()
         ux.action.stop()
         return result
       } catch (e) {
-        let status: string | undefined
+        if (e instanceof LedgerAppLocked) {
+          // If an app is running and it's locked, trying to poll the device
+          // will cause the Ledger device to hide the pin screen as the user
+          // is trying to enter their pin. When we run into this error, we
+          // cannot send any commands to the Ledger in the app's CLA.
+          ux.action.stop('Ledger App Locked')
 
-        if (e instanceof LedgerConnectError) {
-          status = 'Connect and unlock your Ledger'
+          await inquirer.prompt<{ retry: boolean }>([
+            {
+              name: 'retry',
+              message: `Ledger App Locked. Unlock and press enter to retry:`,
+              type: 'list',
+              choices: [
+                {
+                  name: `Retry`,
+                  value: true,
+                  default: true,
+                },
+              ],
+            },
+          ])
+
+          if (!wasRunning) {
+            ux.action.start(message)
+          }
+        } else if (e instanceof LedgerConnectError) {
+          ux.action.status = 'Connect and unlock your Ledger'
         } else if (e instanceof LedgerAppNotOpen) {
           const appName = ledger.isMultisig ? 'Ironfish DKG' : 'Ironfish'
-          status = `Unlock your Ledger and open the ${appName}`
+          ux.action.status = `Open Ledger App ${appName}`
         } else if (e instanceof LedgerDeviceLockedError) {
-          status = 'Unlock your Ledger'
+          ux.action.status = 'Unlock Ledger'
         } else if (e instanceof LedgerPortIsBusyError) {
-          status = 'Ledger is busy, retrying'
+          ux.action.status = 'Ledger is busy, retrying'
         } else if (e instanceof LedgerGPAuthFailed) {
-          status = 'Ledger handshake failed, retrying'
+          ux.action.status = 'Ledger handshake failed, retrying'
         } else if (e instanceof LedgerClaNotSupportedError) {
           const appName = ledger.isMultisig ? 'Ironfish DKG' : 'Ironfish'
-          status = `Wrong Ledger app. Please open ${appName}`
+          ux.action.status = `Wrong Ledger app. Please open ${appName}`
         } else {
           throw e
-        }
-
-        // Always show our custom action
-        if (action && !actionAdded) {
-          ux.action.start(action)
-          actionAdded = true
-        }
-
-        if (wasRunning || actionAdded) {
-          // Only update the status if someone else is using the action
-          ux.action.status = status
-        } else {
-          // Use the action if no one else is using it
-          ux.action.start(status)
         }
 
         statusAdded = true
