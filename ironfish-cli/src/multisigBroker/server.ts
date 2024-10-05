@@ -37,6 +37,7 @@ interface MultisigSession {
   clientIds: Set<number>
   status: DkgStatus | SigningStatus
   challenge: string
+  timeout: NodeJS.Timeout | undefined
 }
 
 interface DkgSession extends MultisigSession {
@@ -77,13 +78,15 @@ export class MultisigServer {
 
   private _isRunning = false
   private _startPromise: Promise<unknown> | null = null
+  private idleSessionTimeout: number
 
-  constructor(options: { logger: Logger; banning?: boolean }) {
+  constructor(options: { logger: Logger; idleSessionTimeout?: number }) {
     this.logger = options.logger
 
     this.clients = new Map()
     this.nextClientId = 1
     this.nextMessageId = 1
+    this.idleSessionTimeout = options.idleSessionTimeout ?? 600000
   }
 
   get isRunning(): boolean {
@@ -109,6 +112,10 @@ export class MultisigServer {
 
     if (this._startPromise) {
       await this._startPromise
+    }
+
+    for (const session of this.sessions.values()) {
+      clearTimeout(session.timeout)
     }
 
     await Promise.all(this.adapters.map((a) => a.stop()))
@@ -163,7 +170,7 @@ export class MultisigServer {
       this.removeClientFromSession(client)
 
       if (!this.isSessionActive(sessionId)) {
-        this.cleanupSession(sessionId)
+        this.setSessionTimeout(sessionId)
       }
     }
   }
@@ -256,6 +263,15 @@ export class MultisigServer {
     return false
   }
 
+  private setSessionTimeout(sessionId: string): void {
+    const session = this.sessions.get(sessionId)
+    if (!session) {
+      return
+    }
+
+    session.timeout = setTimeout(() => this.cleanupSession(sessionId), this.idleSessionTimeout)
+  }
+
   private cleanupSession(sessionId: string): void {
     this.sessions.delete(sessionId)
     this.logger.debug(`Session ${sessionId} cleaned up. Active sessions: ${this.sessions.size}`)
@@ -269,6 +285,9 @@ export class MultisigServer {
 
     client.sessionId = session.id
     session.clientIds.add(client.id)
+
+    clearTimeout(session.timeout)
+    session.timeout = undefined
   }
 
   private removeClientFromSession(client: MultisigServerClient): void {
@@ -418,6 +437,7 @@ export class MultisigServer {
         round2PublicPackages: [],
       },
       challenge: body.result.challenge,
+      timeout: undefined,
     }
 
     this.sessions.set(sessionId, session)
@@ -456,6 +476,7 @@ export class MultisigServer {
         signatureShares: [],
       },
       challenge: body.result.challenge,
+      timeout: undefined,
     }
 
     this.sessions.set(sessionId, session)

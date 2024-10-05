@@ -29,12 +29,19 @@ export class MultisigServerCommand extends IronfishCommand {
       allowNo: true,
       default: true,
     }),
+    idleSessionTimeout: Flags.integer({
+      description: 'time (in ms) to wait before cleaning up idle session data',
+      char: 'i',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(MultisigServerCommand)
 
-    const server = new MultisigServer({ logger: this.logger })
+    const server = new MultisigServer({
+      logger: this.logger,
+      idleSessionTimeout: flags.idleSessionTimeout,
+    })
 
     let adapter: IMultisigBrokerAdapter
     if (flags.tls) {
