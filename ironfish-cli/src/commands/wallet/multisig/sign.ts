@@ -515,6 +515,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         ledger,
         message: 'Review Transaction',
         action: () => ledger.reviewTransaction(unsignedTransactionHex),
+        approval: true,
       })
 
       commitment = await this.createSigningCommitmentWithLedger(
