@@ -42,10 +42,6 @@ export async function ledger<TResult>({
   const wasRunning = ux.action.running
   let statusAdded = false
 
-  if (approval) {
-    message = `Approve ${message}`
-  }
-
   if (!wasRunning) {
     ux.action.start(message)
   }
@@ -56,6 +52,14 @@ export async function ledger<TResult>({
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
+        clearStatusTimer = setTimeout(() => {
+          if (approval) {
+            ux.action.status = 'Approve on Ledger'
+          } else {
+            ux.action.status = undefined
+          }
+        }, 1500)
+
         const result = await action()
         ux.action.stop()
         return result
@@ -109,7 +113,6 @@ export async function ledger<TResult>({
         }
 
         statusAdded = true
-        clearStatusTimer = setTimeout(() => (ux.action.status = undefined), 2000)
         await PromiseUtils.sleep(1000)
         continue
       }
