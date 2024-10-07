@@ -49,6 +49,8 @@ export async function ledger<TResult>({
     ux.action.start(message)
   }
 
+  let clearStatusTimer
+
   try {
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -57,6 +59,7 @@ export async function ledger<TResult>({
         ux.action.stop()
         return result
       } catch (e) {
+        clearTimeout(clearStatusTimer)
         if (e instanceof LedgerAppLocked) {
           // If an app is running and it's locked, trying to poll the device
           // will cause the Ledger device to hide the pin screen as the user
@@ -101,6 +104,7 @@ export async function ledger<TResult>({
         }
 
         statusAdded = true
+        clearStatusTimer = setTimeout(() => (ux.action.status = undefined), 2000)
         await PromiseUtils.sleep(1000)
         continue
       }
@@ -108,6 +112,7 @@ export async function ledger<TResult>({
   } finally {
     // Don't interrupt an existing status outside of ledgerAction()
     if (!wasRunning && statusAdded) {
+      clearTimeout(clearStatusTimer)
       ux.action.stop()
     }
   }
