@@ -110,7 +110,10 @@ export class TransactionInfoCommand extends IronfishCommand {
         ux.action.stop()
       } catch (e: unknown) {
         ux.action.stop('error')
-        this.logger.debug((e as Error).message)
+
+        if (e instanceof Error) {
+          this.logger.debug(e.message)
+        }
       }
 
       await displayChainportTransactionSummary(

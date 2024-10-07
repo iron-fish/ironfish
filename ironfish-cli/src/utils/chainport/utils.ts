@@ -139,23 +139,22 @@ Target Network:               ${network?.label ?? 'Error fetching network detail
     ux.action.stop()
   } catch (e: unknown) {
     ux.action.stop('error')
-    logger.debug((e as Error).message)
+
+    if (e instanceof Error) {
+      logger.debug(e.message)
+    }
   }
 
   logger.log(basicInfo)
 
   if (!transactionStatus) {
     logger.log(`       Transaction Status:    Error fetching transaction details`)
-    logger.log(`       Transaction Hash:      Error fetching transaction details`)
     return
   }
 
   // States taken from https://docs.chainport.io/for-developers/api-reference/port
   if (Object.keys(transactionStatus).length === 0 || !transactionStatus.base_tx_status) {
     logger.log(`       Transaction Status:    Pending confirmation (Iron Fish)`)
-    logger.log(`
-Note: Bridge transactions may take up to 30 minutes to surface on the target network.
-If this issue persists, please contact chainport support: https://helpdesk.chainport.io/`)
     return
   }
 
