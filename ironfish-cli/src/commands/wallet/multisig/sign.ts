@@ -73,15 +73,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
     if (flags.ledger) {
       ledger = new LedgerMultiSigner(this.logger)
-      try {
-        await ledger.connect()
-      } catch (e) {
-        if (e instanceof Error) {
-          this.error(e.message)
-        } else {
-          throw e
-        }
-      }
     }
 
     let multisigAccountName: string
@@ -387,11 +378,16 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     const signingPackage = new multisig.SigningPackage(Buffer.from(signingPackageString, 'hex'))
 
     if (ledger) {
-      const frostSignatureShare = await ledger.dkgSign(
-        unsignedTransaction.publicKeyRandomness(),
-        signingPackage.frostSigningPackage().toString('hex'),
-        unsignedTransaction.hash().toString('hex'),
-      )
+      const frostSignatureShare = await ui.ledger({
+        ledger,
+        message: 'Sign Transaction',
+        action: () =>
+          ledger.dkgSign(
+            unsignedTransaction.publicKeyRandomness(),
+            signingPackage.frostSigningPackage().toString('hex'),
+            unsignedTransaction.hash().toString('hex'),
+          ),
+      })
 
       signatureShare = multisig.SignatureShare.fromFrost(
         frostSignatureShare,
@@ -515,7 +511,11 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
     let commitment
     if (ledger) {
-      await ledger.reviewTransaction(unsignedTransactionHex)
+      await ui.ledger({
+        ledger,
+        message: 'Review Transaction',
+        action: () => ledger.reviewTransaction(unsignedTransactionHex),
+      })
 
       commitment = await this.createSigningCommitmentWithLedger(
         ledger,
@@ -545,7 +545,11 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     transactionHash: Buffer,
     signers: string[],
   ): Promise<string> {
-    const rawCommitments = await ledger.dkgGetCommitments(transactionHash.toString('hex'))
+    const rawCommitments = await ui.ledger({
+      ledger,
+      message: 'Get Commitments',
+      action: () => ledger.dkgGetCommitments(transactionHash.toString('hex')),
+    })
 
     const sigingCommitment = multisig.SigningCommitment.fromRaw(
       participant.identity,
