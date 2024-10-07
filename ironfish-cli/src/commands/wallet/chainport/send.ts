@@ -17,7 +17,6 @@ import { Flags, ux } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../../flags'
-import { sendTransactionWithLedger } from '../../../ledger'
 import * as ui from '../../../ui'
 import {
   ChainportBridgeTransaction,
@@ -135,7 +134,7 @@ export class BridgeCommand extends IronfishCommand {
     }
 
     if (flags.ledger) {
-      await sendTransactionWithLedger(
+      await ui.sendTransactionWithLedger(
         client,
         rawTransaction,
         from,

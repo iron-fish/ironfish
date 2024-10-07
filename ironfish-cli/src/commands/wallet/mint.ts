@@ -17,7 +17,6 @@ import {
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { sendTransactionWithLedger } from '../../ledger'
 import * as ui from '../../ui'
 import { useAccount } from '../../utils'
 import { promptCurrency } from '../../utils/currency'
@@ -314,7 +313,7 @@ This will create tokens and increase supply for a given asset.`
     )
 
     if (flags.ledger) {
-      await sendTransactionWithLedger(
+      await ui.sendTransactionWithLedger(
         client,
         raw,
         account,
