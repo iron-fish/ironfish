@@ -31,10 +31,12 @@ export class Ledger {
 
       Assert.isNotUndefined(this.app, 'Unable to establish connection with Ledger device')
 
+      const app = this.app
+
       // App info is a request to the dashboard CLA. The purpose of this it to
       // produce a Locked Device error and works if an app is open or closed.
       try {
-        await this.app.appInfo()
+        await app.appInfo()
       } catch (error) {
         if (
           error instanceof ResponseError &&
@@ -50,7 +52,7 @@ export class Ledger {
       // INS_NOT_SUPPORTED in the case that the app is locked which is useful to
       // know versus the device is locked.
       try {
-        await this.app.getVersion()
+        await app.getVersion()
       } catch (error) {
         if (
           error instanceof ResponseError &&
@@ -62,7 +64,7 @@ export class Ledger {
         throw error
       }
 
-      return await instruction(this.app)
+      return await instruction(app)
     } catch (error: unknown) {
       if (LedgerPortIsBusyError.IsError(error)) {
         throw new LedgerPortIsBusyError()
