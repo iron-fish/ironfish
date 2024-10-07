@@ -92,7 +92,7 @@ export class DkgCreateCommand extends IronfishCommand {
     let multisigClient: MultisigClient | null = null
     if (flags.server) {
       let sessionId = flags.sessionId
-      if (!sessionId) {
+      if (!sessionId && !flags.totalParticipants && !flags.minSigners) {
         sessionId = await ui.inputPrompt(
           'Enter the ID of a multisig session to join, or press enter to start a new session',
           false,
