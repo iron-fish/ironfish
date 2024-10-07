@@ -4,4 +4,3 @@
 export * from './ledger'
 export * from './ledgerMultiSigner'
 export * from './ledgerSingleSigner'
-export * from './ui'

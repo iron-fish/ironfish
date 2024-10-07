@@ -14,7 +14,6 @@ import {
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { sendTransactionWithLedger } from '../../ledger'
 import * as ui from '../../ui'
 import { useAccount } from '../../utils'
 import { promptCurrency } from '../../utils/currency'
@@ -258,7 +257,7 @@ export class Send extends IronfishCommand {
     }
 
     if (flags.ledger) {
-      await sendTransactionWithLedger(
+      await ui.sendTransactionWithLedger(
         client,
         raw,
         from,
