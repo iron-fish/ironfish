@@ -121,18 +121,18 @@ export class DkgCreateCommand extends IronfishCommand {
       }
     }
 
-    const { name: participantName, identity } = await this.getOrCreateIdentity(
-      client,
-      ledger,
-      accountName,
-    )
-
     const { totalParticipants, minSigners } = await ui.retryStep(
       async () => {
         return this.getDkgConfig(multisigClient, !!ledger)
       },
       this.logger,
       true,
+    )
+
+    const { name: participantName, identity } = await this.getOrCreateIdentity(
+      client,
+      ledger,
+      accountName,
     )
 
     const { round1 } = await ui.retryStep(
