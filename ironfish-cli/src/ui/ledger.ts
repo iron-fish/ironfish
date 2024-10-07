@@ -53,6 +53,7 @@ export async function ledger<TResult>({
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
+        ux.action.status = undefined
         const result = await action()
         ux.action.stop()
         return result
