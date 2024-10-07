@@ -128,6 +128,7 @@ Target Network:               ${network?.label ?? 'Error fetching network detail
   // We'll wait to show the transaction status if the transaction is still pending on Iron Fish
   if (transaction.status !== TransactionStatus.CONFIRMED) {
     logger.log(basicInfo)
+    logger.log(`       Transaction Status:    ${transaction.status} (Iron Fish)`)
     return
   }
 
@@ -149,29 +150,31 @@ Target Network:               ${network?.label ?? 'Error fetching network detail
     return
   }
 
-  if (Object.keys(transactionStatus).length === 0) {
+  // States taken from https://docs.chainport.io/for-developers/api-reference/port
+  if (Object.keys(transactionStatus).length === 0 || !transactionStatus.base_tx_status) {
+    logger.log(`       Transaction Status:    Pending confirmation (Iron Fish)`)
     logger.log(`
-Transaction status not found on target network.
 Note: Bridge transactions may take up to 30 minutes to surface on the target network.
 If this issue persists, please contact chainport support: https://helpdesk.chainport.io/`)
     return
   }
 
   if (
-    !transactionStatus.base_tx_hash ||
-    !transactionStatus.base_tx_status ||
+    transactionStatus.base_tx_hash &&
+    transactionStatus.base_tx_status === 1 &&
     !transactionStatus.target_tx_hash
   ) {
-    logger.log(`       Transaction Status:    pending`)
+    logger.log(`       Transaction Status:    Pending creation (target network)`)
     return
   }
 
-  if (transactionStatus.target_tx_status === 1) {
-    logger.log(`       Transaction Status:    completed`)
-  } else {
-    logger.log(`       Transaction Status:    in progress`)
-  }
-
+  logger.log(
+    `       Transaction Status:    ${
+      transactionStatus.target_tx_status === 1
+        ? 'Completed'
+        : 'Pending confirmation (target network)'
+    }`,
+  )
   logger.log(`       Transaction Hash:      ${transactionStatus.target_tx_hash}
        Explorer Transaction:  ${
          network
