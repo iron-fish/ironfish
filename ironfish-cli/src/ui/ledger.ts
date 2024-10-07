@@ -131,22 +131,16 @@ export async function sendTransactionWithLedger(
   confirm: boolean,
   logger?: Logger,
 ): Promise<void> {
-  const ledger = new LedgerSingleSigner(logger)
-
-  try {
-    await ledger.connect()
-  } catch (e) {
-    if (e instanceof Error) {
-      Errors.error(e.message)
-    } else {
-      throw e
-    }
-  }
+  const ledgerApp = new LedgerSingleSigner(logger)
 
   const publicKey = (await client.wallet.getAccountPublicKey({ account: from })).content
     .publicKey
 
-  const ledgerPublicKey = await ledger.getPublicAddress()
+  const ledgerPublicKey = await ledger({
+    ledger: ledgerApp,
+    message: 'Get Public Address',
+    action: () => ledgerApp.getPublicAddress(),
+  })
 
   if (publicKey !== ledgerPublicKey) {
     Errors.error(
@@ -163,13 +157,18 @@ export async function sendTransactionWithLedger(
 
   ux.stdout('Please confirm the transaction on your Ledger device')
 
-  const signature = (await ledger.sign(unsignedTransaction)).toString('hex')
+  const signature = await ledger({
+    ledger: ledgerApp,
+    message: 'Sign Transaction',
+    approval: true,
+    action: () => ledgerApp.sign(unsignedTransaction),
+  })
 
-  ux.stdout(`\nSignature: ${signature}`)
+  ux.stdout(`\nSignature: ${signature.toString('hex')}`)
 
   const addSignatureResponse = await client.wallet.addSignature({
     unsignedTransaction,
-    signature,
+    signature: signature.toString('hex'),
   })
 
   const signedTransaction = addSignatureResponse.content.transaction
