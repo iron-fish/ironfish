@@ -4,6 +4,7 @@
 export * from './account/account'
 export * from './wallet'
 export * from './exporter'
+export * from './multisig'
 export { AccountValue } from './walletdb/accountValue'
 export { Base64JsonEncoder } from './exporter/encoders/base64json'
 export { JsonEncoder } from './exporter/encoders/json'
