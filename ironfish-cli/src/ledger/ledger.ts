@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert, createRootLogger, Logger } from '@ironfish/sdk'
+import { StatusCodes as LedgerStatusCodes, TransportStatusError } from '@ledgerhq/errors'
 import TransportNodeHid from '@ledgerhq/hw-transport-node-hid'
 import IronfishApp, {
   KeyResponse,
@@ -9,13 +10,14 @@ import IronfishApp, {
   ResponseProofGenKey,
   ResponseViewKey,
 } from '@zondax/ledger-ironfish'
-import { ResponseError } from '@zondax/ledger-js'
+import { ResponseError, Transport } from '@zondax/ledger-js'
 
 export class Ledger {
   app: IronfishApp | undefined
   logger: Logger
   PATH = "m/44'/1338'/0"
   isMultisig: boolean
+  isConnecting: boolean = false
 
   constructor(isMultisig: boolean, logger?: Logger) {
     this.app = undefined
@@ -24,21 +26,64 @@ export class Ledger {
   }
 
   tryInstruction = async <T>(instruction: (app: IronfishApp) => Promise<T>) => {
-    await this.refreshConnection()
-    Assert.isNotUndefined(this.app, 'Unable to establish connection with Ledger device')
-
     try {
-      return await instruction(this.app)
-    } catch (error: unknown) {
-      if (isResponseError(error)) {
-        this.logger.debug(`Ledger ResponseError returnCode: ${error.returnCode.toString(16)}`)
-        if (error.returnCode === LedgerDeviceLockedError.returnCode) {
-          throw new LedgerDeviceLockedError('Please unlock your Ledger device.')
-        } else if (LedgerAppUnavailableError.returnCodes.includes(error.returnCode)) {
-          throw new LedgerAppUnavailableError()
+      await this.connect()
+
+      Assert.isNotUndefined(this.app, 'Unable to establish connection with Ledger device')
+
+      // App info is a request to the dashboard CLA. The purpose of this it to
+      // produce a Locked Device error and works if an app is open or closed.
+      await this.app.appInfo()
+
+      // This is an app specific request. This is useful because this throws
+      // INS_NOT_SUPPORTED in the case that the app is locked which is useful to
+      // know versus the device is locked.
+      try {
+        await this.app.getVersion()
+      } catch (error) {
+        if (
+          error instanceof ResponseError &&
+          error.returnCode === LedgerStatusCodes.INS_NOT_SUPPORTED
+        ) {
+          throw new LedgerAppLocked()
         }
 
-        throw new LedgerError(error.errorMessage)
+        throw error
+      }
+
+      return await instruction(this.app)
+    } catch (error: unknown) {
+      if (LedgerPortIsBusyError.IsError(error)) {
+        throw new LedgerPortIsBusyError()
+      } else if (LedgerConnectError.IsError(error)) {
+        throw new LedgerConnectError()
+      }
+
+      if (error instanceof TransportStatusError) {
+        throw new LedgerConnectError()
+      }
+
+      if (error instanceof ResponseError) {
+        if (error.returnCode === LedgerStatusCodes.LOCKED_DEVICE) {
+          throw new LedgerDeviceLockedError()
+        } else if (error.returnCode === LedgerStatusCodes.CLA_NOT_SUPPORTED) {
+          throw new LedgerClaNotSupportedError()
+        } else if (error.returnCode === LedgerStatusCodes.GP_AUTH_FAILED) {
+          throw new LedgerGPAuthFailed()
+        } else if (
+          [
+            LedgerStatusCodes.INS_NOT_SUPPORTED,
+            LedgerStatusCodes.TECHNICAL_PROBLEM,
+            0xffff, // Unknown transport error
+            0x6e01, // App not open
+          ].includes(error.returnCode)
+        ) {
+          throw new LedgerAppNotOpen(
+            `Unable to connect to Ironfish app on Ledger. Please check that the device is unlocked and the app is open.`,
+          )
+        }
+
+        throw new LedgerError(error.message)
       }
 
       throw error
@@ -46,31 +91,40 @@ export class Ledger {
   }
 
   connect = async () => {
-    const transport = await TransportNodeHid.create(3000)
-
-    transport.on('disconnect', async () => {
-      await transport.close()
-      this.app = undefined
-    })
-
-    if (transport.deviceModel) {
-      this.logger.debug(`${transport.deviceModel.productName} found.`)
+    if (this.app || this.isConnecting) {
+      return
     }
 
-    const app = new IronfishApp(transport, this.isMultisig)
+    this.isConnecting = true
 
-    // If the app isn't open or the device is locked, this will throw an error.
-    await app.getVersion()
+    let transport: Transport | undefined = undefined
 
-    this.app = app
+    try {
+      transport = await TransportNodeHid.create(2000, 2000)
 
-    return { app, PATH: this.PATH }
+      transport.on('disconnect', async () => {
+        await transport?.close()
+        this.app = undefined
+      })
+
+      if (transport.deviceModel) {
+        this.logger.debug(`${transport.deviceModel.productName} found.`)
+      }
+
+      const app = new IronfishApp(transport, this.isMultisig)
+
+      this.app = app
+      return { app, PATH: this.PATH }
+    } catch (e) {
+      await transport?.close()
+      throw e
+    } finally {
+      this.isConnecting = false
+    }
   }
 
-  protected refreshConnection = async () => {
-    if (!this.app) {
-      await this.connect()
-    }
+  close = () => {
+    void this.app?.transport.close()
   }
 }
 
@@ -86,28 +140,29 @@ export function isResponseProofGenKey(response: KeyResponse): response is Respon
   return 'ak' in response && 'nsk' in response
 }
 
-export function isResponseError(error: unknown): error is ResponseError {
-  return 'errorMessage' in (error as object) && 'returnCode' in (error as object)
-}
-
 export class LedgerError extends Error {
   name = this.constructor.name
 }
 
-export class LedgerDeviceLockedError extends LedgerError {
-  static returnCode = 0x5515
-}
-
-export class LedgerAppUnavailableError extends LedgerError {
-  static returnCodes = [
-    0x6d00, // Instruction not supported
-    0xffff, // Unknown transport error
-    0x6f00, // Technical error
-  ]
-
-  constructor() {
-    super(
-      `Unable to connect to Ironfish app on Ledger. Please check that the device is unlocked and the app is open.`,
+export class LedgerConnectError extends LedgerError {
+  static IsError(error: unknown): error is Error {
+    return (
+      error instanceof Error &&
+      'id' in error &&
+      typeof error['id'] === 'string' &&
+      error.id === 'ListenTimeout'
     )
   }
 }
+
+export class LedgerPortIsBusyError extends LedgerError {
+  static IsError(error: unknown): error is Error {
+    return error instanceof Error && error.message.includes('cannot open device with path')
+  }
+}
+
+export class LedgerDeviceLockedError extends LedgerError {}
+export class LedgerAppLocked extends LedgerError {}
+export class LedgerGPAuthFailed extends LedgerError {}
+export class LedgerClaNotSupportedError extends LedgerError {}
+export class LedgerAppNotOpen extends LedgerError {}

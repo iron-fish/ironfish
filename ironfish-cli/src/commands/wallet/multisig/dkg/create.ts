@@ -71,15 +71,6 @@ export class DkgCreateCommand extends IronfishCommand {
 
     if (flags.ledger) {
       ledger = new LedgerMultiSigner(this.logger)
-      try {
-        await ledger.connect()
-      } catch (e) {
-        if (e instanceof Error) {
-          this.error(e.message)
-        } else {
-          throw e
-        }
-      }
     }
 
     const accountName = await this.getAccountName(client, flags.name ?? flags.participant)
@@ -208,7 +199,11 @@ export class DkgCreateCommand extends IronfishCommand {
     const identities = await client.wallet.multisig.getIdentities()
 
     if (ledger) {
-      const ledgerIdentity = await ledger.dkgGetIdentity(0)
+      const ledgerIdentity = await ui.ledger({
+        ledger,
+        message: 'Getting Ledger Identity',
+        action: () => ledger.dkgGetIdentity(0),
+      })
 
       const foundIdentity = identities.content.identities.find(
         (i) => i.identity === ledgerIdentity.toString('hex'),
@@ -342,7 +337,12 @@ export class DkgCreateCommand extends IronfishCommand {
     }
 
     // TODO(hughy): determine how to handle multiple identities using index
-    const { publicPackage, secretPackage } = await ledger.dkgRound1(0, identities, minSigners)
+    const { publicPackage, secretPackage } = await ui.ledger({
+      ledger,
+      message: 'Round1 on Ledger',
+      approval: true,
+      action: () => ledger.dkgRound1(0, identities, minSigners),
+    })
 
     return {
       round1: {
@@ -429,11 +429,12 @@ export class DkgCreateCommand extends IronfishCommand {
     round2: { secretPackage: string; publicPackage: string }
   }> {
     // TODO(hughy): determine how to handle multiple identities using index
-    const { publicPackage, secretPackage } = await ledger.dkgRound2(
-      0,
-      round1PublicPackages,
-      round1SecretPackage,
-    )
+    const { publicPackage, secretPackage } = await ui.ledger({
+      ledger,
+      message: 'Round2 on Ledger',
+      approval: true,
+      action: () => ledger.dkgRound2(0, round1PublicPackages, round1SecretPackage),
+    })
 
     return {
       round2: {
@@ -550,9 +551,9 @@ export class DkgCreateCommand extends IronfishCommand {
       .sort((a, b) => a.senderIdentity.localeCompare(b.senderIdentity))
 
     // Extract raw parts from round1 and round2 public packages
-    const participants = []
-    const round1FrostPackages = []
-    const gskBytes = []
+    const participants: string[] = []
+    const round1FrostPackages: string[] = []
+    const gskBytes: string[] = []
     for (const pkg of round1PublicPackages) {
       // Exclude participant's own identity and round1 public package
       if (pkg.identity !== identity) {
@@ -566,19 +567,33 @@ export class DkgCreateCommand extends IronfishCommand {
     const round2FrostPackages = round2PublicPackages.map((pkg) => pkg.frostPackage)
 
     // Perform round3 with Ledger
-    await ledger.dkgRound3(
-      0,
-      participants,
-      round1FrostPackages,
-      round2FrostPackages,
-      round2SecretPackage,
-      gskBytes,
-    )
+    await ui.ledger({
+      ledger,
+      message: 'Round3 on Ledger',
+      approval: true,
+      action: () =>
+        ledger.dkgRound3(
+          0,
+          participants,
+          round1FrostPackages,
+          round2FrostPackages,
+          round2SecretPackage,
+          gskBytes,
+        ),
+    })
 
     // Retrieve all multisig account keys and publicKeyPackage
-    const dkgKeys = await ledger.dkgRetrieveKeys()
+    const dkgKeys = await ui.ledger({
+      ledger,
+      message: 'Getting Ledger DKG keys',
+      action: () => ledger.dkgRetrieveKeys(),
+    })
 
-    const publicKeyPackage = await ledger.dkgGetPublicPackage()
+    const publicKeyPackage = await ui.ledger({
+      ledger,
+      message: 'Getting Ledger Public Package',
+      action: () => ledger.dkgGetPublicPackage(),
+    })
 
     const accountImport = {
       ...dkgKeys,
@@ -606,7 +621,12 @@ export class DkgCreateCommand extends IronfishCommand {
     this.log('Creating an encrypted backup of multisig keys from your Ledger device...')
     this.log()
 
-    const encryptedKeys = await ledger.dkgBackupKeys()
+    const encryptedKeys = await ui.ledger({
+      ledger,
+      message: 'Backup DKG Keys',
+      approval: true,
+      action: () => ledger.dkgBackupKeys(),
+    })
 
     this.log()
     this.log('Encrypted Ledger Multisig Backup:')

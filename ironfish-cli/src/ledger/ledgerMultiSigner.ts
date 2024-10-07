@@ -7,7 +7,6 @@ import {
   KeyResponse,
   ResponseDkgRound1,
   ResponseDkgRound2,
-  ResponseIdentity,
 } from '@zondax/ledger-ironfish'
 import { isResponseAddress, isResponseProofGenKey, isResponseViewKey, Ledger } from './ledger'
 
@@ -17,11 +16,9 @@ export class LedgerMultiSigner extends Ledger {
   }
 
   dkgGetIdentity = async (index: number): Promise<Buffer> => {
-    this.logger.log('Retrieving identity from ledger device.')
+    this.logger.debug('Retrieving identity from ledger device.')
 
-    const response: ResponseIdentity = await this.tryInstruction((app) =>
-      app.dkgGetIdentity(index, false),
-    )
+    const response = await this.tryInstruction((app) => app.dkgGetIdentity(index, false))
 
     return response.identity
   }
