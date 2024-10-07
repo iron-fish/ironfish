@@ -60,6 +60,14 @@ export class DkgCreateCommand extends IronfishCommand {
       dependsOn: ['server'],
       allowNo: true,
     }),
+    minSigners: Flags.integer({
+      description: 'Minimum signers required to sign a transaction',
+      exclusive: ['sessionId'],
+    }),
+    totalParticipants: Flags.integer({
+      description: 'The total number of participants for the multisig account',
+      exclusive: ['sessionId'],
+    }),
   }
 
   async start(): Promise<void> {
@@ -123,7 +131,12 @@ export class DkgCreateCommand extends IronfishCommand {
 
     const { totalParticipants, minSigners } = await ui.retryStep(
       async () => {
-        return this.getDkgConfig(multisigClient, !!ledger)
+        return this.getDkgConfig(
+          multisigClient,
+          !!ledger,
+          flags.minSigners,
+          flags.totalParticipants,
+        )
       },
       this.logger,
       true,
@@ -263,6 +276,8 @@ export class DkgCreateCommand extends IronfishCommand {
   async getDkgConfig(
     multisigClient: MultisigClient | null,
     ledger: boolean,
+    minSigners?: number,
+    totalParticipants?: number,
   ): Promise<{ totalParticipants: number; minSigners: number }> {
     if (multisigClient?.sessionId) {
       let totalParticipants = 0
@@ -285,11 +300,13 @@ export class DkgCreateCommand extends IronfishCommand {
       return { totalParticipants, minSigners }
     }
 
-    const totalParticipants = await ui.inputNumberPrompt(
-      this.logger,
-      'Enter the total number of participants',
-      { required: true, integer: true },
-    )
+    if (!totalParticipants) {
+      totalParticipants = await ui.inputNumberPrompt(
+        this.logger,
+        'Enter the total number of participants',
+        { required: true, integer: true },
+      )
+    }
 
     if (totalParticipants < 2) {
       throw new Error('Total number of participants must be at least 2')
@@ -299,11 +316,13 @@ export class DkgCreateCommand extends IronfishCommand {
       throw new Error('DKG with Ledger supports a maximum of 4 participants')
     }
 
-    const minSigners = await ui.inputNumberPrompt(
-      this.logger,
-      'Enter the number of minimum signers',
-      { required: true, integer: true },
-    )
+    if (!minSigners) {
+      minSigners = await ui.inputNumberPrompt(
+        this.logger,
+        'Enter the number of minimum signers',
+        { required: true, integer: true },
+      )
+    }
 
     if (minSigners < 2 || minSigners > totalParticipants) {
       throw new Error(
