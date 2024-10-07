@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert, createRootLogger, Logger } from '@ironfish/sdk'
-import { StatusCodes as LedgerStatusCodes, TransportStatusError } from '@ledgerhq/errors'
+import { StatusCodes, TransportStatusError } from '@ledgerhq/errors'
 import TransportNodeHid from '@ledgerhq/hw-transport-node-hid'
 import IronfishApp, {
   KeyResponse,
@@ -11,6 +11,11 @@ import IronfishApp, {
   ResponseViewKey,
 } from '@zondax/ledger-ironfish'
 import { ResponseError, Transport } from '@zondax/ledger-js'
+
+export const IronfishLedgerStatusCodes = {
+  ...StatusCodes,
+  COMMAND_NOT_ALLOWED: 0x6986,
+}
 
 export class Ledger {
   app: IronfishApp | undefined
@@ -41,7 +46,7 @@ export class Ledger {
         if (
           error instanceof ResponseError &&
           error.message.includes('Attempt to read beyond buffer length') &&
-          error.returnCode === LedgerStatusCodes.TECHNICAL_PROBLEM
+          error.returnCode === IronfishLedgerStatusCodes.TECHNICAL_PROBLEM
         ) {
           // Catch this error and swollow it until the SDK fix merges to fix
           // this
@@ -56,7 +61,7 @@ export class Ledger {
       } catch (error) {
         if (
           error instanceof ResponseError &&
-          error.returnCode === LedgerStatusCodes.INS_NOT_SUPPORTED
+          error.returnCode === IronfishLedgerStatusCodes.INS_NOT_SUPPORTED
         ) {
           throw new LedgerAppLocked()
         }
@@ -77,16 +82,16 @@ export class Ledger {
       }
 
       if (error instanceof ResponseError) {
-        if (error.returnCode === LedgerStatusCodes.LOCKED_DEVICE) {
+        if (error.returnCode === IronfishLedgerStatusCodes.LOCKED_DEVICE) {
           throw new LedgerDeviceLockedError()
-        } else if (error.returnCode === LedgerStatusCodes.CLA_NOT_SUPPORTED) {
+        } else if (error.returnCode === IronfishLedgerStatusCodes.CLA_NOT_SUPPORTED) {
           throw new LedgerClaNotSupportedError()
-        } else if (error.returnCode === LedgerStatusCodes.GP_AUTH_FAILED) {
+        } else if (error.returnCode === IronfishLedgerStatusCodes.GP_AUTH_FAILED) {
           throw new LedgerGPAuthFailed()
         } else if (
           [
-            LedgerStatusCodes.INS_NOT_SUPPORTED,
-            LedgerStatusCodes.TECHNICAL_PROBLEM,
+            IronfishLedgerStatusCodes.INS_NOT_SUPPORTED,
+            IronfishLedgerStatusCodes.TECHNICAL_PROBLEM,
             0xffff, // Unknown transport error
             0x6e01, // App not open
           ].includes(error.returnCode)
