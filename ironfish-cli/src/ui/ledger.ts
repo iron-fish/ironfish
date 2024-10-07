@@ -15,6 +15,7 @@ import { Errors, ux } from '@oclif/core'
 import inquirer from 'inquirer'
 import {
   Ledger,
+  LedgerActionRejected,
   LedgerAppLocked,
   LedgerAppNotOpen,
   LedgerClaNotSupportedError,
@@ -60,6 +61,7 @@ export async function ledger<TResult>({
         return result
       } catch (e) {
         clearTimeout(clearStatusTimer)
+
         if (e instanceof LedgerAppLocked) {
           // If an app is running and it's locked, trying to poll the device
           // will cause the Ledger device to hide the pin screen as the user
@@ -85,6 +87,9 @@ export async function ledger<TResult>({
           if (!wasRunning) {
             ux.action.start(message)
           }
+        } else if (e instanceof LedgerActionRejected) {
+          ux.action.status = 'User Rejected Ledger Request!'
+          ledger.logger.warn('User Rejected Ledger Request!')
         } else if (e instanceof LedgerConnectError) {
           ux.action.status = 'Connect and unlock your Ledger'
         } else if (e instanceof LedgerAppNotOpen) {
