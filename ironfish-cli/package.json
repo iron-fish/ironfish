@@ -62,7 +62,7 @@
   "dependencies": {
     "@ironfish/rust-nodejs": "2.7.0",
     "@ironfish/sdk": "2.7.0",
-    "@ledgerhq/errors": "6.19.1",
+    "@ledgerhq/errors": "6.17.0",
     "@ledgerhq/hw-transport-node-hid": "6.29.1",
     "@oclif/core": "4.0.11",
     "@oclif/plugin-help": "6.2.5",
