@@ -33,7 +33,18 @@ export class Ledger {
 
       // App info is a request to the dashboard CLA. The purpose of this it to
       // produce a Locked Device error and works if an app is open or closed.
-      await this.app.appInfo()
+      try {
+        await this.app.appInfo()
+      } catch (error) {
+        if (
+          error instanceof ResponseError &&
+          error.message.includes('Attempt to read beyond buffer length') &&
+          error.returnCode === LedgerStatusCodes.TECHNICAL_PROBLEM
+        ) {
+          // Catch this error and swollow it until the SDK fix merges to fix
+          // this
+        }
+      }
 
       // This is an app specific request. This is useful because this throws
       // INS_NOT_SUPPORTED in the case that the app is locked which is useful to
