@@ -22,6 +22,7 @@ export const IronfishLedgerStatusCodes = {
   APP_NOT_OPEN: 0x6e01,
   UNKNOWN_TRANSPORT_ERROR: 0xffff,
   INVALID_TX_HASH: 0xb025,
+  PANIC: 0xe000,
 }
 
 export class Ledger {
@@ -65,6 +66,8 @@ export class Ledger {
           throw new LedgerAppLocked()
         } else if (error.returnCode === IronfishLedgerStatusCodes.CLA_NOT_SUPPORTED) {
           throw new LedgerClaNotSupportedError()
+        } else if (error.returnCode === IronfishLedgerStatusCodes.PANIC) {
+          throw new LedgerPanicError()
         } else if (error.returnCode === IronfishLedgerStatusCodes.GP_AUTH_FAILED) {
           throw new LedgerGPAuthFailed()
         } else if (
@@ -171,3 +174,4 @@ export class LedgerClaNotSupportedError extends LedgerError {}
 export class LedgerAppNotOpen extends LedgerError {}
 export class LedgerActionRejected extends LedgerError {}
 export class LedgerInvalidTxHash extends LedgerError {}
+export class LedgerPanicError extends LedgerError {}

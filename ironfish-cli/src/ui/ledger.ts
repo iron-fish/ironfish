@@ -21,6 +21,7 @@ import {
   LedgerConnectError,
   LedgerDeviceLockedError,
   LedgerGPAuthFailed,
+  LedgerPanicError,
   LedgerPortIsBusyError,
   LedgerSingleSigner,
 } from '../ledger'
@@ -94,6 +95,9 @@ export async function ledger<TResult>({
           ux.action.status = `Open Ledger App ${appName}`
         } else if (e instanceof LedgerDeviceLockedError) {
           ux.action.status = 'Unlock Ledger'
+        } else if (e instanceof LedgerPanicError) {
+          ux.action.status = 'Ledger App Crashed'
+          ux.stdout('Ledger App Crashed! ⚠️')
         } else if (e instanceof LedgerPortIsBusyError) {
           ux.action.status = 'Ledger is busy, retrying'
         } else if (e instanceof LedgerGPAuthFailed) {
