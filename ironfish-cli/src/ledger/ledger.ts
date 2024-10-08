@@ -95,6 +95,13 @@ export class Ledger {
           throw new LedgerGPAuthFailed()
         } else if (
           [
+            IronfishLedgerStatusCodes.COMMAND_NOT_ALLOWED,
+            IronfishLedgerStatusCodes.CONDITIONS_OF_USE_NOT_SATISFIED,
+          ].includes(error.returnCode)
+        ) {
+          throw new LedgerActionRejected()
+        } else if (
+          [
             IronfishLedgerStatusCodes.INS_NOT_SUPPORTED,
             IronfishLedgerStatusCodes.TECHNICAL_PROBLEM,
             0xffff, // Unknown transport error
