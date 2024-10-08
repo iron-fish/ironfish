@@ -78,7 +78,10 @@ export class Ledger {
       }
 
       if (error instanceof TransportStatusError) {
-        if (error.statusCode === IronfishLedgerStatusCodes.COMMAND_NOT_ALLOWED) {
+        if (
+          error.statusCode === IronfishLedgerStatusCodes.COMMAND_NOT_ALLOWED ||
+          error.statusCode === IronfishLedgerStatusCodes.CONDITIONS_OF_USE_NOT_SATISFIED
+        ) {
           throw new LedgerActionRejected()
         } else {
           throw new LedgerConnectError()
