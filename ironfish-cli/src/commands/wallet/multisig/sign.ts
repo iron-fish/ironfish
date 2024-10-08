@@ -381,6 +381,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       const frostSignatureShare = await ui.ledger({
         ledger,
         message: 'Sign Transaction',
+        approval: true,
         action: () =>
           ledger.dkgSign(
             unsignedTransaction,
@@ -541,6 +542,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     const rawCommitments = await ui.ledger({
       ledger,
       message: 'Get Commitments',
+      approval: true,
       action: () => ledger.dkgGetCommitments(unsignedTransaction),
     })
 

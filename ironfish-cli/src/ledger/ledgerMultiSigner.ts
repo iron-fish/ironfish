@@ -8,7 +8,13 @@ import {
   ResponseDkgRound1,
   ResponseDkgRound2,
 } from '@zondax/ledger-ironfish'
-import { isResponseAddress, isResponseProofGenKey, isResponseViewKey, Ledger } from './ledger'
+import {
+  isResponseAddress,
+  isResponseProofGenKey,
+  isResponseViewKey,
+  Ledger,
+  LedgerInvalidTxHash,
+} from './ledger'
 
 export class LedgerMultiSigner extends Ledger {
   constructor() {
@@ -112,25 +118,42 @@ export class LedgerMultiSigner extends Ledger {
   }
 
   dkgGetCommitments = async (transaction: UnsignedTransaction): Promise<Buffer> => {
-    const { commitments } = await this.tryInstruction(async (app) => {
-      const { hash } = await app.reviewTransaction(transaction.serialize().toString('hex'))
-      return app.dkgGetCommitments(hash.toString('hex'))
-    })
+    try {
+      const { commitments } = await this.tryInstruction(async (app) => {
+        return app.dkgGetCommitments(transaction.hash().toString('hex'))
+      })
+      return commitments
+    } catch (e) {
+      if (e instanceof LedgerInvalidTxHash) {
+        await this.reviewTransaction(transaction.serialize().toString('hex'))
+        return this.dkgGetCommitments(transaction)
+      }
 
-    return commitments
+      throw e
+    }
   }
 
   dkgSign = async (
     transaction: UnsignedTransaction,
     frostSigningPackage: string,
   ): Promise<Buffer> => {
-    const randomness = transaction.publicKeyRandomness()
-    const { signature } = await this.tryInstruction(async (app) => {
-      const { hash } = await app.reviewTransaction(transaction.serialize().toString('hex'))
-      return app.dkgSign(randomness, frostSigningPackage, hash.toString('hex'))
-    })
+    try {
+      const { signature } = await this.tryInstruction(async (app) => {
+        return app.dkgSign(
+          transaction.publicKeyRandomness(),
+          frostSigningPackage,
+          transaction.hash().toString('hex'),
+        )
+      })
+      return signature
+    } catch (e) {
+      if (e instanceof LedgerInvalidTxHash) {
+        await this.reviewTransaction(transaction.serialize().toString('hex'))
+        return this.dkgSign(transaction, frostSigningPackage)
+      }
 
-    return signature
+      throw e
+    }
   }
 
   dkgBackupKeys = async (): Promise<Buffer> => {
