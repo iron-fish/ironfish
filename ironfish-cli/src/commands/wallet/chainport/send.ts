@@ -35,7 +35,6 @@ import { watchTransaction } from '../../../utils/transaction'
 
 export class BridgeCommand extends IronfishCommand {
   static description = `Use the Chainport bridge to bridge assets to EVM networks.`
-  static hidden = true
 
   static flags = {
     ...RemoteFlags,
