@@ -2,7 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '@ironfish/sdk'
-import { StatusCodes, TransportStatusError } from '@ledgerhq/errors'
+import {
+  DisconnectedDeviceDuringOperation,
+  StatusCodes,
+  TransportStatusError,
+} from '@ledgerhq/errors'
 import TransportNodeHid from '@ledgerhq/hw-transport-node-hid'
 import IronfishApp, {
   KeyResponse,
@@ -45,6 +49,8 @@ export class Ledger {
       if (LedgerPortIsBusyError.IsError(e)) {
         throw new LedgerPortIsBusyError()
       } else if (LedgerConnectError.IsError(e)) {
+        throw new LedgerConnectError()
+      } else if (e instanceof DisconnectedDeviceDuringOperation) {
         throw new LedgerConnectError()
       }
 
