@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '@ironfish/sdk'
 import {
+  DisconnectedDevice,
   DisconnectedDeviceDuringOperation,
   StatusCodes,
   TransportStatusError,
@@ -52,6 +53,8 @@ export class Ledger {
       } else if (LedgerConnectError.IsError(e)) {
         throw new LedgerConnectError()
       } else if (e instanceof DisconnectedDeviceDuringOperation) {
+        throw new LedgerConnectError()
+      } else if (e instanceof DisconnectedDevice) {
         throw new LedgerConnectError()
       }
 
