@@ -111,8 +111,9 @@ export class LedgerMultiSigner extends Ledger {
   }
 
   dkgGetCommitments = async (transactionHash: string): Promise<Buffer> => {
-    const { commitments } = await this.tryInstruction((app) =>
-      app.dkgGetCommitments(transactionHash),
+    const { commitments } = await this.tryInstruction(
+      (app) => app.dkgGetCommitments(transactionHash),
+      true,
     )
 
     return commitments
@@ -123,8 +124,9 @@ export class LedgerMultiSigner extends Ledger {
     frostSigningPackage: string,
     transactionHash: string,
   ): Promise<Buffer> => {
-    const { signature } = await this.tryInstruction((app) =>
-      app.dkgSign(randomness, frostSigningPackage, transactionHash),
+    const { signature } = await this.tryInstruction(
+      (app) => app.dkgSign(randomness, frostSigningPackage, transactionHash),
+      true,
     )
 
     return signature

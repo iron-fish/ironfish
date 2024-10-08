@@ -29,7 +29,10 @@ export class Ledger {
     this.isMultisig = isMultisig
   }
 
-  tryInstruction = async <T>(instruction: (app: IronfishApp) => Promise<T>) => {
+  async tryInstruction<T>(
+    instruction: (app: IronfishApp) => Promise<T>,
+    unsafe = false,
+  ): Promise<T> {
     try {
       await this.connect()
 
@@ -40,7 +43,9 @@ export class Ledger {
       // App info is a request to the dashboard CLA. The purpose of this it to
       // produce a Locked Device error and works if an app is open or closed.
       try {
-        await app.appInfo()
+        if (!unsafe) {
+          await app.appInfo()
+        }
       } catch (error) {
         if (
           error instanceof ResponseError &&
@@ -56,7 +61,9 @@ export class Ledger {
       // INS_NOT_SUPPORTED in the case that the app is locked which is useful to
       // know versus the device is locked.
       try {
-        await app.getVersion()
+        if (!unsafe) {
+          await app.getVersion()
+        }
       } catch (error) {
         if (
           error instanceof ResponseError &&
