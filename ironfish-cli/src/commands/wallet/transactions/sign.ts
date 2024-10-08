@@ -109,7 +109,7 @@ export class TransactionsSignCommand extends IronfishCommand {
   }
 
   private async signWithLedger(client: RpcClient, unsignedTransaction: string) {
-    const ledger = new LedgerSingleSigner(this.logger)
+    const ledger = new LedgerSingleSigner()
     try {
       await ledger.connect()
     } catch (e) {

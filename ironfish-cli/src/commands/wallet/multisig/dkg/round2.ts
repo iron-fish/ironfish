@@ -97,7 +97,7 @@ export class DkgRound2Command extends IronfishCommand {
     round1PublicPackages: string[],
     round1SecretPackage: string,
   ): Promise<void> {
-    const ledger = new LedgerMultiSigner(this.logger)
+    const ledger = new LedgerMultiSigner()
     try {
       await ledger.connect()
     } catch (e) {

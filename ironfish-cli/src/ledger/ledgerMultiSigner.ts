@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Logger } from '@ironfish/sdk'
 import {
   IronfishKeys,
   KeyResponse,
@@ -11,13 +10,11 @@ import {
 import { isResponseAddress, isResponseProofGenKey, isResponseViewKey, Ledger } from './ledger'
 
 export class LedgerMultiSigner extends Ledger {
-  constructor(logger?: Logger) {
-    super(true, logger)
+  constructor() {
+    super(true)
   }
 
   dkgGetIdentity = async (index: number): Promise<Buffer> => {
-    this.logger.debug('Retrieving identity from ledger device.')
-
     const response = await this.tryInstruction((app) => app.dkgGetIdentity(index, false))
 
     return response.identity
@@ -28,8 +25,6 @@ export class LedgerMultiSigner extends Ledger {
     identities: string[],
     minSigners: number,
   ): Promise<ResponseDkgRound1> => {
-    this.logger.log('Please approve the request on your ledger device.')
-
     return this.tryInstruction((app) => app.dkgRound1(index, identities, minSigners))
   }
 
@@ -38,8 +33,6 @@ export class LedgerMultiSigner extends Ledger {
     round1PublicPackages: string[],
     round1SecretPackage: string,
   ): Promise<ResponseDkgRound2> => {
-    this.logger.log('Please approve the request on your ledger device.')
-
     return this.tryInstruction((app) =>
       app.dkgRound2(index, round1PublicPackages, round1SecretPackage),
     )
@@ -53,8 +46,6 @@ export class LedgerMultiSigner extends Ledger {
     round2SecretPackage: string,
     gskBytes: string[],
   ): Promise<void> => {
-    this.logger.log('Please approve the request on your ledger device.')
-
     return this.tryInstruction((app) =>
       app.dkgRound3Min(
         index,
@@ -114,10 +105,6 @@ export class LedgerMultiSigner extends Ledger {
   }
 
   reviewTransaction = async (transaction: string): Promise<Buffer> => {
-    this.logger.info(
-      'Please review and approve the outputs of this transaction on your ledger device.',
-    )
-
     const { hash } = await this.tryInstruction((app) => app.reviewTransaction(transaction))
 
     return hash
@@ -144,16 +131,12 @@ export class LedgerMultiSigner extends Ledger {
   }
 
   dkgBackupKeys = async (): Promise<Buffer> => {
-    this.logger.log('Please approve the request on your ledger device.')
-
     const { encryptedKeys } = await this.tryInstruction((app) => app.dkgBackupKeys())
 
     return encryptedKeys
   }
 
   dkgRestoreKeys = async (encryptedKeys: string): Promise<void> => {
-    this.logger.log('Please approve the request on your ledger device.')
-
     await this.tryInstruction((app) => app.dkgRestoreKeys(encryptedKeys))
   }
 }

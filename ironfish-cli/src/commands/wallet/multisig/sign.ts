@@ -72,7 +72,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     let ledger: LedgerMultiSigner | undefined = undefined
 
     if (flags.ledger) {
-      ledger = new LedgerMultiSigner(this.logger)
+      ledger = new LedgerMultiSigner()
     }
 
     let multisigAccountName: string

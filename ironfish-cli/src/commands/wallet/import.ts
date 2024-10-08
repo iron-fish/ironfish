@@ -119,7 +119,7 @@ export class ImportCommand extends IronfishCommand {
 
   async importLedger(): Promise<string> {
     try {
-      const ledger = new LedgerSingleSigner(this.logger)
+      const ledger = new LedgerSingleSigner()
 
       const account = await ui.ledger({
         ledger,

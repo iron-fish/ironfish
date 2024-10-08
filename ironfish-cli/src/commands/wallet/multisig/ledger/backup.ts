@@ -8,7 +8,7 @@ export class MultisigLedgerBackup extends IronfishCommand {
   static description = `show encrypted multisig keys from a Ledger device`
 
   async start(): Promise<void> {
-    const ledger = new LedgerMultiSigner(this.logger)
+    const ledger = new LedgerMultiSigner()
     try {
       await ledger.connect()
     } catch (e) {

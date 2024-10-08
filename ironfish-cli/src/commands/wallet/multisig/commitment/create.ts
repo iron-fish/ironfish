@@ -124,7 +124,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     unsignedTransaction: UnsignedTransaction,
     signers: string[],
   ): Promise<void> {
-    const ledger = new LedgerMultiSigner(this.logger)
+    const ledger = new LedgerMultiSigner()
     try {
       await ledger.connect()
     } catch (e) {

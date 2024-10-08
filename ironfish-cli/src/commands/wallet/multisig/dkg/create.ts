@@ -78,7 +78,7 @@ export class DkgCreateCommand extends IronfishCommand {
     let ledger: LedgerMultiSigner | undefined = undefined
 
     if (flags.ledger) {
-      ledger = new LedgerMultiSigner(this.logger)
+      ledger = new LedgerMultiSigner()
     }
 
     const accountName = await this.getAccountName(client, flags.name ?? flags.participant)

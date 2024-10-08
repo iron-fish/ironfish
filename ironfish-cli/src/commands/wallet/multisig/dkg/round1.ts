@@ -100,7 +100,7 @@ export class DkgRound1Command extends IronfishCommand {
     identities: string[],
     minSigners: number,
   ): Promise<void> {
-    const ledger = new LedgerMultiSigner(this.logger)
+    const ledger = new LedgerMultiSigner()
     try {
       await ledger.connect()
     } catch (e) {

@@ -26,7 +26,7 @@ export class MultisigLedgerRestore extends IronfishCommand {
       )
     }
 
-    const ledger = new LedgerMultiSigner(this.logger)
+    const ledger = new LedgerMultiSigner()
     try {
       await ledger.connect()
     } catch (e) {

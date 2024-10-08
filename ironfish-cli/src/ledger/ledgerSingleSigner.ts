@@ -1,13 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ACCOUNT_SCHEMA_VERSION, AccountImport, Logger } from '@ironfish/sdk'
+import { ACCOUNT_SCHEMA_VERSION, AccountImport } from '@ironfish/sdk'
 import { IronfishKeys, KeyResponse, ResponseSign } from '@zondax/ledger-ironfish'
 import { isResponseAddress, isResponseProofGenKey, isResponseViewKey, Ledger } from './ledger'
 
 export class LedgerSingleSigner extends Ledger {
-  constructor(logger?: Logger) {
-    super(false, logger)
+  constructor() {
+    super(false)
   }
 
   getPublicAddress = async () => {
@@ -24,8 +24,6 @@ export class LedgerSingleSigner extends Ledger {
 
   importAccount = async () => {
     const publicAddress = await this.getPublicAddress()
-
-    this.logger.log('Please confirm the request on your ledger device.')
 
     const responseViewKey: KeyResponse = await this.tryInstruction((app) =>
       app.retrieveKeys(this.PATH, IronfishKeys.ViewKey, true),

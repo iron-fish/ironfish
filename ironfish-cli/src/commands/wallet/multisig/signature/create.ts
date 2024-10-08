@@ -120,7 +120,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     unsignedTransaction: UnsignedTransaction,
     frostSigningPackage: string,
   ): Promise<void> {
-    const ledger = new LedgerMultiSigner(this.logger)
+    const ledger = new LedgerMultiSigner()
     try {
       await ledger.connect()
     } catch (e) {

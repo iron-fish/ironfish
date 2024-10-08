@@ -93,7 +93,7 @@ export async function ledger<TResult>({
           }
         } else if (e instanceof LedgerActionRejected) {
           ux.action.status = 'User Rejected Ledger Request!'
-          ledger.logger.warn('User Rejected Ledger Request!')
+          ux.stdout('User Rejected Ledger Request!')
         } else if (e instanceof LedgerConnectError) {
           ux.action.status = 'Connect and unlock your Ledger'
         } else if (e instanceof LedgerAppNotOpen) {
@@ -134,7 +134,7 @@ export async function sendTransactionWithLedger(
   confirm: boolean,
   logger?: Logger,
 ): Promise<void> {
-  const ledgerApp = new LedgerSingleSigner(logger)
+  const ledgerApp = new LedgerSingleSigner()
 
   const publicKey = (await client.wallet.getAccountPublicKey({ account: from })).content
     .publicKey
