@@ -19,7 +19,7 @@ export class NotEnoughFundsError extends Error {
 
     const renderedAmountNeeded = CurrencyUtils.render(amountNeeded, true, this.assetId)
     const renderedAmount = CurrencyUtils.render(amount)
-    this.message = `Insufficient funds: Needed ${renderedAmountNeeded} but have ${renderedAmount} available to spend. Please fund your account and/or wait for any pending transactions to be confirmed.'`
+    this.message = `Insufficient funds: Needed ${renderedAmountNeeded} but have ${renderedAmount} available to spend. Please fund your account and/or wait for any pending transactions to be confirmed.`
   }
 }
 
