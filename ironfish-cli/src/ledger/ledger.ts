@@ -97,6 +97,8 @@ export class Ledger {
       if (error instanceof ResponseError) {
         if (error.returnCode === IronfishLedgerStatusCodes.LOCKED_DEVICE) {
           throw new LedgerDeviceLockedError()
+        } else if (error.returnCode === IronfishLedgerStatusCodes.INS_NOT_SUPPORTED) {
+          throw new LedgerAppLocked()
         } else if (error.returnCode === IronfishLedgerStatusCodes.CLA_NOT_SUPPORTED) {
           throw new LedgerClaNotSupportedError()
         } else if (error.returnCode === IronfishLedgerStatusCodes.GP_AUTH_FAILED) {
@@ -110,7 +112,6 @@ export class Ledger {
           throw new LedgerActionRejected()
         } else if (
           [
-            IronfishLedgerStatusCodes.INS_NOT_SUPPORTED,
             IronfishLedgerStatusCodes.TECHNICAL_PROBLEM,
             0xffff, // Unknown transport error
             0x6e01, // App not open
