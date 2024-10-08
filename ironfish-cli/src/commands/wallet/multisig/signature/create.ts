@@ -134,15 +134,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
     const identity = identityResponse.content.identity
 
-    const transactionHash = await ledger.reviewTransaction(
-      unsignedTransaction.serialize().toString('hex'),
-    )
-
-    const frostSignatureShare = await ledger.dkgSign(
-      unsignedTransaction.publicKeyRandomness(),
-      frostSigningPackage,
-      transactionHash.toString('hex'),
-    )
+    const frostSignatureShare = await ledger.dkgSign(unsignedTransaction, frostSigningPackage)
 
     const signatureShare = multisig.SignatureShare.fromFrost(
       frostSignatureShare,

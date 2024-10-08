@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { UnsignedTransaction } from '@ironfish/sdk'
 import {
   IronfishKeys,
   KeyResponse,
@@ -110,22 +111,24 @@ export class LedgerMultiSigner extends Ledger {
     return hash
   }
 
-  dkgGetCommitments = async (transactionHash: string): Promise<Buffer> => {
-    const { commitments } = await this.tryInstruction((app) =>
-      app.dkgGetCommitments(transactionHash),
-    )
+  dkgGetCommitments = async (transaction: UnsignedTransaction): Promise<Buffer> => {
+    const { commitments } = await this.tryInstruction(async (app) => {
+      const { hash } = await app.reviewTransaction(transaction.serialize().toString('hex'))
+      return app.dkgGetCommitments(hash.toString('hex'))
+    })
 
     return commitments
   }
 
   dkgSign = async (
-    randomness: string,
+    transaction: UnsignedTransaction,
     frostSigningPackage: string,
-    transactionHash: string,
   ): Promise<Buffer> => {
-    const { signature } = await this.tryInstruction((app) =>
-      app.dkgSign(randomness, frostSigningPackage, transactionHash),
-    )
+    const randomness = transaction.publicKeyRandomness()
+    const { signature } = await this.tryInstruction(async (app) => {
+      const { hash } = await app.reviewTransaction(transaction.serialize().toString('hex'))
+      return app.dkgSign(randomness, frostSigningPackage, hash.toString('hex'))
+    })
 
     return signature
   }
