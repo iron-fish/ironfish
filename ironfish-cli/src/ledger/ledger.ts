@@ -29,10 +29,7 @@ export class Ledger {
     this.isMultisig = isMultisig
   }
 
-  async tryInstruction<T>(
-    instruction: (app: IronfishApp) => Promise<T>,
-    unsafe = false,
-  ): Promise<T> {
+  tryInstruction = async <T>(instruction: (app: IronfishApp) => Promise<T>, unsafe = false) => {
     try {
       await this.connect()
 
