@@ -14,6 +14,7 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import * as ui from '../../../ui'
 import {
+  ChainportNetwork,
   displayChainportTransactionSummary,
   extractChainportDataFromTransaction,
   fetchChainportNetworks,
@@ -99,12 +100,21 @@ export class TransactionInfoCommand extends IronfishCommand {
     if (chainportTxnDetails) {
       this.log(`\n---Chainport Bridge Transaction Summary---\n`)
 
-      ux.action.start('Fetching network details')
-      const chainportNetworks = await fetchChainportNetworks(networkId)
-      const network = chainportNetworks.find(
-        (n) => n.chainport_network_id === chainportTxnDetails.chainportNetworkId,
-      )
-      ux.action.stop()
+      let network: ChainportNetwork | undefined
+      try {
+        ux.action.start('Fetching network details')
+        const chainportNetworks = await fetchChainportNetworks(networkId)
+        network = chainportNetworks.find(
+          (n) => n.chainport_network_id === chainportTxnDetails.chainportNetworkId,
+        )
+        ux.action.stop()
+      } catch (e: unknown) {
+        ux.action.stop('error')
+
+        if (e instanceof Error) {
+          this.logger.debug(e.message)
+        }
+      }
 
       await displayChainportTransactionSummary(
         networkId,
