@@ -198,8 +198,53 @@ export class DkgCreateCommand extends IronfishCommand {
       true,
     )
 
+    if (ledger) {
+      await ui.retryStep(
+        async () => {
+          Assert.isNotUndefined(ledger)
+          return this.createBackup(ledger, accountName)
+        },
+        this.logger,
+        true,
+      )
+    }
+
     this.log('Multisig account created successfully using DKG!')
     multisigClient?.stop()
+  }
+
+  private async createBackup(ledger: LedgerMultiSigner, accountName: string) {
+    this.log()
+    this.log('Creating an encrypted backup of multisig keys from your Ledger device...')
+    this.log()
+
+    const encryptedKeys = await ui.ledger({
+      ledger,
+      message: 'Backup DKG Keys',
+      approval: true,
+      action: () => ledger.dkgBackupKeys(),
+    })
+
+    this.log()
+    this.log('Encrypted Ledger Multisig Backup:')
+    this.log(encryptedKeys.toString('hex'))
+    this.log()
+    this.log('Please save the encrypted keys shown above.')
+    this.log(
+      'Use `ironfish wallet:multisig:ledger:restore` if you need to restore the keys to your Ledger.',
+    )
+
+    const dataDir = this.sdk.fileSystem.resolve(this.sdk.dataDir)
+    const backupKeysPath = path.join(dataDir, `ironfish-ledger-${accountName}.txt`)
+
+    if (fs.existsSync(backupKeysPath)) {
+      await ui.confirmOrQuit(
+        `Error when backing up your keys: \nThe file ${backupKeysPath} already exists. \nOverwrite?`,
+      )
+    }
+
+    await fs.promises.writeFile(backupKeysPath, encryptedKeys.toString('hex'))
+    this.log(`A copy of your encrypted keys have been saved at ${backupKeysPath}`)
   }
 
   private async getOrCreateIdentity(
@@ -638,37 +683,6 @@ export class DkgCreateCommand extends IronfishCommand {
     this.log(
       `Account ${response.content.name} imported with public address: ${dkgKeys.publicAddress}`,
     )
-    this.log()
-    this.log('Creating an encrypted backup of multisig keys from your Ledger device...')
-    this.log()
-
-    const encryptedKeys = await ui.ledger({
-      ledger,
-      message: 'Backup DKG Keys',
-      approval: true,
-      action: () => ledger.dkgBackupKeys(),
-    })
-
-    this.log()
-    this.log('Encrypted Ledger Multisig Backup:')
-    this.log(encryptedKeys.toString('hex'))
-    this.log()
-    this.log('Please save the encrypted keys shown above.')
-    this.log(
-      'Use `ironfish wallet:multisig:ledger:restore` if you need to restore the keys to your Ledger.',
-    )
-
-    const dataDir = this.sdk.fileSystem.resolve(this.sdk.dataDir)
-    const backupKeysPath = path.join(dataDir, `ironfish-ledger-${accountName}.txt`)
-
-    if (fs.existsSync(backupKeysPath)) {
-      await ui.confirmOrQuit(
-        `Error when backing up your keys: \nThe file ${backupKeysPath} already exists. \nOverwrite?`,
-      )
-    }
-
-    await fs.promises.writeFile(backupKeysPath, encryptedKeys.toString('hex'))
-    this.log(`A copy of your encrypted keys have been saved at ${backupKeysPath}`)
   }
 
   async performRound3(
