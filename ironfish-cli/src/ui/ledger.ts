@@ -12,7 +12,6 @@ import {
   Transaction,
 } from '@ironfish/sdk'
 import { Errors, ux } from '@oclif/core'
-import inquirer from 'inquirer'
 import {
   Ledger,
   LedgerActionRejected,
@@ -69,20 +68,15 @@ export async function ledger<TResult>({
           // cannot send any commands to the Ledger in the app's CLA.
           ux.action.stop('Ledger App Locked')
 
-          await inquirer.prompt<{ retry: boolean }>([
-            {
-              name: 'retry',
-              message: `Ledger App Locked. Unlock and press enter to retry:`,
-              type: 'list',
-              choices: [
-                {
-                  name: `Retry`,
-                  value: true,
-                  default: true,
-                },
-              ],
-            },
-          ])
+          const confirmed = await ui.confirmList(
+            'Ledger App Locked. Unlock and press enter to retry:',
+            'Retry',
+          )
+
+          if (!confirmed) {
+            ux.stdout('Operation aborted.')
+            ux.exit(0)
+          }
 
           if (!wasRunning) {
             ux.action.start(message)

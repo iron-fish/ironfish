@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ErrorUtils, Logger } from '@ironfish/sdk'
-import { confirmPrompt } from './prompt'
+import { ux } from '@oclif/core'
+import { confirmList } from './prompt'
 
 export async function retryStep<T>(
   stepFunction: () => Promise<T>,
@@ -20,9 +21,10 @@ export async function retryStep<T>(
       logger.log(`An Error Occurred: ${ErrorUtils.renderError(error)}`)
 
       if (askToRetry) {
-        const continueResponse = await confirmPrompt('Do you want to retry this step?')
+        const continueResponse = await confirmList('Do you want to retry this step?', 'Retry')
         if (!continueResponse) {
-          throw new Error('User chose to not continue')
+          ux.stdout('User chose to not continue.')
+          ux.exit(0)
         }
       }
     }
