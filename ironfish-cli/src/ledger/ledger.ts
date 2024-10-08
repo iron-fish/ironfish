@@ -22,6 +22,7 @@ export class Ledger {
   PATH = "m/44'/1338'/0"
   isMultisig: boolean
   isConnecting: boolean = false
+  connectTimeout = 2000
 
   constructor(isMultisig: boolean) {
     this.app = undefined
@@ -123,7 +124,7 @@ export class Ledger {
     let transport: Transport | undefined = undefined
 
     try {
-      transport = await TransportNodeHid.create(2000, 2000)
+      transport = await TransportNodeHid.create(this.connectTimeout, this.connectTimeout)
 
       transport.on('disconnect', async () => {
         await transport?.close()

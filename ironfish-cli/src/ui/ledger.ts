@@ -56,7 +56,7 @@ export async function ledger<TResult>({
           } else {
             ux.action.status = undefined
           }
-        }, 1500)
+        }, ledger.connectTimeout + 500)
 
         const result = await action()
         ux.action.stop()
