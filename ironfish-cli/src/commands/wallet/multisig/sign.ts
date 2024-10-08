@@ -253,11 +253,11 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       Buffer.from(unsignedTransactionInput, 'hex'),
     )
 
-    const input = await ui.inputPrompt(
+    const totalParticipants = await ui.inputNumberPrompt(
+      this.logger,
       'Enter the number of participants in signing this transaction',
-      true,
+      { required: true, integer: true },
     )
-    const totalParticipants = parseInt(input)
 
     if (totalParticipants < 2) {
       this.error('Minimum number of participants must be at least 2')
