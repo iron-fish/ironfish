@@ -169,6 +169,7 @@ export class DkgCreateCommand extends IronfishCommand {
         return this.performRound2(
           client,
           multisigClient,
+          accountName,
           participantName,
           round1,
           totalParticipants,
@@ -466,6 +467,7 @@ export class DkgCreateCommand extends IronfishCommand {
   async performRound2(
     client: RpcClient,
     multisigClient: MultisigClient | null,
+    accountName: string,
     participantName: string,
     round1Result: { secretPackage: string; publicPackage: string },
     totalParticipants: number,
@@ -477,10 +479,10 @@ export class DkgCreateCommand extends IronfishCommand {
     let round1PublicPackages: string[] = [round1Result.publicPackage]
     if (!multisigClient) {
       this.log('\n============================================')
-      this.debug('\nRound 1 Encrypted Secret Package:')
+      this.debug(`\nRound 1 Encrypted Secret Package for ${accountName}:`)
       this.debug(round1Result.secretPackage)
 
-      this.log('\nRound 1 Public Package:')
+      this.log(`\nRound 1 Public Package for ${accountName}:`)
       this.log(round1Result.publicPackage)
       this.log('\n============================================')
 
@@ -683,10 +685,10 @@ export class DkgCreateCommand extends IronfishCommand {
     let round2PublicPackages: string[] = [round2Result.publicPackage]
     if (!multisigClient) {
       this.log('\n============================================')
-      this.debug('\nRound 2 Encrypted Secret Package:')
+      this.debug(`\nRound 2 Encrypted Secret Package for ${accountName}:`)
       this.debug(round2Result.secretPackage)
 
-      this.log('\nRound 2 Public Package:')
+      this.log(`\nRound 2 Public Package for ${accountName}:`)
       this.log(round2Result.publicPackage)
       this.log('\n============================================')
 
