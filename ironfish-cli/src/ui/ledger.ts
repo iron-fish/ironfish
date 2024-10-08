@@ -39,7 +39,6 @@ export async function ledger<TResult>({
   approval?: boolean
 }): Promise<TResult> {
   const wasRunning = ux.action.running
-  let statusAdded = false
 
   if (!wasRunning) {
     ux.action.start(message)
@@ -106,14 +105,13 @@ export async function ledger<TResult>({
           throw e
         }
 
-        statusAdded = true
         await PromiseUtils.sleep(1000)
         continue
       }
     }
   } finally {
     // Don't interrupt an existing status outside of ledgerAction()
-    if (!wasRunning && statusAdded) {
+    if (!wasRunning) {
       clearTimeout(clearStatusTimer)
       ux.action.stop()
     }
