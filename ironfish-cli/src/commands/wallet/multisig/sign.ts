@@ -381,11 +381,11 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       const frostSignatureShare = await ui.ledger({
         ledger,
         message: 'Sign Transaction',
+        approval: true,
         action: () =>
           ledger.dkgSign(
-            unsignedTransaction.publicKeyRandomness(),
+            unsignedTransaction,
             signingPackage.frostSigningPackage().toString('hex'),
-            unsignedTransaction.hash().toString('hex'),
           ),
       })
 
@@ -511,17 +511,10 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
     let commitment
     if (ledger) {
-      await ui.ledger({
-        ledger,
-        message: 'Review Transaction',
-        action: () => ledger.reviewTransaction(unsignedTransactionHex),
-        approval: true,
-      })
-
       commitment = await this.createSigningCommitmentWithLedger(
         ledger,
         participant,
-        unsignedTransaction.hash(),
+        unsignedTransaction,
         identities,
       )
     } else {
@@ -543,19 +536,20 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
   async createSigningCommitmentWithLedger(
     ledger: LedgerMultiSigner,
     participant: MultisigParticipant,
-    transactionHash: Buffer,
+    unsignedTransaction: UnsignedTransaction,
     signers: string[],
   ): Promise<string> {
     const rawCommitments = await ui.ledger({
       ledger,
       message: 'Get Commitments',
-      action: () => ledger.dkgGetCommitments(transactionHash.toString('hex')),
+      approval: true,
+      action: () => ledger.dkgGetCommitments(unsignedTransaction),
     })
 
     const sigingCommitment = multisig.SigningCommitment.fromRaw(
       participant.identity,
       rawCommitments,
-      transactionHash,
+      unsignedTransaction.hash(),
       signers,
     )
 

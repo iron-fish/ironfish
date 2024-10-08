@@ -1,13 +1,20 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { UnsignedTransaction } from '@ironfish/sdk'
 import {
   IronfishKeys,
   KeyResponse,
   ResponseDkgRound1,
   ResponseDkgRound2,
 } from '@zondax/ledger-ironfish'
-import { isResponseAddress, isResponseProofGenKey, isResponseViewKey, Ledger } from './ledger'
+import {
+  isResponseAddress,
+  isResponseProofGenKey,
+  isResponseViewKey,
+  Ledger,
+  LedgerInvalidTxHash,
+} from './ledger'
 
 export class LedgerMultiSigner extends Ledger {
   constructor() {
@@ -110,24 +117,43 @@ export class LedgerMultiSigner extends Ledger {
     return hash
   }
 
-  dkgGetCommitments = async (transactionHash: string): Promise<Buffer> => {
-    const { commitments } = await this.tryInstruction((app) =>
-      app.dkgGetCommitments(transactionHash),
-    )
+  dkgGetCommitments = async (transaction: UnsignedTransaction): Promise<Buffer> => {
+    try {
+      const { commitments } = await this.tryInstruction(async (app) => {
+        return app.dkgGetCommitments(transaction.hash().toString('hex'))
+      })
+      return commitments
+    } catch (e) {
+      if (e instanceof LedgerInvalidTxHash) {
+        await this.reviewTransaction(transaction.serialize().toString('hex'))
+        return this.dkgGetCommitments(transaction)
+      }
 
-    return commitments
+      throw e
+    }
   }
 
   dkgSign = async (
-    randomness: string,
+    transaction: UnsignedTransaction,
     frostSigningPackage: string,
-    transactionHash: string,
   ): Promise<Buffer> => {
-    const { signature } = await this.tryInstruction((app) =>
-      app.dkgSign(randomness, frostSigningPackage, transactionHash),
-    )
+    try {
+      const { signature } = await this.tryInstruction(async (app) => {
+        return app.dkgSign(
+          transaction.publicKeyRandomness(),
+          frostSigningPackage,
+          transaction.hash().toString('hex'),
+        )
+      })
+      return signature
+    } catch (e) {
+      if (e instanceof LedgerInvalidTxHash) {
+        await this.reviewTransaction(transaction.serialize().toString('hex'))
+        return this.dkgSign(transaction, frostSigningPackage)
+      }
 
-    return signature
+      throw e
+    }
   }
 
   dkgBackupKeys = async (): Promise<Buffer> => {

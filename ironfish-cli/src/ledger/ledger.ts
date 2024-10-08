@@ -17,6 +17,7 @@ export const IronfishLedgerStatusCodes = {
   COMMAND_NOT_ALLOWED: 0x6986,
   APP_NOT_OPEN: 0x6e01,
   UNKNOWN_TRANSPORT_ERROR: 0xffff,
+  INVALID_TX_HASH: 0xb025,
 }
 
 export class Ledger {
@@ -77,6 +78,8 @@ export class Ledger {
           throw new LedgerAppNotOpen(
             `Unable to connect to Ironfish app on Ledger. Please check that the device is unlocked and the app is open.`,
           )
+        } else if (error.returnCode === IronfishLedgerStatusCodes.INVALID_TX_HASH) {
+          throw new LedgerInvalidTxHash()
         } else if (e instanceof TransportStatusError) {
           throw new LedgerConnectError()
         }
@@ -161,3 +164,4 @@ export class LedgerGPAuthFailed extends LedgerError {}
 export class LedgerClaNotSupportedError extends LedgerError {}
 export class LedgerAppNotOpen extends LedgerError {}
 export class LedgerActionRejected extends LedgerError {}
+export class LedgerInvalidTxHash extends LedgerError {}
