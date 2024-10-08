@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, createRootLogger, Logger } from '@ironfish/sdk'
+import { Assert } from '@ironfish/sdk'
 import { StatusCodes, TransportStatusError } from '@ledgerhq/errors'
 import TransportNodeHid from '@ledgerhq/hw-transport-node-hid'
 import IronfishApp, {
@@ -19,14 +19,12 @@ export const IronfishLedgerStatusCodes = {
 
 export class Ledger {
   app: IronfishApp | undefined
-  logger: Logger
   PATH = "m/44'/1338'/0"
   isMultisig: boolean
   isConnecting: boolean = false
 
-  constructor(isMultisig: boolean, logger?: Logger) {
+  constructor(isMultisig: boolean) {
     this.app = undefined
-    this.logger = logger ? logger : createRootLogger()
     this.isMultisig = isMultisig
   }
 
@@ -128,10 +126,6 @@ export class Ledger {
         await transport?.close()
         this.app = undefined
       })
-
-      if (transport.deviceModel) {
-        this.logger.debug(`${transport.deviceModel.productName} found.`)
-      }
 
       const app = new IronfishApp(transport, this.isMultisig)
 

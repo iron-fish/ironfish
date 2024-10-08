@@ -31,7 +31,7 @@ export class MultisigLedgerImport extends IronfishCommand {
 
     const name = flags.name ?? (await ui.inputPrompt('Enter a name for the account', true))
 
-    const ledger = new LedgerMultiSigner(this.logger)
+    const ledger = new LedgerMultiSigner()
     try {
       await ledger.connect()
     } catch (e) {

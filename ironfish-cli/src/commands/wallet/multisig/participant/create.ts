@@ -71,7 +71,7 @@ export class MultisigIdentityCreate extends IronfishCommand {
   }
 
   async getIdentityFromLedger(): Promise<Buffer> {
-    const ledger = new LedgerMultiSigner(this.logger)
+    const ledger = new LedgerMultiSigner()
     try {
       await ledger.connect()
     } catch (e) {
