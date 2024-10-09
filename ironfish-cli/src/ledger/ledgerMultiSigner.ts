@@ -21,8 +21,8 @@ export class LedgerMultiSigner extends Ledger {
     super(true)
   }
 
-  dkgGetIdentity = async (index: number): Promise<Buffer> => {
-    const response = await this.tryInstruction((app) => app.dkgGetIdentity(index, false))
+  dkgGetIdentity = async (index: number, approval = false): Promise<Buffer> => {
+    const response = await this.tryInstruction((app) => app.dkgGetIdentity(index, approval))
 
     return response.identity
   }
