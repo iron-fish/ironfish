@@ -61,11 +61,9 @@ export class DkgCreateCommand extends IronfishCommand {
     }),
     sessionId: Flags.string({
       description: 'Unique ID for a multisig server session to join',
-      dependsOn: ['server'],
     }),
     passphrase: Flags.string({
       description: 'Passphrase to join the multisig server session',
-      dependsOn: ['server'],
     }),
     tls: Flags.boolean({
       description: 'connect to the multisig server over TLS',
@@ -102,7 +100,7 @@ export class DkgCreateCommand extends IronfishCommand {
     }
 
     let multisigClient: MultisigClient | null = null
-    if (flags.server || flags.connection) {
+    if (flags.server || flags.connection || flags.sessionId || flags.passphrase) {
       const { hostname, port, sessionId, passphrase } =
         await MultisigBrokerUtils.parseConnectionOptions({
           connection: flags.connection,
