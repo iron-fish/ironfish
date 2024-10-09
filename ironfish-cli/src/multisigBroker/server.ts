@@ -307,6 +307,34 @@ export class MultisigServer {
       return
     }
 
+    // If the session is in the collecting identities phase, we can safely
+    // remove a disconnected client's identity from the list. Otherwise, if a
+    // client disconnects and then reconnects, they can possibly be counted as
+    // multiple identities, leaving the session in a bad state.
+    if (client.identity != null) {
+      if (isDkgSession(session)) {
+        if (
+          session.status.round1PublicPackages.length === 0 &&
+          session.status.round2PublicPackages.length === 0
+        ) {
+          const identIndex = session.status.identities.indexOf(client.identity)
+          if (identIndex > -1) {
+            session.status.identities.splice(identIndex, 1)
+          }
+        }
+      } else if (isSigningSession(session)) {
+        if (
+          session.status.signatureShares.length === 0 &&
+          session.status.signingCommitments.length === 0
+        ) {
+          const identIndex = session.status.identities.indexOf(client.identity)
+          if (identIndex > -1) {
+            session.status.identities.splice(identIndex, 1)
+          }
+        }
+      }
+    }
+
     client.sessionId = null
     session.clientIds.delete(client.id)
   }
@@ -567,6 +595,7 @@ export class MultisigServer {
     }
 
     const identity = body.result.identity
+    client.identity = identity
     if (!session.status.identities.includes(identity)) {
       session.status.identities.push(identity)
       this.sessions.set(message.sessionId, session)
@@ -610,6 +639,7 @@ export class MultisigServer {
     }
 
     const identity = body.result.identity
+    client.identity = identity
     if (!session.status.identities.includes(identity)) {
       session.status.identities.push(identity)
       this.sessions.set(message.sessionId, session)
