@@ -42,6 +42,8 @@ const RETRY_INTERVAL = 5000
 export abstract class MultisigClient {
   readonly logger: Logger
   readonly version: number
+  readonly hostname: string
+  readonly port: number
 
   private started: boolean
   private isClosing = false
@@ -65,9 +67,11 @@ export abstract class MultisigClient {
 
   retries: Map<number, NodeJS.Timer> = new Map()
 
-  constructor(options: { passphrase: string; logger: Logger }) {
+  constructor(options: { hostname: string; port: number; passphrase: string; logger: Logger }) {
     this.logger = options.logger
     this.version = 3
+    this.hostname = options.hostname
+    this.port = options.port
 
     this.started = false
     this.nextMessageId = 0
@@ -76,6 +80,10 @@ export abstract class MultisigClient {
     this.connectTimeout = null
 
     this.passphrase = options.passphrase
+  }
+
+  get connectionString(): string {
+    return `tcp://${this.sessionId}:${this.passphrase}@${this.hostname}:${this.port}`
   }
 
   get key(): xchacha20poly1305.XChaCha20Poly1305Key {

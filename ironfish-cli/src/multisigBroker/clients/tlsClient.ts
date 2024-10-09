@@ -24,7 +24,7 @@ export class MultisigTlsClient extends MultisigTcpClient {
       }
 
       const client = tls.connect({
-        host: this.host,
+        host: this.hostname,
         port: this.port,
         rejectUnauthorized: false,
       })

@@ -6,15 +6,15 @@ import net from 'net'
 import { MultisigClient } from './client'
 
 export class MultisigTcpClient extends MultisigClient {
-  readonly host: string
-  readonly port: number
-
   client: net.Socket | null = null
 
-  constructor(options: { host: string; port: number; passphrase: string; logger: Logger }) {
-    super({ passphrase: options.passphrase, logger: options.logger })
-    this.host = options.host
-    this.port = options.port
+  constructor(options: { hostname: string; port: number; passphrase: string; logger: Logger }) {
+    super({
+      hostname: options.hostname,
+      port: options.port,
+      passphrase: options.passphrase,
+      logger: options.logger,
+    })
   }
 
   protected onSocketDisconnect = (): void => {
@@ -50,7 +50,7 @@ export class MultisigTcpClient extends MultisigClient {
       client.on('error', onError)
       client.on('connect', onConnect)
       client.on('data', this.onSocketData)
-      client.connect({ host: this.host, port: this.port })
+      client.connect({ host: this.hostname, port: this.port })
       this.client = client
     })
   }
