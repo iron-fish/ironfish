@@ -1,6 +1,6 @@
 {
   "name": "ironfish",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "description": "CLI for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
@@ -61,7 +61,7 @@
   },
   "dependencies": {
     "@ironfish/rust-nodejs": "2.7.0",
-    "@ironfish/sdk": "2.7.0",
+    "@ironfish/sdk": "2.8.0",
     "@ledgerhq/errors": "6.17.0",
     "@ledgerhq/hw-transport-node-hid": "6.29.1",
     "@oclif/core": "4.0.11",
