@@ -164,6 +164,7 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       assetName: mint.asset.name().toString('hex'),
       metadata: mint.asset.metadata().toString('hex'),
       creator: mint.asset.creator().toString('hex'),
+      owner: mint.asset.creator().toString('hex'),
       transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
     })
   },
