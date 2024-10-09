@@ -65,8 +65,6 @@ export class Ledger {
       if (error instanceof ResponseError) {
         if (error.returnCode === IronfishLedgerStatusCodes.LOCKED_DEVICE) {
           throw new LedgerDeviceLockedError()
-        } else if (error.returnCode === IronfishLedgerStatusCodes.INS_NOT_SUPPORTED) {
-          throw new LedgerAppLocked()
         } else if (error.returnCode === IronfishLedgerStatusCodes.CLA_NOT_SUPPORTED) {
           throw new LedgerClaNotSupportedError()
         } else if (error.returnCode === IronfishLedgerStatusCodes.PANIC) {
@@ -171,7 +169,6 @@ export class LedgerPortIsBusyError extends LedgerError {
 }
 
 export class LedgerDeviceLockedError extends LedgerError {}
-export class LedgerAppLocked extends LedgerError {}
 export class LedgerGPAuthFailed extends LedgerError {}
 export class LedgerClaNotSupportedError extends LedgerError {}
 export class LedgerAppNotOpen extends LedgerError {}

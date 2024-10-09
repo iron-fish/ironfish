@@ -15,7 +15,6 @@ import { Errors, ux } from '@oclif/core'
 import {
   Ledger,
   LedgerActionRejected,
-  LedgerAppLocked,
   LedgerAppNotOpen,
   LedgerClaNotSupportedError,
   LedgerConnectError,
@@ -65,15 +64,15 @@ export async function ledger<TResult>({
       } catch (e) {
         clearTimeout(clearStatusTimer)
 
-        if (e instanceof LedgerAppLocked) {
+        if (e instanceof LedgerDeviceLockedError) {
           // If an app is running and it's locked, trying to poll the device
           // will cause the Ledger device to hide the pin screen as the user
           // is trying to enter their pin. When we run into this error, we
           // cannot send any commands to the Ledger in the app's CLA.
-          ux.action.stop('Ledger App Locked')
+          ux.action.stop('Ledger Locked')
 
           const confirmed = await ui.confirmList(
-            'Ledger App Locked. Unlock and press enter to retry:',
+            'Ledger Locked. Unlock and press enter to retry:',
             'Retry',
           )
 
@@ -93,8 +92,6 @@ export async function ledger<TResult>({
         } else if (e instanceof LedgerAppNotOpen) {
           const appName = ledger.isMultisig ? 'Ironfish DKG' : 'Ironfish'
           ux.action.status = `Open Ledger App ${appName}`
-        } else if (e instanceof LedgerDeviceLockedError) {
-          ux.action.status = 'Unlock Ledger'
         } else if (e instanceof LedgerPanicError) {
           ux.action.status = 'Ledger App Crashed'
           ux.stdout('Ledger App Crashed! ⚠️')
