@@ -19,12 +19,12 @@ export class MultisigLedgerRestore extends IronfishCommand {
   async start(): Promise<void> {
     const { args } = await this.parse(MultisigLedgerRestore)
 
-    let encryptedKeys = args.backup
-    if (!encryptedKeys) {
-      encryptedKeys = await ui.longPrompt(
+    const encryptedKeys =
+      args.backup ||
+      (await ui.longPrompt(
         'Enter the encrypted multisig key backup to restore to your Ledger device',
-      )
-    }
+        { required: true },
+      ))
 
     const ledger = new LedgerMultiSigner()
     try {
