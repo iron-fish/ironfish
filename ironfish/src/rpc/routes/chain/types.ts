@@ -82,6 +82,10 @@ export type RpcMint = {
    * @deprecated Please use getAsset endpoint to get this information
    */
   creator: string
+  /**
+   * @deprecated Please use getAsset endpoint to get this information
+   */
+  owner: string
 }
 
 export const RpcMintSchema: yup.ObjectSchema<RpcMint> = yup
@@ -93,6 +97,7 @@ export const RpcMintSchema: yup.ObjectSchema<RpcMint> = yup
     metadata: yup.string().defined(),
     name: yup.string().defined(),
     creator: yup.string().defined(),
+    owner: yup.string().defined(),
     assetName: yup.string().defined(),
   })
   .defined()
