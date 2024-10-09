@@ -3,23 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { IronfishCommand } from '../../../../command'
 import { LedgerMultiSigner } from '../../../../ledger'
+import * as ui from '../../../../ui'
 
 export class MultisigLedgerBackup extends IronfishCommand {
   static description = `show encrypted multisig keys from a Ledger device`
 
   async start(): Promise<void> {
     const ledger = new LedgerMultiSigner()
-    try {
-      await ledger.connect()
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
 
-    const encryptedKeys = await ledger.dkgBackupKeys()
+    const encryptedKeys = await ui.ledger({
+      ledger,
+      message: 'Getting Ledger Keys',
+      approval: true,
+      action: () => ledger.dkgBackupKeys(),
+    })
 
     this.log()
     this.log('Encrypted Ledger Multisig Backup:')
