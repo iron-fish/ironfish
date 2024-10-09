@@ -4,6 +4,14 @@
 import * as yup from 'yup'
 import { MultisigServerClient } from './serverClient'
 
+export const MultisigBrokerErrorIds = {
+  PARSE_ERROR: 0,
+  DUPLICATE_SESSION_ID: 1,
+  SESSION_ID_NOT_FOUND: 2,
+  NON_DKG_SESSION: 3,
+  NON_SIGNING_SESSION: 4,
+}
+
 export class MessageMalformedError extends Error {
   name = this.constructor.name
 
@@ -39,4 +47,12 @@ export class ServerMessageMalformedError extends MessageMalformedError {
   constructor(error: yup.ValidationError | string, method?: string) {
     super('Server', error, method)
   }
+}
+
+export class SessionDecryptionError extends Error {
+  name = this.constructor.name
+}
+
+export class SessionIdNotFoundError extends Error {
+  name = this.constructor.name
 }

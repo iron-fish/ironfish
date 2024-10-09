@@ -4,7 +4,7 @@
 import { ErrorUtils, Logger, YupUtils } from '@ironfish/sdk'
 import net from 'net'
 import { IMultisigBrokerAdapter } from './adapters'
-import { ClientMessageMalformedError } from './errors'
+import { ClientMessageMalformedError, MultisigBrokerErrorIds } from './errors'
 import {
   ConnectedMessage,
   DkgGetStatusSchema,
@@ -186,7 +186,11 @@ export class MultisigServer {
       )
 
       if (parseError) {
-        this.sendErrorMessage(client, 0, `Error parsing message`)
+        this.sendErrorMessage(
+          client,
+          MultisigBrokerErrorIds.PARSE_ERROR,
+          `Error parsing message`,
+        )
         return
       }
 
@@ -421,7 +425,11 @@ export class MultisigServer {
     const sessionId = message.sessionId
 
     if (this.sessions.has(sessionId)) {
-      this.sendErrorMessage(client, message.id, `Duplicate sessionId: ${sessionId}`)
+      this.sendErrorMessage(
+        client,
+        MultisigBrokerErrorIds.DUPLICATE_SESSION_ID,
+        `Duplicate sessionId: ${sessionId}`,
+      )
       return
     }
 
@@ -460,7 +468,11 @@ export class MultisigServer {
     const sessionId = message.sessionId
 
     if (this.sessions.has(sessionId)) {
-      this.sendErrorMessage(client, message.id, `Duplicate sessionId: ${sessionId}`)
+      this.sendErrorMessage(
+        client,
+        MultisigBrokerErrorIds.DUPLICATE_SESSION_ID,
+        `Duplicate sessionId: ${sessionId}`,
+      )
       return
     }
 
@@ -489,7 +501,11 @@ export class MultisigServer {
   handleJoinSessionMessage(client: MultisigServerClient, message: MultisigBrokerMessage) {
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(
+        client,
+        MultisigBrokerErrorIds.SESSION_ID_NOT_FOUND,
+        `Session not found: ${message.sessionId}`,
+      )
       return
     }
 
@@ -511,14 +527,18 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(
+        client,
+        MultisigBrokerErrorIds.SESSION_ID_NOT_FOUND,
+        `Session not found: ${message.sessionId}`,
+      )
       return
     }
 
     if (!isDkgSession(session)) {
       this.sendErrorMessage(
         client,
-        message.id,
+        MultisigBrokerErrorIds.NON_DKG_SESSION,
         `Session is not a dkg session: ${message.sessionId}`,
       )
       return
@@ -548,14 +568,18 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(
+        client,
+        MultisigBrokerErrorIds.SESSION_ID_NOT_FOUND,
+        `Session not found: ${message.sessionId}`,
+      )
       return
     }
 
     if (!isSigningSession(session)) {
       this.sendErrorMessage(
         client,
-        message.id,
+        MultisigBrokerErrorIds.NON_SIGNING_SESSION,
         `Session is not a signing session: ${message.sessionId}`,
       )
       return
@@ -585,14 +609,18 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(
+        client,
+        MultisigBrokerErrorIds.SESSION_ID_NOT_FOUND,
+        `Session not found: ${message.sessionId}`,
+      )
       return
     }
 
     if (!isDkgSession(session)) {
       this.sendErrorMessage(
         client,
-        message.id,
+        MultisigBrokerErrorIds.NON_DKG_SESSION,
         `Session is not a dkg session: ${message.sessionId}`,
       )
       return
@@ -622,14 +650,18 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(
+        client,
+        MultisigBrokerErrorIds.SESSION_ID_NOT_FOUND,
+        `Session not found: ${message.sessionId}`,
+      )
       return
     }
 
     if (!isDkgSession(session)) {
       this.sendErrorMessage(
         client,
-        message.id,
+        MultisigBrokerErrorIds.NON_DKG_SESSION,
         `Session is not a dkg session: ${message.sessionId}`,
       )
       return
@@ -659,14 +691,18 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(
+        client,
+        MultisigBrokerErrorIds.SESSION_ID_NOT_FOUND,
+        `Session not found: ${message.sessionId}`,
+      )
       return
     }
 
     if (!isDkgSession(session)) {
       this.sendErrorMessage(
         client,
-        message.id,
+        MultisigBrokerErrorIds.NON_DKG_SESSION,
         `Session is not a dkg session: ${message.sessionId}`,
       )
       return
@@ -687,14 +723,18 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(
+        client,
+        MultisigBrokerErrorIds.SESSION_ID_NOT_FOUND,
+        `Session not found: ${message.sessionId}`,
+      )
       return
     }
 
     if (!isSigningSession(session)) {
       this.sendErrorMessage(
         client,
-        message.id,
+        MultisigBrokerErrorIds.NON_SIGNING_SESSION,
         `Session is not a signing session: ${message.sessionId}`,
       )
       return
@@ -724,14 +764,18 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(
+        client,
+        MultisigBrokerErrorIds.SESSION_ID_NOT_FOUND,
+        `Session not found: ${message.sessionId}`,
+      )
       return
     }
 
     if (!isSigningSession(session)) {
       this.sendErrorMessage(
         client,
-        message.id,
+        MultisigBrokerErrorIds.NON_SIGNING_SESSION,
         `Session is not a signing session: ${message.sessionId}`,
       )
       return
@@ -761,14 +805,18 @@ export class MultisigServer {
 
     const session = this.sessions.get(message.sessionId)
     if (!session) {
-      this.sendErrorMessage(client, message.id, `Session not found: ${message.sessionId}`)
+      this.sendErrorMessage(
+        client,
+        MultisigBrokerErrorIds.SESSION_ID_NOT_FOUND,
+        `Session not found: ${message.sessionId}`,
+      )
       return
     }
 
     if (!isSigningSession(session)) {
       this.sendErrorMessage(
         client,
-        message.id,
+        MultisigBrokerErrorIds.NON_SIGNING_SESSION,
         `Session is not a signing session: ${message.sessionId}`,
       )
       return

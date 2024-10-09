@@ -11,7 +11,12 @@ import {
   YupUtils,
 } from '@ironfish/sdk'
 import { v4 as uuid } from 'uuid'
-import { ServerMessageMalformedError } from '../errors'
+import {
+  MultisigBrokerErrorIds,
+  ServerMessageMalformedError,
+  SessionDecryptionError,
+  SessionIdNotFoundError,
+} from '../errors'
 import {
   ConnectedMessage,
   ConnectedMessageSchema,
@@ -261,6 +266,8 @@ export abstract class MultisigClient {
   protected onError = (error: unknown): void => {
     if (error instanceof SessionDecryptionError) {
       throw error
+    } else if (error instanceof SessionIdNotFoundError) {
+      throw error
     }
     this.logger.error(`Error ${ErrorUtils.renderError(error)}`)
   }
@@ -282,6 +289,11 @@ export abstract class MultisigClient {
         if (headerWithError.error) {
           throw new ServerMessageMalformedError(header.error)
         }
+
+        if (headerWithError.result.error.id === MultisigBrokerErrorIds.SESSION_ID_NOT_FOUND) {
+          throw new SessionIdNotFoundError(headerWithError.result.error.message)
+        }
+
         this.logger.debug(
           `Server sent error ${headerWithError.result.error.message} for id ${headerWithError.result.error.id}`,
         )
@@ -417,11 +429,5 @@ export abstract class MultisigClient {
     }
 
     return decrypted
-  }
-}
-
-class SessionDecryptionError extends Error {
-  constructor(message: string) {
-    super(message)
   }
 }
