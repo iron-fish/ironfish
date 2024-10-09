@@ -27,17 +27,13 @@ export class MultisigLedgerRestore extends IronfishCommand {
     }
 
     const ledger = new LedgerMultiSigner()
-    try {
-      await ledger.connect()
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
 
-    await ledger.dkgRestoreKeys(encryptedKeys)
+    await ui.ledger({
+      ledger,
+      message: 'Restoring Keys to Ledger',
+      approval: true,
+      action: () => ledger.dkgRestoreKeys(encryptedKeys),
+    })
 
     this.log()
     this.log('Encrypted multisig key backup restored to Ledger.')
