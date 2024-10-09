@@ -21,20 +21,20 @@ import * as ui from '../../../ui'
 import {
   ChainportBridgeTransaction,
   ChainportNetwork,
-  ChainportVerifiedToken,
+  ChainportToken,
   fetchChainportBridgeTransaction,
-  fetchChainportNetworkMap,
-  fetchChainportVerifiedTokens,
+  fetchChainportTokenPaths,
+  fetchChainportTokens,
 } from '../../../utils/chainport'
 import { isEthereumAddress } from '../../../utils/chainport/address'
 import { promptCurrency } from '../../../utils/currency'
+import { promptExpiration } from '../../../utils/expiration'
 import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
 import { watchTransaction } from '../../../utils/transaction'
 
 export class BridgeCommand extends IronfishCommand {
   static description = `Use the Chainport bridge to bridge assets to EVM networks.`
-  static hidden = true
 
   static flags = {
     ...RemoteFlags,
@@ -74,6 +74,15 @@ export class BridgeCommand extends IronfishCommand {
       default: false,
       description: 'Allow offline transaction creation',
     }),
+    unsignedTransaction: Flags.boolean({
+      default: false,
+      description:
+        'Return a serialized UnsignedTransaction. Use it to create a transaction and build proofs but not post to the network',
+    }),
+    ledger: Flags.boolean({
+      default: false,
+      description: 'Send a transaction using a Ledger device',
+    }),
   }
 
   async start(): Promise<void> {
@@ -98,7 +107,7 @@ export class BridgeCommand extends IronfishCommand {
       }
     }
 
-    const { targetNetwork, from, to, amount, asset, assetData } =
+    const { targetNetwork, from, to, amount, asset, assetData, expiration } =
       await this.getAndValidateInputs(client, networkId)
 
     const rawTransaction = await this.constructBridgeTransaction(
@@ -110,7 +119,30 @@ export class BridgeCommand extends IronfishCommand {
       amount,
       asset,
       assetData,
+      expiration,
     )
+
+    if (flags.unsignedTransaction) {
+      const response = await client.wallet.buildTransaction({
+        account: from,
+        rawTransaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
+      })
+      this.log('Unsigned Bridge Transaction')
+      this.log(response.content.unsignedTransaction)
+      this.exit(0)
+    }
+
+    if (flags.ledger) {
+      await ui.sendTransactionWithLedger(
+        client,
+        rawTransaction,
+        from,
+        flags.watch,
+        true,
+        this.logger,
+      )
+      this.exit(0)
+    }
 
     await ui.confirmOrQuit()
 
@@ -178,11 +210,19 @@ export class BridgeCommand extends IronfishCommand {
       this.error('Invalid to ethereum address')
     }
 
-    if (flags.expiration !== undefined && flags.expiration < 0) {
+    let expiration = flags.expiration
+
+    if (flags.unsignedTransaction && expiration === undefined) {
+      expiration = await promptExpiration({ logger: this.logger, client: client })
+    }
+
+    if (expiration !== undefined && expiration < 0) {
       this.error('Expiration sequence must be non-negative')
     }
 
-    const tokens = await fetchChainportVerifiedTokens(networkId)
+    ux.action.start('Fetching bridgeable assets')
+    const tokens = await fetchChainportTokens(networkId)
+    ux.action.stop()
 
     const tokenNames = tokens.map(
       (t, index) => `${index + 1}. ${t.name} (${t.symbol}) - ${t.web3_address}`,
@@ -211,9 +251,7 @@ export class BridgeCommand extends IronfishCommand {
       assetId = asset.id
     }
 
-    const asset: ChainportVerifiedToken | undefined = tokens.find(
-      (t) => t.web3_address === assetId,
-    )
+    const asset: ChainportToken | undefined = tokens.find((t) => t.web3_address === assetId)
 
     if (!asset) {
       this.logger.error(
@@ -223,8 +261,6 @@ export class BridgeCommand extends IronfishCommand {
       )
       this.exit(1)
     }
-
-    const targetNetworks = asset.target_networks
 
     const assetData = (
       await client.wallet.getAsset({
@@ -239,7 +275,7 @@ export class BridgeCommand extends IronfishCommand {
       assetData.verification.status = 'verified'
     }
 
-    const targetNetwork = await this.selectNetwork(networkId, targetNetworks, asset)
+    const targetNetwork = await this.selectNetwork(networkId, asset)
 
     let amount
     if (flags.amount) {
@@ -270,7 +306,7 @@ export class BridgeCommand extends IronfishCommand {
         },
       })
     }
-    return { targetNetwork, from, to, amount, asset, assetData }
+    return { targetNetwork, from, to, amount, asset, assetData, expiration }
   }
 
   private async constructBridgeTransaction(
@@ -280,12 +316,21 @@ export class BridgeCommand extends IronfishCommand {
     from: string,
     to: string,
     amount: bigint,
-    asset: ChainportVerifiedToken,
+    asset: ChainportToken,
     assetData: RpcAsset,
+    expiration: number | undefined,
   ) {
     const { flags } = await this.parse(BridgeCommand)
 
-    const txn = await fetchChainportBridgeTransaction(networkId, amount, to, network, asset)
+    ux.action.start('Fetching bridge transaction details')
+    const txn = await fetchChainportBridgeTransaction(
+      networkId,
+      amount,
+      asset.web3_address,
+      network.chainport_network_id,
+      to,
+    )
+    ux.action.stop()
 
     const params: CreateTransactionRequest = {
       account: from,
@@ -304,13 +349,14 @@ export class BridgeCommand extends IronfishCommand {
       ],
       fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
       feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
-      expiration: flags.expiration,
+      expiration,
     }
 
     let rawTransaction: RawTransaction
     if (params.fee === null && params.feeRate === null) {
       rawTransaction = await selectFee({
         client,
+        account: from,
         transaction: params,
         logger: this.logger,
       })
@@ -320,7 +366,7 @@ export class BridgeCommand extends IronfishCommand {
       rawTransaction = RawTransactionSerde.deserialize(bytes)
     }
 
-    this.displayTransactionSummary(txn, rawTransaction, from, to, asset, assetData, network)
+    this.displayTransactionSummary(txn, rawTransaction, from, to, assetData, network)
 
     return rawTransaction
   }
@@ -330,24 +376,18 @@ export class BridgeCommand extends IronfishCommand {
     raw: RawTransaction,
     from: string,
     to: string,
-    asset: ChainportVerifiedToken,
     assetData: RpcAsset,
     network: ChainportNetwork,
   ) {
     const bridgeAmount = CurrencyUtils.render(
       BigInt(txn.bridge_output.amount) - BigInt(txn.bridge_fee.source_token_fee_amount ?? 0),
       true,
-      asset.web3_address,
+      assetData.id,
       assetData.verification,
     )
     const ironfishNetworkFee = CurrencyUtils.render(raw.fee, true)
 
-    const targetNetworkFee = CurrencyUtils.render(
-      BigInt(txn.gas_fee_output.amount),
-      true,
-      asset.web3_address,
-      assetData.verification,
-    )
+    const targetNetworkFee = CurrencyUtils.render(BigInt(txn.gas_fee_output.amount), true)
 
     let chainportFee: string
 
@@ -367,7 +407,7 @@ export class BridgeCommand extends IronfishCommand {
       chainportFee = CurrencyUtils.render(
         BigInt(txn.bridge_fee.source_token_fee_amount ?? 0),
         true,
-        asset.web3_address,
+        assetData.id,
         assetData.verification,
       )
     }
@@ -377,7 +417,7 @@ export class BridgeCommand extends IronfishCommand {
 
  From                           ${from}
  To                             ${to}
- Target Network                 ${network.name}
+ Target Network                 ${network.label}
  Estimated Amount Received      ${bridgeAmount}
 
  Fees:
@@ -394,25 +434,13 @@ export class BridgeCommand extends IronfishCommand {
 
   private async selectNetwork(
     networkId: number,
-    targetNetworks: number[],
-    asset: ChainportVerifiedToken,
+    asset: ChainportToken,
   ): Promise<ChainportNetwork> {
     ux.action.start('Fetching available networks')
-    const networks = await fetchChainportNetworkMap(networkId)
+    const networks = await fetchChainportTokenPaths(networkId, asset.id)
     ux.action.stop()
 
-    const choices = Object.keys(networks).map((key) => {
-      return {
-        name: networks[key].label,
-        value: networks[key],
-      }
-    })
-
-    const filteredChoices = choices.filter((choice) =>
-      targetNetworks.includes(choice.value.chainport_network_id),
-    )
-
-    if (filteredChoices.length === 0) {
+    if (networks.length === 0) {
       this.error(`No networks available for token ${asset.symbol} on Chainport`)
     }
 
@@ -423,7 +451,10 @@ export class BridgeCommand extends IronfishCommand {
         name: 'selection',
         message: `Select the network you would like to bridge ${asset.symbol} to`,
         type: 'list',
-        choices: filteredChoices,
+        choices: networks.map((network) => ({
+          name: network.label,
+          value: network,
+        })),
       },
     ])
 

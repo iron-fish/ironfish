@@ -138,6 +138,29 @@ export async function confirmPrompt(message: string): Promise<boolean> {
   return result.prompt
 }
 
+export async function confirmList(message: string, action = 'Confirm'): Promise<boolean> {
+  const result = await inquirer.prompt<{ confirm: boolean }>([
+    {
+      name: 'confirm',
+      message,
+      type: 'list',
+      choices: [
+        {
+          name: action,
+          value: true,
+          default: true,
+        },
+        {
+          name: 'Cancel',
+          value: false,
+        },
+      ],
+    },
+  ])
+
+  return result.confirm
+}
+
 export async function confirmOrQuit(message?: string, confirm?: boolean): Promise<void> {
   if (confirm) {
     return

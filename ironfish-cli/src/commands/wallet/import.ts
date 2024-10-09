@@ -5,10 +5,11 @@ import { AccountFormat, encodeAccountImport } from '@ironfish/sdk'
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { LedgerError, LedgerSingleSigner } from '../../ledger'
 import { checkWalletUnlocked, inputPrompt } from '../../ui'
+import * as ui from '../../ui'
 import { importFile, importPipe, longPrompt } from '../../ui/longPrompt'
 import { importAccount } from '../../utils'
-import { Ledger, LedgerError } from '../../utils/ledger'
 
 export class ImportCommand extends IronfishCommand {
   static description = `import an account`
@@ -118,9 +119,15 @@ export class ImportCommand extends IronfishCommand {
 
   async importLedger(): Promise<string> {
     try {
-      const ledger = new Ledger(this.logger)
-      await ledger.connect()
-      const account = await ledger.importAccount()
+      const ledger = new LedgerSingleSigner()
+
+      const account = await ui.ledger({
+        ledger,
+        message: 'Import Wallet',
+        approval: true,
+        action: () => ledger.importAccount(),
+      })
+
       return encodeAccountImport(account, AccountFormat.Base64Json)
     } catch (e) {
       if (e instanceof LedgerError) {

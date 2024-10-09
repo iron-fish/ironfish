@@ -6,8 +6,8 @@ import { RpcClient, UnsignedTransaction } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
+import { LedgerMultiSigner } from '../../../../ledger'
 import * as ui from '../../../../ui'
-import { LedgerDkg } from '../../../../utils/ledger'
 import { MultisigTransactionJson } from '../../../../utils/multisig'
 import { renderUnsignedTransactionDetails } from '../../../../utils/transaction'
 
@@ -124,7 +124,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     unsignedTransaction: UnsignedTransaction,
     signers: string[],
   ): Promise<void> {
-    const ledger = new LedgerDkg(this.logger)
+    const ledger = new LedgerMultiSigner()
     try {
       await ledger.connect()
     } catch (e) {
@@ -138,16 +138,12 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
     const identity = identityResponse.content.identity
 
-    const transactionHash = await ledger.reviewTransaction(
-      unsignedTransaction.serialize().toString('hex'),
-    )
-
-    const rawCommitments = await ledger.dkgGetCommitments(transactionHash.toString('hex'))
+    const rawCommitments = await ledger.dkgGetCommitments(unsignedTransaction)
 
     const signingCommitment = multisig.SigningCommitment.fromRaw(
       identity,
       rawCommitments,
-      transactionHash,
+      unsignedTransaction.hash(),
       signers,
     )
 

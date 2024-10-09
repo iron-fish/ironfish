@@ -236,7 +236,7 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           assetData,
         )
         const renderedAmount = CurrencyUtils.render(e.amount, false, e.assetId, assetData)
-        const message = `Insufficient funds: Needed ${renderedAmountNeeded} but have ${renderedAmount} available to spend. Please fund your account and/or wait for any pending transactions to be confirmed.'`
+        const message = `Insufficient funds: Needed ${renderedAmountNeeded} but have ${renderedAmount} available to spend. Please fund your account and/or wait for any pending transactions to be confirmed.`
         throw new RpcValidationError(message, 400, RPC_ERROR_CODES.INSUFFICIENT_BALANCE)
       }
       throw e

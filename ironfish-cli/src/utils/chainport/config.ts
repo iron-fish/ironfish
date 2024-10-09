@@ -6,8 +6,7 @@ import { MAINNET, TESTNET } from '@ironfish/sdk'
 
 const config = {
   [TESTNET.id]: {
-    chainportId: 22,
-    endpoint: 'https://preprod-api.chainport.io',
+    endpoint: 'https://testnet.api.ironfish.network/',
     outgoingAddresses: new Set([
       '06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13',
       'db2cf6ec67addde84cc1092378ea22e7bb2eecdeecac5e43febc1cb8fb64b5e5',
@@ -18,8 +17,7 @@ const config = {
     ]),
   },
   [MAINNET.id]: {
-    chainportId: 22,
-    endpoint: 'https://api.chainport.io',
+    endpoint: 'https://api.ironfish.network/',
     outgoingAddresses: new Set([
       '576ffdcc27e11d81f5180d3dc5690294941170d492b2d9503c39130b1f180405',
       '7ac2d6a59e19e66e590d014af013cd5611dc146e631fa2aedf0ee3ed1237eebe',

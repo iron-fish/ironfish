@@ -23,7 +23,6 @@ import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
-import { sendTransactionWithLedger } from '../../utils/ledger'
 import { watchTransaction } from '../../utils/transaction'
 
 export class Mint extends IronfishCommand {
@@ -314,7 +313,7 @@ This will create tokens and increase supply for a given asset.`
     )
 
     if (flags.ledger) {
-      await sendTransactionWithLedger(
+      await ui.sendTransactionWithLedger(
         client,
         raw,
         account,

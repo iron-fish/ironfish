@@ -186,6 +186,7 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
             id: mint.asset.id().toString('hex'),
             name: mint.asset.name().toString('hex'),
             creator: mint.asset.creator().toString('hex'),
+            owner: mint.asset.creator().toString('hex'),
             metadata: mint.asset.metadata().toString('hex'),
             transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
           })

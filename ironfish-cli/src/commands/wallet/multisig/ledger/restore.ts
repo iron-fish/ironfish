@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
+import { LedgerMultiSigner } from '../../../../ledger'
 import * as ui from '../../../../ui'
-import { LedgerDkg } from '../../../../utils/ledger'
 
 export class MultisigLedgerRestore extends IronfishCommand {
   static description = `restore encrypted multisig keys to a Ledger device`
@@ -19,25 +19,21 @@ export class MultisigLedgerRestore extends IronfishCommand {
   async start(): Promise<void> {
     const { args } = await this.parse(MultisigLedgerRestore)
 
-    let encryptedKeys = args.backup
-    if (!encryptedKeys) {
-      encryptedKeys = await ui.longPrompt(
+    const encryptedKeys =
+      args.backup ||
+      (await ui.longPrompt(
         'Enter the encrypted multisig key backup to restore to your Ledger device',
-      )
-    }
+        { required: true },
+      ))
 
-    const ledger = new LedgerDkg(this.logger)
-    try {
-      await ledger.connect()
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
+    const ledger = new LedgerMultiSigner()
 
-    await ledger.dkgRestoreKeys(encryptedKeys)
+    await ui.ledger({
+      ledger,
+      message: 'Restoring Keys to Ledger',
+      approval: true,
+      action: () => ledger.dkgRestoreKeys(encryptedKeys),
+    })
 
     this.log()
     this.log('Encrypted multisig key backup restored to Ledger.')

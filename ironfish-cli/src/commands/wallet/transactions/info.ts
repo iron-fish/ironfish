@@ -14,9 +14,10 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import * as ui from '../../../ui'
 import {
+  ChainportNetwork,
   displayChainportTransactionSummary,
   extractChainportDataFromTransaction,
-  fetchChainportNetworkMap,
+  fetchChainportNetworks,
   getAssetsByIDs,
   useAccount,
 } from '../../../utils'
@@ -99,15 +100,27 @@ export class TransactionInfoCommand extends IronfishCommand {
     if (chainportTxnDetails) {
       this.log(`\n---Chainport Bridge Transaction Summary---\n`)
 
-      ux.action.start('Fetching network details')
-      const chainportNetworks = await fetchChainportNetworkMap(networkId)
-      ux.action.stop()
+      let network: ChainportNetwork | undefined
+      try {
+        ux.action.start('Fetching network details')
+        const chainportNetworks = await fetchChainportNetworks(networkId)
+        network = chainportNetworks.find(
+          (n) => n.chainport_network_id === chainportTxnDetails.chainportNetworkId,
+        )
+        ux.action.stop()
+      } catch (e: unknown) {
+        ux.action.stop('error')
+
+        if (e instanceof Error) {
+          this.logger.debug(e.message)
+        }
+      }
 
       await displayChainportTransactionSummary(
         networkId,
         transaction,
         chainportTxnDetails,
-        chainportNetworks[chainportTxnDetails.chainportNetworkId],
+        network,
         this.logger,
       )
     }
@@ -122,6 +135,7 @@ export class TransactionInfoCommand extends IronfishCommand {
 
       for (const note of transaction.notes) {
         const asset = await client.wallet.getAsset({
+          account: account,
           id: note.assetId,
         })
 

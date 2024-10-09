@@ -103,6 +103,7 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
           metadata: BufferUtils.toHuman(mint.asset.metadata()),
           name: BufferUtils.toHuman(mint.asset.name()),
           creator: mint.asset.creator().toString('hex'),
+          owner: mint.asset.creator().toString('hex'),
           value: mint.value.toString(),
           transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
           assetId: mint.asset.id().toString('hex'),

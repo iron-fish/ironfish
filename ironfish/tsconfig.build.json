@@ -1,8 +1,8 @@
 {
   "extends": "../config/tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true,
-    "tsBuildInfoFile": "./build/tsconfig.tsbuildinfo"
+    "outDir": "build"
   },
   "include": ["src", "package.json"],
+  "exclude": ["src/**/*.test.*"],
 }

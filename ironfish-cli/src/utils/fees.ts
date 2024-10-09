@@ -20,7 +20,7 @@ import { promptCurrency } from './currency'
 export async function selectFee(options: {
   client: Pick<RpcClient, 'wallet'>
   transaction: CreateTransactionRequest
-  account?: string
+  account: string | undefined
   confirmations?: number
   logger: Logger
 }): Promise<RawTransaction> {

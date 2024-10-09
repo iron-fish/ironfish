@@ -20,7 +20,6 @@ import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
-import { sendTransactionWithLedger } from '../../utils/ledger'
 import { getSpendPostTimeInMs, updateSpendPostTimeInMs } from '../../utils/spendPostTime'
 import {
   displayTransactionSummary,
@@ -258,7 +257,7 @@ export class Send extends IronfishCommand {
     }
 
     if (flags.ledger) {
-      await sendTransactionWithLedger(
+      await ui.sendTransactionWithLedger(
         client,
         raw,
         from,
