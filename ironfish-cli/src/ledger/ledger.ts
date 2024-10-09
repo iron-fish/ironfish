@@ -155,11 +155,19 @@ export class LedgerError extends Error {
 
 export class LedgerConnectError extends LedgerError {
   static IsError(error: unknown): error is Error {
+    const ids = [
+      'ListenTimeout',
+      'InvalidChannel',
+      'InvalidTag',
+      'InvalidSequence',
+      'NoDeviceFound',
+    ]
+
     return (
       error instanceof Error &&
       'id' in error &&
       typeof error['id'] === 'string' &&
-      error.id === 'ListenTimeout'
+      ids.includes(error.id)
     )
   }
 }
