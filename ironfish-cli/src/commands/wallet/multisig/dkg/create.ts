@@ -358,6 +358,7 @@ export class DkgCreateCommand extends IronfishCommand {
     const identities = await sessionManager.getIdentities({
       identity: currentIdentity,
       totalParticipants,
+      accountName: participantName,
     })
 
     if (ledger) {
