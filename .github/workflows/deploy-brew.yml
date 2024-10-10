@@ -38,4 +38,3 @@ jobs:
           BREW_GITHUB_USERNAME: ${{ secrets.BREW_GITHUB_USERNAME }}
           BREW_GITHUB_TOKEN: ${{ secrets.BREW_GITHUB_TOKEN }}
           AWS_DEFAULT_REGION: auto
-          UPLOAD_TO_R2: true
