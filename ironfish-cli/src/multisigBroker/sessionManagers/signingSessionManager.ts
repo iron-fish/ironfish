@@ -47,6 +47,11 @@ export class MultisigClientSigningSessionManager
     this.client.startSigningSession(numSigners, unsignedTransaction)
     this.sessionId = this.client.sessionId
 
+    this.logger.info('\nStarted new signing session:')
+    this.logger.info(`${this.sessionId}`)
+    this.logger.info('\nSigning session connection string:')
+    this.logger.info(`${this.client.connectionString}`)
+
     return {
       numSigners,
       unsignedTransaction: new UnsignedTransaction(Buffer.from(unsignedTransaction, 'hex')),
