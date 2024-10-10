@@ -4,10 +4,8 @@
 
 import { multisig } from '@ironfish/rust-nodejs'
 import {
-  Assert,
   CurrencyUtils,
   Identity,
-  PromiseUtils,
   RpcClient,
   Transaction,
   UnsignedTransaction,
@@ -16,7 +14,8 @@ import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { LedgerMultiSigner } from '../../../ledger'
-import { MultisigBrokerUtils, MultisigClient } from '../../../multisigBroker'
+import { MultisigBrokerUtils } from '../../../multisigBroker'
+import { MultisigSigningSessionManager } from '../../../multisigBroker/sessionManager'
 import * as ui from '../../../ui'
 import { renderUnsignedTransactionDetails, watchTransaction } from '../../../utils/transaction'
 
@@ -123,7 +122,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       )
     }
 
-    let multisigClient: MultisigClient | null = null
+    let sessionManager: MultisigSigningSessionManager | null = null
     if (flags.server || flags.connection || flags.sessionId || flags.passphrase) {
       const { hostname, port, sessionId, passphrase } =
         await MultisigBrokerUtils.parseConnectionOptions({
@@ -135,33 +134,21 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
           logger: this.logger,
         })
 
-      multisigClient = MultisigBrokerUtils.createClient(hostname, port, {
+      const multisigClient = MultisigBrokerUtils.createClient(hostname, port, {
         passphrase,
         tls: flags.tls ?? true,
         logger: this.logger,
       })
-      multisigClient.start()
-
-      let connectionConfirmed = false
-
-      multisigClient.onConnectedMessage.on(() => {
-        connectionConfirmed = true
-        Assert.isNotNull(multisigClient)
-        multisigClient.onConnectedMessage.clear()
-      })
+      sessionManager = new MultisigSigningSessionManager(multisigClient)
+      await sessionManager.connect()
 
       if (sessionId) {
-        while (!connectionConfirmed) {
-          await PromiseUtils.sleep(500)
-          continue
-        }
-
-        multisigClient.joinSession(sessionId)
+        await sessionManager.joinSession(sessionId)
       }
     }
 
     const { unsignedTransaction, totalParticipants } = await this.getSigningConfig(
-      multisigClient,
+      sessionManager,
       flags.unsignedTransaction,
     )
 
@@ -169,7 +156,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       async () => {
         return this.performCreateSigningCommitment(
           client,
-          multisigClient,
+          sessionManager,
           multisigAccountName,
           participant,
           totalParticipants,
@@ -184,7 +171,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     const signingPackage = await ui.retryStep(() => {
       return this.performAggregateCommitments(
         client,
-        multisigClient,
+        sessionManager,
         multisigAccountName,
         commitment,
         identities,
@@ -211,7 +198,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       () =>
         this.performAggregateSignatures(
           client,
-          multisigClient,
+          sessionManager,
           multisigAccountName,
           signingPackage,
           signatureShare,
@@ -221,36 +208,15 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     )
 
     this.log('Multisignature sign process completed!')
-    multisigClient?.stop()
+    sessionManager?.leaveSession()
   }
 
   async getSigningConfig(
-    multisigClient: MultisigClient | null,
+    sessionManager: MultisigSigningSessionManager | null,
     unsignedTransactionFlag?: string,
   ): Promise<{ unsignedTransaction: UnsignedTransaction; totalParticipants: number }> {
-    if (multisigClient?.sessionId) {
-      let totalParticipants = 0
-      let unsignedTransactionHex = ''
-      let waiting = true
-      multisigClient.onSigningStatus.on((message) => {
-        totalParticipants = message.numSigners
-        unsignedTransactionHex = message.unsignedTransaction
-        waiting = false
-      })
-
-      ux.action.start('Waiting for signer config from server')
-      while (waiting) {
-        multisigClient.getSigningStatus()
-        await PromiseUtils.sleep(3000)
-      }
-      multisigClient.onSigningStatus.clear()
-      ux.action.stop()
-
-      const unsignedTransaction = new UnsignedTransaction(
-        Buffer.from(unsignedTransactionHex, 'hex'),
-      )
-
-      return { totalParticipants, unsignedTransaction }
+    if (sessionManager?.sessionId) {
+      return sessionManager.getConfig()
     }
 
     const unsignedTransactionInput =
@@ -270,12 +236,12 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       this.error('Minimum number of participants must be at least 2')
     }
 
-    if (multisigClient) {
-      multisigClient.startSigningSession(totalParticipants, unsignedTransactionInput)
+    if (sessionManager) {
+      sessionManager.startSession(totalParticipants, unsignedTransactionInput)
       this.log('\nStarted new signing session:')
-      this.log(`${multisigClient.sessionId}`)
+      this.log(`${sessionManager.sessionId}`)
       this.log('\nSigning session connection string:')
-      this.log(`${multisigClient.connectionString}`)
+      this.log(`${sessionManager.client.connectionString}`)
     }
 
     return { unsignedTransaction, totalParticipants }
@@ -283,14 +249,14 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
   private async performAggregateSignatures(
     client: RpcClient,
-    multisigClient: MultisigClient | null,
+    sessionManager: MultisigSigningSessionManager | null,
     accountName: string,
     signingPackage: string,
     signatureShare: string,
     totalParticipants: number,
   ): Promise<void> {
     let signatureShares: string[] = [signatureShare]
-    if (!multisigClient) {
+    if (!sessionManager) {
       this.log('\n============================================')
       this.log('\nSignature Share:')
       this.log(signatureShare)
@@ -309,21 +275,10 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         errorOnDuplicate: true,
       })
     } else {
-      multisigClient.submitSignatureShare(signatureShare)
-
-      multisigClient.onSigningStatus.on((message) => {
-        signatureShares = message.signatureShares
-      })
-
-      ux.action.start('Waiting for Signature Shares from server')
-      while (signatureShares.length < totalParticipants) {
-        multisigClient.getSigningStatus()
-        ux.action.status = `${signatureShares.length}/${totalParticipants}`
-        await PromiseUtils.sleep(3000)
-      }
-
-      multisigClient.onSigningStatus.clear()
-      ux.action.stop()
+      signatureShares = await sessionManager.getSignatureShares(
+        signatureShare,
+        totalParticipants,
+      )
     }
 
     const broadcast = await ui.confirmPrompt('Do you want to broadcast the transaction?')
@@ -418,7 +373,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
   private async performAggregateCommitments(
     client: RpcClient,
-    multisigClient: MultisigClient | null,
+    sessionManager: MultisigSigningSessionManager | null,
     accountName: string,
     commitment: string,
     identities: string[],
@@ -426,7 +381,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     unsignedTransaction: UnsignedTransaction,
   ) {
     let commitments: string[] = [commitment]
-    if (!multisigClient) {
+    if (!sessionManager) {
       this.log('\n============================================')
       this.log('\nCommitment:')
       this.log(commitment)
@@ -443,21 +398,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         errorOnDuplicate: true,
       })
     } else {
-      multisigClient.submitSigningCommitment(commitment)
-
-      multisigClient.onSigningStatus.on((message) => {
-        commitments = message.signingCommitments
-      })
-
-      ux.action.start('Waiting for Signing Commitments from server')
-      while (commitments.length < totalParticipants) {
-        multisigClient.getSigningStatus()
-        ux.action.status = `${commitments.length}/${totalParticipants}`
-        await PromiseUtils.sleep(3000)
-      }
-
-      multisigClient.onSigningStatus.clear()
-      ux.action.stop()
+      commitments = await sessionManager.getSigningCommitments(commitment, totalParticipants)
     }
 
     const signingPackageResponse = await client.wallet.multisig.createSigningPackage({
@@ -471,7 +412,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
   private async performCreateSigningCommitment(
     client: RpcClient,
-    multisigClient: MultisigClient | null,
+    sessionManager: MultisigSigningSessionManager | null,
     accountName: string,
     participant: MultisigParticipant,
     totalParticipants: number,
@@ -479,7 +420,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     ledger: LedgerMultiSigner | undefined,
   ) {
     let identities: string[] = [participant.identity]
-    if (!multisigClient) {
+    if (!sessionManager) {
       this.log(`Identity for ${participant.name}: \n${participant.identity} \n`)
       this.log('Share your participant identity with other signers.')
 
@@ -492,21 +433,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         errorOnDuplicate: true,
       })
     } else {
-      multisigClient.submitSigningIdentity(participant.identity)
-
-      multisigClient.onSigningStatus.on((message) => {
-        identities = message.identities
-      })
-
-      ux.action.start('Waiting for Identities from server')
-      while (identities.length < totalParticipants) {
-        multisigClient.getSigningStatus()
-        ux.action.status = `${identities.length}/${totalParticipants}`
-        await PromiseUtils.sleep(3000)
-      }
-
-      multisigClient.onSigningStatus.clear()
-      ux.action.stop()
+      identities = await sessionManager.getIdentities(participant.identity, totalParticipants)
     }
 
     const unsignedTransactionHex = unsignedTransaction.serialize().toString('hex')
