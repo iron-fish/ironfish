@@ -420,7 +420,7 @@ export class DkgCreateCommand extends IronfishCommand {
       )
       identities = await ui.collectStrings('Participant Identity', totalParticipants - 1, {
         additionalStrings: [currentIdentity],
-        errorOnDuplicate: true,
+        logger: this.logger,
       })
     } else {
       identities = await sessionManager.getIdentities(currentIdentity, totalParticipants)
@@ -504,7 +504,7 @@ export class DkgCreateCommand extends IronfishCommand {
         totalParticipants - 1,
         {
           additionalStrings: [round1Result.publicPackage],
-          errorOnDuplicate: true,
+          logger: this.logger,
         },
       )
     } else {
@@ -669,7 +669,7 @@ export class DkgCreateCommand extends IronfishCommand {
         totalParticipants - 1,
         {
           additionalStrings: [round2Result.publicPackage],
-          errorOnDuplicate: true,
+          logger: this.logger,
         },
       )
     } else {
