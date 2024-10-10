@@ -186,7 +186,8 @@ export class MultisigServer {
       )
 
       if (parseError) {
-        this.sendErrorMessage(client, 0, `Error parsing message`)
+        client.close(parseError)
+        this.clients.delete(client.id)
         return
       }
 
