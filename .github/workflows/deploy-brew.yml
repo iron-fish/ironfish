@@ -30,14 +30,6 @@ jobs:
       - name: Build Ironfish CLI
         run: ./ironfish-cli/scripts/build.sh
 
-      - name: Deploy Ironfish CLI Brew
-        run: ./ironfish-cli/scripts/deploy-brew.sh
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          BREW_GITHUB_USERNAME: ${{ secrets.BREW_GITHUB_USERNAME }}
-          BREW_GITHUB_TOKEN: ${{ secrets.BREW_GITHUB_TOKEN }}
-
       - name: Deploy Ironfish CLI Brew to R2
         run: ./ironfish-cli/scripts/deploy-brew.sh
         env:
@@ -46,4 +38,3 @@ jobs:
           BREW_GITHUB_USERNAME: ${{ secrets.BREW_GITHUB_USERNAME }}
           BREW_GITHUB_TOKEN: ${{ secrets.BREW_GITHUB_TOKEN }}
           AWS_DEFAULT_REGION: auto
-          UPLOAD_TO_R2: true
