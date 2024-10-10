@@ -57,6 +57,11 @@ export class MultisigClientDkgSessionManager
     this.client.startDkgSession(totalParticipants, minSigners)
     this.sessionId = this.client.sessionId
 
+    this.logger.info('\nStarted new DKG session:')
+    this.logger.info(`${this.sessionId}`)
+    this.logger.info('\nDKG session connection string:')
+    this.logger.info(`${this.client.connectionString}`)
+
     return { totalParticipants, minSigners }
   }
 
