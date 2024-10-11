@@ -186,6 +186,12 @@ export class MultisigServer {
       )
 
       if (parseError) {
+        this.logger.debug(
+          `Error parsing message from client ${client.id}: ${ErrorUtils.renderError(
+            parseError,
+            true,
+          )}`,
+        )
         client.close(parseError)
         this.clients.delete(client.id)
         return
