@@ -15,6 +15,7 @@ export interface MultisigBrokerMessageWithError
   error: {
     id: number
     message: string
+    code: number
   }
 }
 
@@ -99,6 +100,7 @@ export const MultisigBrokerMessageWithErrorSchema: yup.ObjectSchema<MultisigBrok
         .object({
           id: yup.number().required(),
           message: yup.string().required(),
+          code: yup.number().required(),
         })
         .required(),
     })
