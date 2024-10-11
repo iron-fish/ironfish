@@ -20,7 +20,11 @@ import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { LedgerMultiSigner } from '../../../../ledger'
 import { MultisigBrokerUtils } from '../../../../multisigBroker'
-import { MultisigDkgSessionManager } from '../../../../multisigBroker/sessionManager'
+import {
+  DkgSessionManager,
+  MultisigClientDkgSessionManager,
+  MultisigDkgSessionManager,
+} from '../../../../multisigBroker/sessionManagers'
 import * as ui from '../../../../ui'
 
 export class DkgCreateCommand extends IronfishCommand {
@@ -99,7 +103,7 @@ export class DkgCreateCommand extends IronfishCommand {
       accountCreatedAt = statusResponse.content.blockchain.head.sequence
     }
 
-    let sessionManager: MultisigDkgSessionManager | null = null
+    let sessionManager: DkgSessionManager
     if (flags.server || flags.connection || flags.sessionId || flags.passphrase) {
       const { hostname, port, sessionId, passphrase } =
         await MultisigBrokerUtils.parseConnectionOptions({
@@ -110,31 +114,24 @@ export class DkgCreateCommand extends IronfishCommand {
           passphrase: flags.passphrase,
           logger: this.logger,
         })
-      const multisigClient = MultisigBrokerUtils.createClient(hostname, port, {
+
+      sessionManager = new MultisigClientDkgSessionManager({
+        hostname,
+        port,
         passphrase,
+        sessionId,
         tls: flags.tls ?? true,
         logger: this.logger,
       })
-      sessionManager = new MultisigDkgSessionManager(multisigClient)
-      await sessionManager.connect()
-
-      if (sessionId) {
-        await sessionManager.joinSession(sessionId)
-      }
+    } else {
+      sessionManager = new MultisigDkgSessionManager({ logger: this.logger })
     }
 
-    const { totalParticipants, minSigners } = await ui.retryStep(
-      async () => {
-        return this.getDkgConfig(
-          sessionManager,
-          !!ledger,
-          flags.minSigners,
-          flags.totalParticipants,
-        )
-      },
-      this.logger,
-      true,
-    )
+    const { totalParticipants, minSigners } = await sessionManager.startSession({
+      totalParticipants: flags.totalParticipants,
+      minSigners: flags.minSigners,
+      ledger: flags.ledger,
+    })
 
     const { name: participantName, identity } = await this.getOrCreateIdentity(
       client,
@@ -204,7 +201,7 @@ export class DkgCreateCommand extends IronfishCommand {
     }
 
     this.log('Multisig account created successfully using DKG!')
-    sessionManager?.leaveSession()
+    sessionManager.endSession()
   }
 
   private async createBackup(ledger: LedgerMultiSigner, accountName: string) {
@@ -313,57 +310,6 @@ export class DkgCreateCommand extends IronfishCommand {
     return name
   }
 
-  async getDkgConfig(
-    sessionManager: MultisigDkgSessionManager | null,
-    ledger: boolean,
-    minSigners?: number,
-    totalParticipants?: number,
-  ): Promise<{ totalParticipants: number; minSigners: number }> {
-    if (sessionManager?.sessionId) {
-      return sessionManager.getConfig()
-    }
-
-    if (!totalParticipants) {
-      totalParticipants = await ui.inputNumberPrompt(
-        this.logger,
-        'Enter the total number of participants',
-        { required: true, integer: true },
-      )
-    }
-
-    if (totalParticipants < 2) {
-      throw new Error('Total number of participants must be at least 2')
-    }
-
-    if (ledger && totalParticipants > 4) {
-      throw new Error('DKG with Ledger supports a maximum of 4 participants')
-    }
-
-    if (!minSigners) {
-      minSigners = await ui.inputNumberPrompt(
-        this.logger,
-        'Enter the number of minimum signers',
-        { required: true, integer: true },
-      )
-    }
-
-    if (minSigners < 2 || minSigners > totalParticipants) {
-      throw new Error(
-        'Minimum number of signers must be between 2 and the total number of participants',
-      )
-    }
-
-    if (sessionManager) {
-      sessionManager.startSession(totalParticipants, minSigners)
-      this.log('\nStarted new DKG session:')
-      this.log(`${sessionManager.sessionId}`)
-      this.log('\nDKG session connection string:')
-      this.log(`${sessionManager.client.connectionString}`)
-    }
-
-    return { totalParticipants, minSigners }
-  }
-
   async performRound1WithLedger(
     ledger: LedgerMultiSigner,
     client: RpcClient,
@@ -398,7 +344,7 @@ export class DkgCreateCommand extends IronfishCommand {
 
   async performRound1(
     client: RpcClient,
-    sessionManager: MultisigDkgSessionManager | null,
+    sessionManager: DkgSessionManager,
     participantName: string,
     currentIdentity: string,
     totalParticipants: number,
@@ -409,22 +355,11 @@ export class DkgCreateCommand extends IronfishCommand {
   }> {
     this.log('\nCollecting Participant Info and Performing Round 1...')
 
-    let identities: string[] = [currentIdentity]
-    if (!sessionManager) {
-      this.log(`Identity for ${participantName}: \n${currentIdentity} \n`)
-
-      this.log(
-        `\nEnter ${
-          totalParticipants - 1
-        } identities of all other participants (excluding yours) `,
-      )
-      identities = await ui.collectStrings('Participant Identity', totalParticipants - 1, {
-        additionalStrings: [currentIdentity],
-        logger: this.logger,
-      })
-    } else {
-      identities = await sessionManager.getIdentities(currentIdentity, totalParticipants)
-    }
+    const identities = await sessionManager.getIdentities({
+      identity: currentIdentity,
+      totalParticipants,
+      accountName: participantName,
+    })
 
     if (ledger) {
       return await this.performRound1WithLedger(
@@ -476,7 +411,7 @@ export class DkgCreateCommand extends IronfishCommand {
 
   async performRound2(
     client: RpcClient,
-    sessionManager: MultisigDkgSessionManager | null,
+    sessionManager: DkgSessionManager,
     accountName: string,
     participantName: string,
     round1Result: { secretPackage: string; publicPackage: string },
@@ -486,33 +421,12 @@ export class DkgCreateCommand extends IronfishCommand {
     round2: { secretPackage: string; publicPackage: string }
     round1PublicPackages: string[]
   }> {
-    let round1PublicPackages: string[] = [round1Result.publicPackage]
-    if (!sessionManager) {
-      this.log('\n============================================')
-      this.debug(`\nRound 1 Encrypted Secret Package for ${accountName}:`)
-      this.debug(round1Result.secretPackage)
-
-      this.log(`\nRound 1 Public Package for ${accountName}:`)
-      this.log(round1Result.publicPackage)
-      this.log('\n============================================')
-
-      this.log('\nShare your Round 1 Public Package with other participants.')
-      this.log(`\nEnter ${totalParticipants - 1} Round 1 Public Packages (excluding yours) `)
-
-      round1PublicPackages = await ui.collectStrings(
-        'Round 1 Public Package',
-        totalParticipants - 1,
-        {
-          additionalStrings: [round1Result.publicPackage],
-          logger: this.logger,
-        },
-      )
-    } else {
-      round1PublicPackages = await sessionManager.getRound1PublicPackages(
-        round1Result.publicPackage,
-        totalParticipants,
-      )
-    }
+    const round1PublicPackages = await sessionManager.getRound1PublicPackages({
+      accountName,
+      round1PublicPackage: round1Result.publicPackage,
+      round1SecretPackage: round1Result.secretPackage,
+      totalParticipants,
+    })
 
     this.log('\nPerforming DKG Round 2...')
 
@@ -642,7 +556,7 @@ export class DkgCreateCommand extends IronfishCommand {
 
   async performRound3(
     client: RpcClient,
-    sessionManager: MultisigDkgSessionManager | null,
+    sessionManager: DkgSessionManager,
     accountName: string,
     participantName: string,
     round2Result: { secretPackage: string; publicPackage: string },
@@ -651,33 +565,12 @@ export class DkgCreateCommand extends IronfishCommand {
     ledger: LedgerMultiSigner | undefined,
     accountCreatedAt?: number,
   ): Promise<void> {
-    let round2PublicPackages: string[] = [round2Result.publicPackage]
-    if (!sessionManager) {
-      this.log('\n============================================')
-      this.debug(`\nRound 2 Encrypted Secret Package for ${accountName}:`)
-      this.debug(round2Result.secretPackage)
-
-      this.log(`\nRound 2 Public Package for ${accountName}:`)
-      this.log(round2Result.publicPackage)
-      this.log('\n============================================')
-
-      this.log('\nShare your Round 2 Public Package with other participants.')
-      this.log(`\nEnter ${totalParticipants - 1} Round 2 Public Packages (excluding yours) `)
-
-      round2PublicPackages = await ui.collectStrings(
-        'Round 2 Public Package',
-        totalParticipants - 1,
-        {
-          additionalStrings: [round2Result.publicPackage],
-          logger: this.logger,
-        },
-      )
-    } else {
-      round2PublicPackages = await sessionManager.getRound2PublicPackages(
-        round2Result.publicPackage,
-        totalParticipants,
-      )
-    }
+    const round2PublicPackages = await sessionManager.getRound2PublicPackages({
+      accountName,
+      round2PublicPackage: round2Result.publicPackage,
+      round2SecretPackage: round2Result.secretPackage,
+      totalParticipants,
+    })
 
     if (ledger) {
       await this.performRound3WithLedger(

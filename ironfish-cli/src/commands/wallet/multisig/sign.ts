@@ -15,7 +15,11 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { LedgerMultiSigner } from '../../../ledger'
 import { MultisigBrokerUtils } from '../../../multisigBroker'
-import { MultisigSigningSessionManager } from '../../../multisigBroker/sessionManager'
+import {
+  MultisigClientSigningSessionManager,
+  MultisigSigningSessionManager,
+  SigningSessionManager,
+} from '../../../multisigBroker/sessionManagers'
 import * as ui from '../../../ui'
 import { renderUnsignedTransactionDetails, watchTransaction } from '../../../utils/transaction'
 
@@ -122,7 +126,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       )
     }
 
-    let sessionManager: MultisigSigningSessionManager | null = null
+    let sessionManager: SigningSessionManager
     if (flags.server || flags.connection || flags.sessionId || flags.passphrase) {
       const { hostname, port, sessionId, passphrase } =
         await MultisigBrokerUtils.parseConnectionOptions({
@@ -134,23 +138,21 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
           logger: this.logger,
         })
 
-      const multisigClient = MultisigBrokerUtils.createClient(hostname, port, {
-        passphrase,
-        tls: flags.tls ?? true,
+      sessionManager = new MultisigClientSigningSessionManager({
         logger: this.logger,
+        hostname,
+        port,
+        passphrase,
+        sessionId,
+        tls: flags.tls,
       })
-      sessionManager = new MultisigSigningSessionManager(multisigClient)
-      await sessionManager.connect()
-
-      if (sessionId) {
-        await sessionManager.joinSession(sessionId)
-      }
+    } else {
+      sessionManager = new MultisigSigningSessionManager({ logger: this.logger })
     }
 
-    const { unsignedTransaction, totalParticipants } = await this.getSigningConfig(
-      sessionManager,
-      flags.unsignedTransaction,
-    )
+    const { numSigners, unsignedTransaction } = await sessionManager.startSession({
+      unsignedTransaction: flags.unsignedTransaction,
+    })
 
     const { commitment, identities } = await ui.retryStep(
       async () => {
@@ -159,7 +161,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
           sessionManager,
           multisigAccountName,
           participant,
-          totalParticipants,
+          numSigners,
           unsignedTransaction,
           ledger,
         )
@@ -175,7 +177,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         multisigAccountName,
         commitment,
         identities,
-        totalParticipants,
+        numSigners,
         unsignedTransaction,
       )
     }, this.logger)
@@ -208,78 +210,21 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     )
 
     this.log('Multisignature sign process completed!')
-    sessionManager?.leaveSession()
-  }
-
-  async getSigningConfig(
-    sessionManager: MultisigSigningSessionManager | null,
-    unsignedTransactionFlag?: string,
-  ): Promise<{ unsignedTransaction: UnsignedTransaction; totalParticipants: number }> {
-    if (sessionManager?.sessionId) {
-      return sessionManager.getConfig()
-    }
-
-    const unsignedTransactionInput =
-      unsignedTransactionFlag ??
-      (await ui.longPrompt('Enter the unsigned transaction', { required: true }))
-    const unsignedTransaction = new UnsignedTransaction(
-      Buffer.from(unsignedTransactionInput, 'hex'),
-    )
-
-    const totalParticipants = await ui.inputNumberPrompt(
-      this.logger,
-      'Enter the number of participants in signing this transaction',
-      { required: true, integer: true },
-    )
-
-    if (totalParticipants < 2) {
-      this.error('Minimum number of participants must be at least 2')
-    }
-
-    if (sessionManager) {
-      sessionManager.startSession(totalParticipants, unsignedTransactionInput)
-      this.log('\nStarted new signing session:')
-      this.log(`${sessionManager.sessionId}`)
-      this.log('\nSigning session connection string:')
-      this.log(`${sessionManager.client.connectionString}`)
-    }
-
-    return { unsignedTransaction, totalParticipants }
+    sessionManager.endSession()
   }
 
   private async performAggregateSignatures(
     client: RpcClient,
-    sessionManager: MultisigSigningSessionManager | null,
+    sessionManager: SigningSessionManager,
     accountName: string,
     signingPackage: string,
     signatureShare: string,
-    totalParticipants: number,
+    numSigners: number,
   ): Promise<void> {
-    let signatureShares: string[] = [signatureShare]
-    if (!sessionManager) {
-      this.log('\n============================================')
-      this.log('\nSignature Share:')
-      this.log(signatureShare)
-      this.log('\n============================================')
-
-      this.log('\nShare your signature share with other participants.')
-
-      this.log(
-        `Enter ${
-          totalParticipants - 1
-        } signature shares of the participants (excluding your own)`,
-      )
-
-      signatureShares = await ui.collectStrings('Signature Share', totalParticipants - 1, {
-        additionalStrings: [signatureShare],
-        logger: this.logger,
-      })
-    } else {
-      signatureShares = await sessionManager.getSignatureShares(
-        signatureShare,
-        totalParticipants,
-      )
-    }
+    const signatureShares = await sessionManager.getSignatureShares({
+      signatureShare,
+      numSigners,
+    })
 
     const broadcast = await ui.confirmPrompt('Do you want to broadcast the transaction?')
     const watch = await ui.confirmPrompt('Do you want to watch the transaction?')
@@ -373,33 +318,17 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
   private async performAggregateCommitments(
     client: RpcClient,
-    sessionManager: MultisigSigningSessionManager | null,
+    sessionManager: SigningSessionManager,
     accountName: string,
     commitment: string,
     identities: string[],
-    totalParticipants: number,
+    numSigners: number,
     unsignedTransaction: UnsignedTransaction,
   ) {
-    let commitments: string[] = [commitment]
-    if (!sessionManager) {
-      this.log('\n============================================')
-      this.log('\nCommitment:')
-      this.log(commitment)
-      this.log('\n============================================')
-
-      this.log('\nShare your commitment with other participants.')
-
-      this.log(
-        `Enter ${identities.length - 1} commitments of the participants (excluding your own)`,
-      )
-
-      commitments = await ui.collectStrings('Commitment', identities.length - 1, {
-        additionalStrings: [commitment],
-        logger: this.logger,
-      })
-    } else {
-      commitments = await sessionManager.getSigningCommitments(commitment, totalParticipants)
-    }
+    const commitments = await sessionManager.getSigningCommitments({
+      signingCommitment: commitment,
+      numSigners,
+    })
 
     const signingPackageResponse = await client.wallet.multisig.createSigningPackage({
       account: accountName,
@@ -412,29 +341,18 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
   private async performCreateSigningCommitment(
     client: RpcClient,
-    sessionManager: MultisigSigningSessionManager | null,
+    sessionManager: SigningSessionManager,
     accountName: string,
     participant: MultisigParticipant,
-    totalParticipants: number,
+    numSigners: number,
     unsignedTransaction: UnsignedTransaction,
     ledger: LedgerMultiSigner | undefined,
   ) {
-    let identities: string[] = [participant.identity]
-    if (!sessionManager) {
-      this.log(`Identity for ${participant.name}: \n${participant.identity} \n`)
-      this.log('Share your participant identity with other signers.')
-
-      this.log(
-        `Enter ${totalParticipants - 1} identities of the participants (excluding your own)`,
-      )
-
-      identities = await ui.collectStrings('Participant Identity', totalParticipants - 1, {
-        additionalStrings: [participant.identity],
-        logger: this.logger,
-      })
-    } else {
-      identities = await sessionManager.getIdentities(participant.identity, totalParticipants)
-    }
+    const identities = await sessionManager.getIdentities({
+      accountName,
+      identity: participant.identity,
+      numSigners,
+    })
 
     const unsignedTransactionHex = unsignedTransaction.serialize().toString('hex')
 
