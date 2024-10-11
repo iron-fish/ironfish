@@ -204,7 +204,7 @@ export class MultisigSigningSessionManager
 
     return ui.collectStrings('Participant Identity', numSigners - 1, {
       additionalStrings: [identity],
-      errorOnDuplicate: true,
+      logger: this.logger,
     })
   }
 
@@ -227,7 +227,7 @@ export class MultisigSigningSessionManager
 
     return ui.collectStrings('Commitment', numSigners - 1, {
       additionalStrings: [signingCommitment],
-      errorOnDuplicate: true,
+      logger: this.logger,
     })
   }
 
@@ -249,7 +249,7 @@ export class MultisigSigningSessionManager
 
     return ui.collectStrings('Signature Share', numSigners - 1, {
       additionalStrings: [signatureShare],
-      errorOnDuplicate: true,
+      logger: this.logger,
     })
   }
 }

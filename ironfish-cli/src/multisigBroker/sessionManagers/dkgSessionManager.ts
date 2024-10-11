@@ -200,7 +200,7 @@ export class MultisigDkgSessionManager
     )
     return await ui.collectStrings('Participant Identity', options.totalParticipants - 1, {
       additionalStrings: [options.identity],
-      errorOnDuplicate: true,
+      logger: this.logger,
     })
   }
 
@@ -227,7 +227,7 @@ export class MultisigDkgSessionManager
 
     return await ui.collectStrings('Round 1 Public Package', totalParticipants - 1, {
       additionalStrings: [round1PublicPackage],
-      errorOnDuplicate: true,
+      logger: this.logger,
     })
   }
 
@@ -254,7 +254,7 @@ export class MultisigDkgSessionManager
 
     return await ui.collectStrings('Round 2 Public Package', totalParticipants - 1, {
       additionalStrings: [round2PublicPackage],
-      errorOnDuplicate: true,
+      logger: this.logger,
     })
   }
 }
