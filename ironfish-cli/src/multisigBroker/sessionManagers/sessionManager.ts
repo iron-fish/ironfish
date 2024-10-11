@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert, Logger, PromiseUtils } from '@ironfish/sdk'
+import { ux } from '@oclif/core'
 import { MultisigClient } from '../clients'
 import { MultisigBrokerUtils } from '../utils'
 
@@ -44,6 +45,9 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
   protected async connect(): Promise<void> {
     let confirmed = false
 
+    ux.action.start(
+      `Connecting to multisig broker server: ${this.client.hostname}:${this.client.port}`,
+    )
     this.client.start()
 
     this.client.onConnectedMessage.on(() => {
@@ -55,6 +59,7 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
     }
 
     this.client.onConnectedMessage.clear()
+    ux.action.stop()
   }
 
   async joinSession(sessionId: string): Promise<void> {
