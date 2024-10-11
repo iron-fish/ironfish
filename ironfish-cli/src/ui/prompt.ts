@@ -11,30 +11,36 @@ export async function collectStrings(
   itemName: string,
   itemAmount: number,
   options?: {
-    additionalStrings: string[]
-    errorOnDuplicate: boolean
+    additionalStrings?: string[]
+    allowDuplicate?: boolean
+    errorOnDuplicate?: boolean
+    logger?: Logger
   },
 ): Promise<string[]> {
-  const array = []
+  const strings = new Set(options?.additionalStrings || [])
+  const duplicates = []
 
   for (let i = 0; i < itemAmount; i++) {
-    const input = await longPrompt(`${itemName} #${i + 1}`, { required: true })
-    array.push(input)
-  }
+    let item
+    while (!item) {
+      item = await longPrompt(`${itemName} #${i + 1}`, { required: true })
 
-  const additionalStrings = options?.additionalStrings || []
-
-  const strings = [...array, ...additionalStrings]
-
-  if (options?.errorOnDuplicate) {
-    const withoutDuplicates = [...new Set(strings)]
-
-    if (withoutDuplicates.length !== strings.length) {
-      throw new Error(`Duplicate ${itemName} found in the list`)
+      if (strings.has(item)) {
+        if (options?.allowDuplicate) {
+          duplicates.push(item)
+          continue
+        } else if (options?.errorOnDuplicate) {
+          throw new Error(`Duplicate ${itemName} found in the list`)
+        } else {
+          options?.logger?.log(`Duplicate ${itemName}`)
+          item = undefined
+        }
+      }
     }
+    strings.add(item)
   }
 
-  return strings
+  return [...strings, ...duplicates]
 }
 
 async function _inputPrompt(message: string, options?: { password: boolean }): Promise<string> {

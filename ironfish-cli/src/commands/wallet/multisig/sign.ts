@@ -272,7 +272,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
       signatureShares = await ui.collectStrings('Signature Share', totalParticipants - 1, {
         additionalStrings: [signatureShare],
-        errorOnDuplicate: true,
+        logger: this.logger,
       })
     } else {
       signatureShares = await sessionManager.getSignatureShares(
@@ -395,7 +395,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
       commitments = await ui.collectStrings('Commitment', identities.length - 1, {
         additionalStrings: [commitment],
-        errorOnDuplicate: true,
+        logger: this.logger,
       })
     } else {
       commitments = await sessionManager.getSigningCommitments(commitment, totalParticipants)
@@ -430,7 +430,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
       identities = await ui.collectStrings('Participant Identity', totalParticipants - 1, {
         additionalStrings: [participant.identity],
-        errorOnDuplicate: true,
+        logger: this.logger,
       })
     } else {
       identities = await sessionManager.getIdentities(participant.identity, totalParticipants)
