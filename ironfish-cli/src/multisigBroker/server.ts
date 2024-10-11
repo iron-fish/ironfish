@@ -452,6 +452,10 @@ export class MultisigServer {
     this.logger.debug(`Client ${client.id} started dkg session ${message.sessionId}`)
 
     this.addClientToSession(client, sessionId)
+
+    this.send(client.socket, 'joined_session', message.sessionId, {
+      challenge: session.challenge,
+    })
   }
 
   async handleSigningStartSessionMessage(
@@ -491,6 +495,10 @@ export class MultisigServer {
     this.logger.debug(`Client ${client.id} started signing session ${message.sessionId}`)
 
     this.addClientToSession(client, sessionId)
+
+    this.send(client.socket, 'joined_session', message.sessionId, {
+      challenge: session.challenge,
+    })
   }
 
   handleJoinSessionMessage(client: MultisigServerClient, message: MultisigBrokerMessage) {

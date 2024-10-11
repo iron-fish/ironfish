@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert, Logger, PromiseUtils } from '@ironfish/sdk'
+import { ux } from '@oclif/core'
 import { MultisigClient } from '../clients'
 import { MultisigBrokerUtils } from '../utils'
 
@@ -70,6 +71,7 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
     Assert.isNotNull(this.client)
     let confirmed = false
 
+    ux.action.start(`Waiting to join session: ${this.client.sessionId}`)
     this.client.onJoinedSession.on(() => {
       confirmed = true
     })
@@ -79,6 +81,7 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
     }
 
     this.client.onJoinedSession.clear()
+    ux.action.stop()
   }
 
   endSession(): void {
