@@ -293,6 +293,7 @@ export abstract class MultisigClient {
         this.logger.debug(
           `Server sent error ${headerWithError.result.error.message} for id ${headerWithError.result.error.id}`,
         )
+        this.cancelRetry(headerWithError.result.error.id)
         this.onMultisigBrokerError.emit(headerWithError.result)
         return
       }
@@ -307,9 +308,7 @@ export abstract class MultisigClient {
             throw new ServerMessageMalformedError(body.error, header.result.method)
           }
 
-          const retryInterval = this.retries.get(body.result.messageId)
-          clearInterval(retryInterval)
-          this.retries.delete(body.result.messageId)
+          this.cancelRetry(body.result.messageId)
           break
         }
         case 'dkg.status': {
@@ -365,6 +364,12 @@ export abstract class MultisigClient {
           throw new ServerMessageMalformedError(`Invalid message ${header.result.method}`)
       }
     }
+  }
+
+  cancelRetry(messageId: number): void {
+    const retryInterval = this.retries.get(messageId)
+    clearInterval(retryInterval)
+    this.retries.delete(messageId)
   }
 
   private encryptMessageBody(body: unknown): object {
