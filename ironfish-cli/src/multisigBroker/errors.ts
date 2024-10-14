@@ -47,3 +47,13 @@ export class ServerMessageMalformedError extends MessageMalformedError {
     super('Server', error, method)
   }
 }
+
+export class MultisigClientError extends Error {
+  name = this.constructor.name
+}
+
+export class SessionDecryptionError extends MultisigClientError {
+  constructor(message: string) {
+    super(message)
+  }
+}
