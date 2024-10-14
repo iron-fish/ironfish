@@ -284,32 +284,49 @@ async function inputDkgConfig(options: {
   totalParticipants: number
   minSigners: number
 }> {
-  const totalParticipants =
-    options.totalParticipants ??
-    (await ui.inputNumberPrompt(options.logger, 'Enter the total number of participants', {
-      required: true,
-      integer: true,
-    }))
+  let totalParticipants
 
-  if (totalParticipants < 2) {
-    throw new Error('Total number of participants must be at least 2')
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    totalParticipants =
+      options.totalParticipants ??
+      (await ui.inputNumberPrompt(options.logger, 'Enter the total number of participants', {
+        required: true,
+        integer: true,
+      }))
+
+    if (totalParticipants < 2) {
+      options.logger.error('Total number of participants must be at least 2')
+      continue
+    }
+
+    if (options.ledger && totalParticipants > 4) {
+      options.logger.error('DKG with Ledger supports a maximum of 4 participants')
+      continue
+    }
+
+    break
   }
 
-  if (options.ledger && totalParticipants > 4) {
-    throw new Error('DKG with Ledger supports a maximum of 4 participants')
-  }
+  let minSigners
 
-  const minSigners =
-    options.minSigners ??
-    (await ui.inputNumberPrompt(options.logger, 'Enter the number of minimum signers', {
-      required: true,
-      integer: true,
-    }))
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    minSigners =
+      options.minSigners ??
+      (await ui.inputNumberPrompt(options.logger, 'Enter the number of minimum signers', {
+        required: true,
+        integer: true,
+      }))
 
-  if (minSigners < 2 || minSigners > totalParticipants) {
-    throw new Error(
-      'Minimum number of signers must be between 2 and the total number of participants',
-    )
+    if (minSigners < 2 || minSigners > totalParticipants) {
+      options.logger.error(
+        'Minimum number of signers must be between 2 and the total number of participants',
+      )
+      continue
+    }
+
+    break
   }
 
   return { totalParticipants, minSigners }
