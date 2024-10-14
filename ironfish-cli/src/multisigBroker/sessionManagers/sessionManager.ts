@@ -75,6 +75,7 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
     Assert.isNotNull(this.client)
     let confirmed = false
 
+    ux.action.start(`Waiting to join session: ${this.client.sessionId}`)
     this.client.onJoinedSession.on(() => {
       confirmed = true
     })
@@ -84,6 +85,7 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
     }
 
     this.client.onJoinedSession.clear()
+    ux.action.stop()
   }
 
   endSession(): void {
