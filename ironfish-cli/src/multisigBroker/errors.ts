@@ -4,6 +4,13 @@
 import * as yup from 'yup'
 import { MultisigServerClient } from './serverClient'
 
+export const MultisigBrokerErrorCodes = {
+  DUPLICATE_SESSION_ID: 1,
+  SESSION_ID_NOT_FOUND: 2,
+  INVALID_DKG_SESSION_ID: 3,
+  INVALID_SIGNING_SESSION_ID: 4,
+}
+
 export class MessageMalformedError extends Error {
   name = this.constructor.name
 
