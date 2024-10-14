@@ -5,7 +5,7 @@ import { AccountFormat, encodeAccountImport } from '@ironfish/sdk'
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { LedgerError, LedgerSingleSigner } from '../../ledger'
+import { LedgerError, LedgerMultiSigner, LedgerSingleSigner } from '../../ledger'
 import { checkWalletUnlocked, inputPrompt } from '../../ui'
 import * as ui from '../../ui'
 import { importFile, importPipe, longPrompt } from '../../ui/longPrompt'
@@ -42,6 +42,11 @@ export class ImportCommand extends IronfishCommand {
       default: false,
       exclusive: ['path'],
     }),
+    multisig: Flags.boolean({
+      description: 'Import a view-only multisig account from a ledger device',
+      default: false,
+      dependsOn: ['ledger'],
+    }),
   }
 
   async start(): Promise<void> {
@@ -68,6 +73,8 @@ export class ImportCommand extends IronfishCommand {
 
     if (blob) {
       account = blob
+    } else if (flags.ledger && flags.multisig) {
+      account = await this.importLedgerMultisig()
     } else if (flags.ledger) {
       account = await this.importLedger()
     } else if (flags.path) {
@@ -124,6 +131,28 @@ export class ImportCommand extends IronfishCommand {
       const account = await ui.ledger({
         ledger,
         message: 'Import Wallet',
+        approval: true,
+        action: () => ledger.importAccount(),
+      })
+
+      return encodeAccountImport(account, AccountFormat.Base64Json)
+    } catch (e) {
+      if (e instanceof LedgerError) {
+        this.logger.error(e.message + '\n')
+        this.exit(1)
+      } else {
+        this.error('Unknown error while importing account from ledger device.')
+      }
+    }
+  }
+
+  async importLedgerMultisig(): Promise<string> {
+    try {
+      const ledger = new LedgerMultiSigner()
+
+      const account = await ui.ledger({
+        ledger,
+        message: 'Import Multisig Wallet',
         approval: true,
         action: () => ledger.importAccount(),
       })
