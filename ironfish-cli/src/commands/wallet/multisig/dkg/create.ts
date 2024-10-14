@@ -19,7 +19,6 @@ import path from 'path'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { LedgerMultiSigner } from '../../../../ledger'
-import { MultisigBrokerUtils } from '../../../../multisigBroker'
 import {
   DkgSessionManager,
   MultisigClientDkgSessionManager,
@@ -105,21 +104,12 @@ export class DkgCreateCommand extends IronfishCommand {
 
     let sessionManager: DkgSessionManager
     if (flags.server || flags.connection || flags.sessionId || flags.passphrase) {
-      const { hostname, port, sessionId, passphrase } =
-        await MultisigBrokerUtils.parseConnectionOptions({
-          connection: flags.connection,
-          hostname: flags.hostname,
-          port: flags.port,
-          sessionId: flags.sessionId,
-          passphrase: flags.passphrase,
-          logger: this.logger,
-        })
-
       sessionManager = new MultisigClientDkgSessionManager({
-        hostname,
-        port,
-        passphrase,
-        sessionId,
+        connection: flags.connection,
+        hostname: flags.hostname,
+        port: flags.port,
+        passphrase: flags.passphrase,
+        sessionId: flags.sessionId,
         tls: flags.tls ?? true,
         logger: this.logger,
       })

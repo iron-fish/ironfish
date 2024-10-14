@@ -32,8 +32,22 @@ export class MultisigClientSigningSessionManager
     numSigners?: number
     unsignedTransaction?: string
   }): Promise<{ numSigners: number; unsignedTransaction: UnsignedTransaction }> {
+    if (!this.sessionId) {
+      this.sessionId = await ui.inputPrompt(
+        'Enter the ID of a multisig session to join, or press enter to start a new session',
+        false,
+      )
+    }
+
+    if (!this.passphrase) {
+      this.passphrase = await ui.inputPrompt(
+        'Enter the passphrase for the multisig session',
+        true,
+      )
+    }
+
     if (this.sessionId) {
-      await this.joinSession(this.sessionId)
+      await this.joinSession(this.sessionId, this.passphrase)
       return this.getSessionConfig()
     }
 
@@ -44,7 +58,7 @@ export class MultisigClientSigningSessionManager
 
     await this.connect()
 
-    this.client.startSigningSession(numSigners, unsignedTransaction)
+    this.client.startSigningSession(this.passphrase, numSigners, unsignedTransaction)
     this.sessionId = this.client.sessionId
 
     this.logger.info(`\nStarting new signing session: ${this.sessionId}\n`)

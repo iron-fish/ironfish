@@ -8,11 +8,10 @@ import { MultisigClient } from './client'
 export class MultisigTcpClient extends MultisigClient {
   client: net.Socket | null = null
 
-  constructor(options: { hostname: string; port: number; passphrase: string; logger: Logger }) {
+  constructor(options: { hostname: string; port: number; logger: Logger }) {
     super({
       hostname: options.hostname,
       port: options.port,
-      passphrase: options.passphrase,
       logger: options.logger,
     })
   }
