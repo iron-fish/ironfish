@@ -63,11 +63,11 @@ export abstract class MultisigClient {
   readonly onMultisigBrokerError = new Event<[MultisigBrokerMessageWithError]>()
 
   sessionId: string | null = null
-  passphrase: string
+  passphrase: string | null = null
 
   retries: Map<number, NodeJS.Timer> = new Map()
 
-  constructor(options: { hostname: string; port: number; passphrase: string; logger: Logger }) {
+  constructor(options: { hostname: string; port: number; logger: Logger }) {
     this.logger = options.logger
     this.version = 3
     this.hostname = options.hostname
@@ -78,8 +78,6 @@ export abstract class MultisigClient {
     this.connected = false
     this.connectWarned = false
     this.connectTimeout = null
-
-    this.passphrase = options.passphrase
   }
 
   get connectionString(): string {
@@ -87,7 +85,7 @@ export abstract class MultisigClient {
   }
 
   get key(): xchacha20poly1305.XChaCha20Poly1305Key {
-    if (!this.sessionId) {
+    if (!this.sessionId || !this.passphrase) {
       throw new Error('Client must join a session before encrypting/decrypting messages')
     }
 
@@ -162,19 +160,26 @@ export abstract class MultisigClient {
     return this.connected
   }
 
-  joinSession(sessionId: string): void {
+  joinSession(sessionId: string, passphrase: string): void {
     this.sessionId = sessionId
+    this.passphrase = passphrase
     this.send('join_session', {})
   }
 
-  startDkgSession(maxSigners: number, minSigners: number): void {
+  startDkgSession(passphrase: string, maxSigners: number, minSigners: number): void {
     this.sessionId = uuid()
+    this.passphrase = passphrase
     const challenge = this.key.encrypt(Buffer.from('DKG')).toString('hex')
     this.send('dkg.start_session', { maxSigners, minSigners, challenge })
   }
 
-  startSigningSession(numSigners: number, unsignedTransaction: string): void {
+  startSigningSession(
+    passphrase: string,
+    numSigners: number,
+    unsignedTransaction: string,
+  ): void {
     this.sessionId = uuid()
+    this.passphrase = passphrase
     const challenge = this.key.encrypt(Buffer.from('SIGNING')).toString('hex')
     this.send('sign.start_session', { numSigners, unsignedTransaction, challenge })
   }

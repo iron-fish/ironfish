@@ -22,24 +22,37 @@ export abstract class MultisigSessionManager {
 export abstract class MultisigClientSessionManager extends MultisigSessionManager {
   client: MultisigClient
   sessionId: string | null
+  passphrase: string | null
 
   constructor(options: {
     logger: Logger
+    connection?: string
     hostname: string
     port: number
-    passphrase: string
+    passphrase?: string
     sessionId?: string
     tls?: boolean
   }) {
     super({ logger: options.logger })
 
-    this.client = MultisigBrokerUtils.createClient(options.hostname, options.port, {
+    const { hostname, port, sessionId, passphrase } =
+      MultisigBrokerUtils.parseConnectionOptions({
+        connection: options.connection,
+        hostname: options.hostname,
+        port: options.port,
+        sessionId: options.sessionId,
+        passphrase: options.passphrase,
+        logger: this.logger,
+      })
+
+    this.client = MultisigBrokerUtils.createClient(hostname, port, {
       passphrase: options.passphrase,
       tls: options.tls ?? true,
       logger: this.logger,
     })
 
-    this.sessionId = options.sessionId ?? null
+    this.sessionId = sessionId ?? null
+    this.passphrase = passphrase ?? null
   }
 
   protected async connect(): Promise<void> {
@@ -62,10 +75,10 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
     ux.action.stop()
   }
 
-  async joinSession(sessionId: string): Promise<void> {
+  async joinSession(sessionId: string, passphrase: string): Promise<void> {
     await this.connect()
 
-    this.client.joinSession(sessionId)
+    this.client.joinSession(sessionId, passphrase)
 
     await this.waitForJoinedSession()
     this.sessionId = sessionId

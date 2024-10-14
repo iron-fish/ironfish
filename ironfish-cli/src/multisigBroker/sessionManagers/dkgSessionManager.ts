@@ -40,8 +40,22 @@ export class MultisigClientDkgSessionManager
     minSigners?: number
     ledger?: boolean
   }): Promise<{ totalParticipants: number; minSigners: number }> {
+    if (!this.sessionId) {
+      this.sessionId = await ui.inputPrompt(
+        'Enter the ID of a multisig session to join, or press enter to start a new session',
+        false,
+      )
+    }
+
+    if (!this.passphrase) {
+      this.passphrase = await ui.inputPrompt(
+        'Enter the passphrase for the multisig session',
+        true,
+      )
+    }
+
     if (this.sessionId) {
-      await this.joinSession(this.sessionId)
+      await this.joinSession(this.sessionId, this.passphrase)
       return this.getSessionConfig()
     }
 
@@ -54,7 +68,7 @@ export class MultisigClientDkgSessionManager
 
     await this.connect()
 
-    this.client.startDkgSession(totalParticipants, minSigners)
+    this.client.startDkgSession(this.passphrase, totalParticipants, minSigners)
     this.sessionId = this.client.sessionId
 
     this.logger.info(`\nStarted new DKG session: ${this.sessionId}\n`)

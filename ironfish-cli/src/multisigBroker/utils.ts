@@ -2,22 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ErrorUtils, Logger } from '@ironfish/sdk'
-import * as ui from '../ui'
 import { MultisigClient, MultisigTcpClient, MultisigTlsClient } from './clients'
 
-async function parseConnectionOptions(options: {
+function parseConnectionOptions(options: {
   connection?: string
   hostname: string
   port: number
   sessionId?: string
   passphrase?: string
   logger: Logger
-}): Promise<{
+}): {
   hostname: string
   port: number
-  sessionId: string
-  passphrase: string
-}> {
+  sessionId: string | undefined
+  passphrase: string | undefined
+} {
   let hostname
   let port
   let sessionId
@@ -48,19 +47,6 @@ async function parseConnectionOptions(options: {
   hostname = hostname ?? options.hostname
   port = port ?? options.port
 
-  sessionId = sessionId ?? options.sessionId
-  if (!sessionId) {
-    sessionId = await ui.inputPrompt(
-      'Enter the ID of a multisig session to join, or press enter to start a new session',
-      false,
-    )
-  }
-
-  passphrase = passphrase ?? options.passphrase
-  if (!passphrase) {
-    passphrase = await ui.inputPrompt('Enter the passphrase for the multisig session', true)
-  }
-
   return {
     hostname,
     port,
@@ -72,20 +58,18 @@ async function parseConnectionOptions(options: {
 function createClient(
   hostname: string,
   port: number,
-  options: { passphrase: string; tls: boolean; logger: Logger },
+  options: { passphrase?: string; tls: boolean; logger: Logger },
 ): MultisigClient {
   if (options.tls) {
     return new MultisigTlsClient({
       hostname,
       port,
-      passphrase: options.passphrase,
       logger: options.logger,
     })
   } else {
     return new MultisigTcpClient({
       hostname,
       port,
-      passphrase: options.passphrase,
       logger: options.logger,
     })
   }

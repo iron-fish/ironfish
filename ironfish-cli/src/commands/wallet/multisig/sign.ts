@@ -14,7 +14,6 @@ import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { LedgerMultiSigner } from '../../../ledger'
-import { MultisigBrokerUtils } from '../../../multisigBroker'
 import {
   MultisigClientSigningSessionManager,
   MultisigSigningSessionManager,
@@ -128,22 +127,13 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
     let sessionManager: SigningSessionManager
     if (flags.server || flags.connection || flags.sessionId || flags.passphrase) {
-      const { hostname, port, sessionId, passphrase } =
-        await MultisigBrokerUtils.parseConnectionOptions({
-          connection: flags.connection,
-          hostname: flags.hostname,
-          port: flags.port,
-          sessionId: flags.sessionId,
-          passphrase: flags.passphrase,
-          logger: this.logger,
-        })
-
       sessionManager = new MultisigClientSigningSessionManager({
         logger: this.logger,
-        hostname,
-        port,
-        passphrase,
-        sessionId,
+        connection: flags.connection,
+        hostname: flags.hostname,
+        port: flags.port,
+        passphrase: flags.passphrase,
+        sessionId: flags.sessionId,
         tls: flags.tls,
       })
     } else {
