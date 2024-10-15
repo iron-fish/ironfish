@@ -11,6 +11,7 @@ export class MultisigServerClient {
   remoteAddress: string
   messageBuffer: MessageBuffer
   sessionId: string | null = null
+  identity: string | null = null
 
   private constructor(options: { socket: net.Socket; id: number }) {
     this.id = options.id
