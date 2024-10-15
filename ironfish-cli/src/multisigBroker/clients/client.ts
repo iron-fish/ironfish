@@ -87,7 +87,8 @@ export abstract class MultisigClient {
   }
 
   get connectionString(): string {
-    return `tcp://${this.sessionId}:${this.passphrase}@${this.hostname}:${this.port}`
+    const passphrase = this.passphrase ? encodeURIComponent(this.passphrase) : ''
+    return `tcp://${this.sessionId}:${passphrase}@${this.hostname}:${this.port}`
   }
 
   get key(): xchacha20poly1305.XChaCha20Poly1305Key {
