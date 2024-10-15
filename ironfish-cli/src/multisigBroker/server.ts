@@ -313,20 +313,14 @@ export class MultisigServer {
     // multiple identities, leaving the session in a bad state.
     if (client.identity != null) {
       if (isDkgSession(session)) {
-        if (
-          session.status.round1PublicPackages.length === 0 &&
-          session.status.round2PublicPackages.length === 0
-        ) {
+        if (session.status.round1PublicPackages.length === 0) {
           const identIndex = session.status.identities.indexOf(client.identity)
           if (identIndex > -1) {
             session.status.identities.splice(identIndex, 1)
           }
         }
       } else if (isSigningSession(session)) {
-        if (
-          session.status.signatureShares.length === 0 &&
-          session.status.signingCommitments.length === 0
-        ) {
+        if (session.status.signingCommitments.length === 0) {
           const identIndex = session.status.identities.indexOf(client.identity)
           if (identIndex > -1) {
             session.status.identities.splice(identIndex, 1)
