@@ -140,9 +140,11 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       sessionManager = new MultisigSigningSessionManager({ logger: this.logger })
     }
 
-    const { numSigners, unsignedTransaction } = await sessionManager.startSession({
-      unsignedTransaction: flags.unsignedTransaction,
-    })
+    const { numSigners, unsignedTransaction } = await ui.retryStep(async () => {
+      return sessionManager.startSession({
+        unsignedTransaction: flags.unsignedTransaction,
+      })
+    }, this.logger)
 
     const { commitment, identities } = await ui.retryStep(
       async () => {

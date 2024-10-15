@@ -11,7 +11,11 @@ import {
   YupUtils,
 } from '@ironfish/sdk'
 import { v4 as uuid } from 'uuid'
-import { ServerMessageMalformedError } from '../errors'
+import {
+  MultisigClientError,
+  ServerMessageMalformedError,
+  SessionDecryptionError,
+} from '../errors'
 import {
   ConnectedMessage,
   ConnectedMessageSchema,
@@ -61,6 +65,7 @@ export abstract class MultisigClient {
   readonly onConnectedMessage = new Event<[ConnectedMessage]>()
   readonly onJoinedSession = new Event<[JoinSessionMessage]>()
   readonly onMultisigBrokerError = new Event<[MultisigBrokerMessageWithError]>()
+  readonly onClientError = new Event<[MultisigClientError]>()
 
   sessionId: string | null = null
   passphrase: string | null = null
@@ -272,9 +277,6 @@ export abstract class MultisigClient {
   }
 
   protected onError = (error: unknown): void => {
-    if (error instanceof SessionDecryptionError) {
-      throw error
-    }
     this.logger.error(`Error ${ErrorUtils.renderError(error)}`)
   }
 
@@ -358,10 +360,13 @@ export abstract class MultisigClient {
             const decrypted = this.decryptMessageBody<JoinedSessionMessage>(body.result)
             this.onJoinedSession.emit(decrypted)
             break
-          } catch {
-            throw new SessionDecryptionError(
-              'Failed to decrypt session challenge. Passphrase is incorrect.',
+          } catch (e) {
+            this.onClientError.emit(
+              new SessionDecryptionError(
+                'Failed to decrypt session challenge. Passphrase is incorrect.',
+              ),
             )
+            break
           }
         }
 
@@ -435,11 +440,5 @@ export abstract class MultisigClient {
     }
 
     return decrypted
-  }
-}
-
-class SessionDecryptionError extends Error {
-  constructor(message: string) {
-    super(message)
   }
 }

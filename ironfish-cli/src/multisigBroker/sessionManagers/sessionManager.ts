@@ -4,6 +4,7 @@
 import { Assert, Logger, PromiseUtils } from '@ironfish/sdk'
 import { ux } from '@oclif/core'
 import { MultisigClient } from '../clients'
+import { SessionDecryptionError } from '../errors'
 import { MultisigBrokerUtils } from '../utils'
 
 export abstract class MultisigSessionManager {
@@ -56,6 +57,10 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
   }
 
   protected async connect(): Promise<void> {
+    if (this.client.isConnected()) {
+      return
+    }
+
     let confirmed = false
 
     ux.action.start(
@@ -86,14 +91,27 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
 
   protected async waitForJoinedSession(): Promise<void> {
     Assert.isNotNull(this.client)
-    let confirmed = false
 
     ux.action.start(`Waiting to join session: ${this.client.sessionId}`)
+
+    let confirmed = false
     this.client.onJoinedSession.on(() => {
       confirmed = true
     })
 
+    let clientError: unknown
+    this.client.onClientError.on((error) => {
+      clientError = error
+    })
+
     while (!confirmed) {
+      if (clientError) {
+        if (clientError instanceof SessionDecryptionError) {
+          this.passphrase = null
+        }
+        ux.action.stop()
+        throw clientError
+      }
       await PromiseUtils.sleep(1000)
     }
 

@@ -117,11 +117,13 @@ export class DkgCreateCommand extends IronfishCommand {
       sessionManager = new MultisigDkgSessionManager({ logger: this.logger })
     }
 
-    const { totalParticipants, minSigners } = await sessionManager.startSession({
-      totalParticipants: flags.totalParticipants,
-      minSigners: flags.minSigners,
-      ledger: flags.ledger,
-    })
+    const { totalParticipants, minSigners } = await ui.retryStep(async () => {
+      return sessionManager.startSession({
+        totalParticipants: flags.totalParticipants,
+        minSigners: flags.minSigners,
+        ledger: flags.ledger,
+      })
+    }, this.logger)
 
     const { name: participantName, identity } = await this.getOrCreateIdentity(
       client,
