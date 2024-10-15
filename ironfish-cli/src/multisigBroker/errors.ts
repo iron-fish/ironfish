@@ -57,3 +57,9 @@ export class SessionDecryptionError extends MultisigClientError {
     super(message)
   }
 }
+
+export class InvalidSessionError extends MultisigClientError {
+  constructor(message: string) {
+    super(message)
+  }
+}

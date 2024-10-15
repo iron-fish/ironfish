@@ -4,7 +4,11 @@
 import { Assert, Logger, PromiseUtils } from '@ironfish/sdk'
 import { ux } from '@oclif/core'
 import { MultisigClient } from '../clients'
-import { SessionDecryptionError } from '../errors'
+import {
+  InvalidSessionError,
+  MultisigBrokerErrorCodes,
+  SessionDecryptionError,
+} from '../errors'
 import { MultisigBrokerUtils } from '../utils'
 
 export abstract class MultisigSessionManager {
@@ -104,10 +108,18 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
       clientError = error
     })
 
+    this.client.onMultisigBrokerError.on((errorMessage) => {
+      if (errorMessage.error.code === MultisigBrokerErrorCodes.SESSION_ID_NOT_FOUND) {
+        clientError = new InvalidSessionError(errorMessage.error.message)
+      }
+    })
+
     while (!confirmed) {
       if (clientError) {
         if (clientError instanceof SessionDecryptionError) {
           this.passphrase = null
+        } else if (clientError instanceof InvalidSessionError) {
+          this.sessionId = null
         }
         ux.action.stop()
         throw clientError
