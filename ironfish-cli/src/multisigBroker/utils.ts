@@ -34,7 +34,7 @@ function parseConnectionOptions(options: {
         sessionId = url.username
       }
       if (url.password) {
-        passphrase = url.password
+        passphrase = decodeURI(url.password)
       }
     } catch (e) {
       if (e instanceof TypeError && e.message.includes('Invalid URL')) {
