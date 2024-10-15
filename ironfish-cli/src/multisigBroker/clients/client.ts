@@ -43,6 +43,7 @@ import {
 } from '../messages'
 
 const RETRY_INTERVAL = 5000
+const CONNECTION_TIMEOUT = 60 * 1000
 export abstract class MultisigClient {
   readonly logger: Logger
   readonly version: number
@@ -57,7 +58,7 @@ export abstract class MultisigClient {
   private nextMessageId: number
   private readonly messageBuffer = new MessageBuffer('\n')
 
-  private disconnectUntil: number | null = null
+  private tryConnectUntil: number | null = null
 
   readonly onConnected = new Event<[]>()
   readonly onDkgStatus = new Event<[DkgStatusMessage]>()
@@ -120,9 +121,11 @@ export abstract class MultisigClient {
       return
     }
 
-    if (this.disconnectUntil && this.disconnectUntil > Date.now()) {
-      this.connectTimeout = setTimeout(() => void this.startConnecting(), 60 * 1000)
-      return
+    if (!this.tryConnectUntil) {
+      this.tryConnectUntil = Date.now() + CONNECTION_TIMEOUT
+    } else if (Date.now() > this.tryConnectUntil) {
+      clearTimeout(this.connectTimeout ?? undefined)
+      throw new Error(`Timed out connecting to server at ${this.hostname}:${this.port}`)
     }
 
     const connected = await this.connect()
@@ -143,6 +146,7 @@ export abstract class MultisigClient {
       return
     }
 
+    this.tryConnectUntil = null
     this.connectWarned = false
     this.onConnect()
     this.onConnected.emit()
