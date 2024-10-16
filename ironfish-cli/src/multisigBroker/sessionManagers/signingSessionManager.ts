@@ -12,6 +12,7 @@ export interface SigningSessionManager extends MultisigSessionManager {
     numSigners?: number
     unsignedTransaction?: string
     identity: string
+    allowedIdentities?: string[]
   }): Promise<{ numSigners: number; unsignedTransaction: UnsignedTransaction }>
   getIdentities(options: {
     identity: string
@@ -33,6 +34,7 @@ export class MultisigClientSigningSessionManager
     numSigners?: number
     unsignedTransaction?: string
     identity: string
+    allowedIdentities?: string[]
   }): Promise<{ numSigners: number; unsignedTransaction: UnsignedTransaction }> {
     if (!this.sessionId) {
       this.sessionId = await ui.inputPrompt(
@@ -65,6 +67,7 @@ export class MultisigClientSigningSessionManager
       numSigners,
       unsignedTransaction,
       options.identity,
+      options.allowedIdentities,
     )
     this.sessionId = this.client.sessionId
 

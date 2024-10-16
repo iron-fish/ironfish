@@ -178,11 +178,18 @@ export abstract class MultisigClient {
     maxSigners: number,
     minSigners: number,
     identity: string,
+    allowedIdentities?: string[],
   ): void {
     this.sessionId = uuid()
     this.passphrase = passphrase
     const challenge = this.key.encrypt(Buffer.from('DKG')).toString('hex')
-    this.send('dkg.start_session', { maxSigners, minSigners, challenge, identity })
+    this.send('dkg.start_session', {
+      maxSigners,
+      minSigners,
+      challenge,
+      identity,
+      allowedIdentities,
+    })
   }
 
   startSigningSession(
@@ -190,11 +197,18 @@ export abstract class MultisigClient {
     numSigners: number,
     unsignedTransaction: string,
     identity: string,
+    allowedIdentities?: string[],
   ): void {
     this.sessionId = uuid()
     this.passphrase = passphrase
     const challenge = this.key.encrypt(Buffer.from('SIGNING')).toString('hex')
-    this.send('sign.start_session', { numSigners, unsignedTransaction, challenge, identity })
+    this.send('sign.start_session', {
+      numSigners,
+      unsignedTransaction,
+      challenge,
+      identity,
+      allowedIdentities,
+    })
   }
 
   submitRound1PublicPackage(round1PublicPackage: string): void {
