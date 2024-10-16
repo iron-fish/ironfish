@@ -51,7 +51,6 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
       })
 
     this.client = MultisigBrokerUtils.createClient(hostname, port, {
-      passphrase: options.passphrase,
       tls: options.tls ?? true,
       logger: this.logger,
     })

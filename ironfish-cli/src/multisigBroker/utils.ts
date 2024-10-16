@@ -58,7 +58,7 @@ function parseConnectionOptions(options: {
 function createClient(
   hostname: string,
   port: number,
-  options: { passphrase?: string; tls: boolean; logger: Logger },
+  options: { tls: boolean; logger: Logger },
 ): MultisigClient {
   if (options.tls) {
     return new MultisigTlsClient({
