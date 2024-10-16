@@ -155,8 +155,8 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     )
 
     // Prompt for confirmation before broker automates signing
-    if (sessionManager instanceof MultisigClientSigningSessionManager) {
-      await ui.confirmOrQuit()
+    if (!flags.ledger && sessionManager instanceof MultisigClientSigningSessionManager) {
+      await ui.confirmOrQuit('Sign this transaction?')
     }
 
     const { commitment, identities } = await ui.retryStep(
