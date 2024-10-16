@@ -124,6 +124,8 @@ export async function renderTransactionDetails(
 
   await _renderTransactionDetails(
     client,
+    transaction.fee(),
+    transaction.expiration(),
     transaction.mints,
     transaction.burns,
     account,
@@ -148,6 +150,8 @@ export async function renderUnsignedTransactionDetails(
 
   await _renderTransactionDetails(
     client,
+    unsignedTransaction.fee(),
+    unsignedTransaction.expiration(),
     unsignedTransaction.mints,
     unsignedTransaction.burns,
     account,
@@ -158,6 +162,8 @@ export async function renderUnsignedTransactionDetails(
 
 async function _renderTransactionDetails(
   client: RpcClient,
+  fee: bigint,
+  expiration: number,
   mints: MintDescription[],
   burns: BurnDescription[],
   account?: string,
@@ -168,6 +174,14 @@ async function _renderTransactionDetails(
 
   const assetIds = collectAssetIds(mints, burns, notes)
   const assetLookup = await getAssetVerificationByIds(client, assetIds, account, undefined)
+
+  logger.log('')
+  logger.log('===================')
+  logger.log('Transaction Summary')
+  logger.log('===================')
+  logger.log('')
+  logger.log(`Fee             ${CurrencyUtils.render(fee, true)}`)
+  logger.log(`Expiration      ${expiration}`)
 
   if (mints.length > 0) {
     logger.log('')

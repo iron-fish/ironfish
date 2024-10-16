@@ -176,4 +176,12 @@ export class UnsignedTransaction {
     this.returnReference()
     return publicKeyRandomness
   }
+
+  fee(): bigint {
+    return this._fee
+  }
+
+  expiration(): number {
+    return this._expiration
+  }
 }
