@@ -83,10 +83,10 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
     ux.action.stop()
   }
 
-  async joinSession(sessionId: string, passphrase: string): Promise<void> {
+  async joinSession(sessionId: string, passphrase: string, identity: string): Promise<void> {
     await this.connect()
 
-    this.client.joinSession(sessionId, passphrase)
+    this.client.joinSession(sessionId, passphrase, identity)
 
     await this.waitForJoinedSession()
     this.sessionId = sessionId

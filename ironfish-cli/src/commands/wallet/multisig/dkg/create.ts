@@ -102,6 +102,12 @@ export class DkgCreateCommand extends IronfishCommand {
       accountCreatedAt = statusResponse.content.blockchain.head.sequence
     }
 
+    const { name: participantName, identity } = await this.getOrCreateIdentity(
+      client,
+      ledger,
+      accountName,
+    )
+
     let sessionManager: DkgSessionManager
     if (flags.server || flags.connection || flags.sessionId || flags.passphrase) {
       sessionManager = new MultisigClientDkgSessionManager({
@@ -122,14 +128,9 @@ export class DkgCreateCommand extends IronfishCommand {
         totalParticipants: flags.totalParticipants,
         minSigners: flags.minSigners,
         ledger: flags.ledger,
+        identity,
       })
     }, this.logger)
-
-    const { name: participantName, identity } = await this.getOrCreateIdentity(
-      client,
-      ledger,
-      accountName,
-    )
 
     const { round1 } = await ui.retryStep(
       async () => {

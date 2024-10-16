@@ -11,6 +11,7 @@ export interface DkgSessionManager extends MultisigSessionManager {
     totalParticipants?: number
     minSigners?: number
     ledger?: boolean
+    identity: string
   }): Promise<{ totalParticipants: number; minSigners: number }>
   getIdentities(options: {
     identity: string
@@ -39,6 +40,7 @@ export class MultisigClientDkgSessionManager
     totalParticipants?: number
     minSigners?: number
     ledger?: boolean
+    identity: string
   }): Promise<{ totalParticipants: number; minSigners: number }> {
     if (!this.sessionId) {
       this.sessionId = await ui.inputPrompt(
@@ -55,7 +57,7 @@ export class MultisigClientDkgSessionManager
     }
 
     if (this.sessionId) {
-      await this.joinSession(this.sessionId, this.passphrase)
+      await this.joinSession(this.sessionId, this.passphrase, options.identity)
       return this.getSessionConfig()
     }
 
@@ -68,7 +70,12 @@ export class MultisigClientDkgSessionManager
 
     await this.connect()
 
-    this.client.startDkgSession(this.passphrase, totalParticipants, minSigners)
+    this.client.startDkgSession(
+      this.passphrase,
+      totalParticipants,
+      minSigners,
+      options.identity,
+    )
     this.sessionId = this.client.sessionId
 
     this.logger.info(`\nStarted new DKG session: ${this.sessionId}\n`)
@@ -107,8 +114,6 @@ export class MultisigClientDkgSessionManager
     totalParticipants: number
   }): Promise<string[]> {
     const { identity, totalParticipants } = options
-
-    this.client.submitDkgIdentity(identity)
 
     let identities = [identity]
     this.client.onDkgStatus.on((message) => {

@@ -11,6 +11,7 @@ export interface SigningSessionManager extends MultisigSessionManager {
   startSession(options: {
     numSigners?: number
     unsignedTransaction?: string
+    identity: string
   }): Promise<{ numSigners: number; unsignedTransaction: UnsignedTransaction }>
   getIdentities(options: {
     identity: string
@@ -31,6 +32,7 @@ export class MultisigClientSigningSessionManager
   async startSession(options: {
     numSigners?: number
     unsignedTransaction?: string
+    identity: string
   }): Promise<{ numSigners: number; unsignedTransaction: UnsignedTransaction }> {
     if (!this.sessionId) {
       this.sessionId = await ui.inputPrompt(
@@ -47,7 +49,7 @@ export class MultisigClientSigningSessionManager
     }
 
     if (this.sessionId) {
-      await this.joinSession(this.sessionId, this.passphrase)
+      await this.joinSession(this.sessionId, this.passphrase, options.identity)
       return this.getSessionConfig()
     }
 
@@ -58,7 +60,12 @@ export class MultisigClientSigningSessionManager
 
     await this.connect()
 
-    this.client.startSigningSession(this.passphrase, numSigners, unsignedTransaction)
+    this.client.startSigningSession(
+      this.passphrase,
+      numSigners,
+      unsignedTransaction,
+      options.identity,
+    )
     this.sessionId = this.client.sessionId
 
     this.logger.info(`\nStarting new signing session: ${this.sessionId}\n`)
@@ -104,8 +111,6 @@ export class MultisigClientSigningSessionManager
 
   async getIdentities(options: { identity: string; numSigners: number }): Promise<string[]> {
     const { identity, numSigners } = options
-
-    this.client.submitSigningIdentity(identity)
 
     let identities = [identity]
 

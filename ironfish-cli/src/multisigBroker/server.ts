@@ -10,8 +10,8 @@ import {
   DkgGetStatusSchema,
   DkgStartSessionSchema,
   DkgStatusMessage,
-  IdentitySchema,
   JoinedSessionMessage,
+  JoinSessionSchema,
   MultisigBrokerAckMessage,
   MultisigBrokerMessage,
   MultisigBrokerMessageSchema,
@@ -207,10 +207,7 @@ export class MultisigServer {
         await this.handleSigningStartSessionMessage(client, message)
         return
       } else if (message.method === 'join_session') {
-        this.handleJoinSessionMessage(client, message)
-        return
-      } else if (message.method === 'dkg.identity') {
-        await this.handleDkgIdentityMessage(client, message)
+        await this.handleJoinSessionMessage(client, message)
         return
       } else if (message.method === 'dkg.round1') {
         await this.handleRound1PublicPackageMessage(client, message)
@@ -220,9 +217,6 @@ export class MultisigServer {
         return
       } else if (message.method === 'dkg.get_status') {
         await this.handleDkgGetStatusMessage(client, message)
-        return
-      } else if (message.method === 'sign.identity') {
-        await this.handleSigningIdentityMessage(client, message)
         return
       } else if (message.method === 'sign.commitment') {
         await this.handleSigningCommitmentMessage(client, message)
@@ -472,7 +466,7 @@ export class MultisigServer {
       status: {
         maxSigners: body.result.maxSigners,
         minSigners: body.result.minSigners,
-        identities: [],
+        identities: [body.result.identity],
         round1PublicPackages: [],
         round2PublicPackages: [],
       },
@@ -484,6 +478,7 @@ export class MultisigServer {
 
     this.logger.debug(`Client ${client.id} started dkg session ${message.sessionId}`)
 
+    client.identity = body.result.identity
     this.addClientToSession(client, sessionId)
 
     this.send(client.socket, 'joined_session', message.sessionId, {
@@ -520,7 +515,7 @@ export class MultisigServer {
       status: {
         numSigners: body.result.numSigners,
         unsignedTransaction: body.result.unsignedTransaction,
-        identities: [],
+        identities: [body.result.identity],
         signingCommitments: [],
         signatureShares: [],
       },
@@ -532,6 +527,7 @@ export class MultisigServer {
 
     this.logger.debug(`Client ${client.id} started signing session ${message.sessionId}`)
 
+    client.identity = body.result.identity
     this.addClientToSession(client, sessionId)
 
     this.send(client.socket, 'joined_session', message.sessionId, {
@@ -539,7 +535,13 @@ export class MultisigServer {
     })
   }
 
-  handleJoinSessionMessage(client: MultisigServerClient, message: MultisigBrokerMessage) {
+  async handleJoinSessionMessage(client: MultisigServerClient, message: MultisigBrokerMessage) {
+    const body = await YupUtils.tryValidate(JoinSessionSchema, message.body)
+
+    if (body.error) {
+      return
+    }
+
     const session = this.sessions.get(message.sessionId)
     if (!session) {
       this.sendErrorMessage(
@@ -558,89 +560,21 @@ export class MultisigServer {
     this.send(client.socket, 'joined_session', message.sessionId, {
       challenge: session.challenge,
     })
-  }
 
-  async handleDkgIdentityMessage(client: MultisigServerClient, message: MultisigBrokerMessage) {
-    const body = await YupUtils.tryValidate(IdentitySchema, message.body)
-
-    if (body.error) {
-      return
-    }
-
-    const session = this.sessions.get(message.sessionId)
-    if (!session) {
-      this.sendErrorMessage(
-        client,
-        message.id,
-        `Session not found: ${message.sessionId}`,
-        MultisigBrokerErrorCodes.SESSION_ID_NOT_FOUND,
-      )
-      return
-    }
-
-    if (!isDkgSession(session)) {
-      this.sendErrorMessage(
-        client,
-        message.id,
-        `Session is not a dkg session: ${message.sessionId}`,
-        MultisigBrokerErrorCodes.INVALID_DKG_SESSION_ID,
-      )
-      return
-    }
-
-    const identity = body.result.identity
-    client.identity = identity
-    if (!session.status.identities.includes(identity)) {
-      session.status.identities.push(identity)
+    client.identity = body.result.identity
+    if (!session.status.identities.includes(client.identity)) {
+      session.status.identities.push(client.identity)
       this.sessions.set(message.sessionId, session)
 
       // Broadcast status after collecting all identities
-      if (session.status.identities.length === session.status.maxSigners) {
-        this.broadcast('dkg.status', message.sessionId, session.status)
-      }
-    }
-  }
-
-  async handleSigningIdentityMessage(
-    client: MultisigServerClient,
-    message: MultisigBrokerMessage,
-  ) {
-    const body = await YupUtils.tryValidate(IdentitySchema, message.body)
-
-    if (body.error) {
-      return
-    }
-
-    const session = this.sessions.get(message.sessionId)
-    if (!session) {
-      this.sendErrorMessage(
-        client,
-        message.id,
-        `Session not found: ${message.sessionId}`,
-        MultisigBrokerErrorCodes.SESSION_ID_NOT_FOUND,
-      )
-      return
-    }
-
-    if (!isSigningSession(session)) {
-      this.sendErrorMessage(
-        client,
-        message.id,
-        `Session is not a signing session: ${message.sessionId}`,
-        MultisigBrokerErrorCodes.INVALID_DKG_SESSION_ID,
-      )
-      return
-    }
-
-    const identity = body.result.identity
-    client.identity = identity
-    if (!session.status.identities.includes(identity)) {
-      session.status.identities.push(identity)
-      this.sessions.set(message.sessionId, session)
-
-      // Broadcast status after collecting all identities
-      if (session.status.identities.length === session.status.numSigners) {
-        this.broadcast('sign.status', message.sessionId, session.status)
+      if (isDkgSession(session)) {
+        if (session.status.identities.length === session.status.maxSigners) {
+          this.broadcast('dkg.status', message.sessionId, session.status)
+        }
+      } else if (isSigningSession(session)) {
+        if (session.status.identities.length === session.status.numSigners) {
+          this.broadcast('sign.status', message.sessionId, session.status)
+        }
       }
     }
   }

@@ -27,22 +27,22 @@ export type DkgStartSessionMessage = {
   minSigners: number
   maxSigners: number
   challenge: string
+  identity: string
 }
 
 export type SigningStartSessionMessage = {
   numSigners: number
   unsignedTransaction: string
   challenge: string
+  identity: string
 }
 
-export type JoinSessionMessage = object | undefined
+export type JoinSessionMessage = {
+  identity: string
+}
 
 export type JoinedSessionMessage = {
   challenge: string
-}
-
-export type IdentityMessage = {
-  identity: string
 }
 
 export type Round1PublicPackageMessage = {
@@ -117,6 +117,7 @@ export const DkgStartSessionSchema: yup.ObjectSchema<DkgStartSessionMessage> = y
     minSigners: yup.number().defined(),
     maxSigners: yup.number().defined(),
     challenge: yup.string().defined(),
+    identity: yup.string().defined(),
   })
   .defined()
 
@@ -125,25 +126,21 @@ export const SigningStartSessionSchema: yup.ObjectSchema<SigningStartSessionMess
     numSigners: yup.number().defined(),
     unsignedTransaction: yup.string().defined(),
     challenge: yup.string().defined(),
+    identity: yup.string().defined(),
   })
   .defined()
 
 export const JoinSessionSchema: yup.ObjectSchema<JoinSessionMessage> = yup
-  .object({})
-  .notRequired()
-  .default(undefined)
+  .object({
+    identity: yup.string().defined(),
+  })
+  .defined()
 
 export const JoinedSessionSchema: yup.ObjectSchema<JoinedSessionMessage> = yup
   .object({
     challenge: yup.string().required(),
   })
   .required()
-
-export const IdentitySchema: yup.ObjectSchema<IdentityMessage> = yup
-  .object({
-    identity: yup.string().defined(),
-  })
-  .defined()
 
 export const Round1PublicPackageSchema: yup.ObjectSchema<Round1PublicPackageMessage> = yup
   .object({ package: yup.string().defined() })
