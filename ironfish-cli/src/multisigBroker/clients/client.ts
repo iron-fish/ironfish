@@ -23,7 +23,6 @@ import {
   DkgStartSessionMessage,
   DkgStatusMessage,
   DkgStatusSchema,
-  IdentityMessage,
   JoinedSessionMessage,
   JoinedSessionSchema,
   JoinSessionMessage,
@@ -64,7 +63,7 @@ export abstract class MultisigClient {
   readonly onDkgStatus = new Event<[DkgStatusMessage]>()
   readonly onSigningStatus = new Event<[SigningStatusMessage]>()
   readonly onConnectedMessage = new Event<[ConnectedMessage]>()
-  readonly onJoinedSession = new Event<[JoinSessionMessage]>()
+  readonly onJoinedSession = new Event<[JoinedSessionMessage]>()
   readonly onMultisigBrokerError = new Event<[MultisigBrokerMessageWithError]>()
   readonly onClientError = new Event<[MultisigClientError]>()
 
@@ -169,36 +168,34 @@ export abstract class MultisigClient {
     return this.connected
   }
 
-  joinSession(sessionId: string, passphrase: string): void {
+  joinSession(sessionId: string, passphrase: string, identity: string): void {
     this.sessionId = sessionId
     this.passphrase = passphrase
-    this.send('join_session', {})
+    this.send('join_session', { identity })
   }
 
-  startDkgSession(passphrase: string, maxSigners: number, minSigners: number): void {
+  startDkgSession(
+    passphrase: string,
+    maxSigners: number,
+    minSigners: number,
+    identity: string,
+  ): void {
     this.sessionId = uuid()
     this.passphrase = passphrase
     const challenge = this.key.encrypt(Buffer.from('DKG')).toString('hex')
-    this.send('dkg.start_session', { maxSigners, minSigners, challenge })
+    this.send('dkg.start_session', { maxSigners, minSigners, challenge, identity })
   }
 
   startSigningSession(
     passphrase: string,
     numSigners: number,
     unsignedTransaction: string,
+    identity: string,
   ): void {
     this.sessionId = uuid()
     this.passphrase = passphrase
     const challenge = this.key.encrypt(Buffer.from('SIGNING')).toString('hex')
-    this.send('sign.start_session', { numSigners, unsignedTransaction, challenge })
-  }
-
-  submitDkgIdentity(identity: string): void {
-    this.send('dkg.identity', { identity })
-  }
-
-  submitSigningIdentity(identity: string): void {
-    this.send('sign.identity', { identity })
+    this.send('sign.start_session', { numSigners, unsignedTransaction, challenge, identity })
   }
 
   submitRound1PublicPackage(round1PublicPackage: string): void {
@@ -228,8 +225,6 @@ export abstract class MultisigClient {
   private send(method: 'join_session', body: JoinSessionMessage): void
   private send(method: 'dkg.start_session', body: DkgStartSessionMessage): void
   private send(method: 'sign.start_session', body: SigningStartSessionMessage): void
-  private send(method: 'dkg.identity', body: IdentityMessage): void
-  private send(method: 'sign.identity', body: IdentityMessage): void
   private send(method: 'dkg.round1', body: Round1PublicPackageMessage): void
   private send(method: 'dkg.round2', body: Round2PublicPackageMessage): void
   private send(method: 'dkg.get_status', body: DkgGetStatusMessage): void
