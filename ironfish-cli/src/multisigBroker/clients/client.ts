@@ -46,7 +46,6 @@ const RETRY_INTERVAL = 5000
 const CONNECTION_TIMEOUT = 60 * 1000
 export abstract class MultisigClient {
   readonly logger: Logger
-  readonly version: number
   readonly hostname: string
   readonly port: number
 
@@ -75,7 +74,6 @@ export abstract class MultisigClient {
 
   constructor(options: { hostname: string; port: number; logger: Logger }) {
     this.logger = options.logger
-    this.version = 3
     this.hostname = options.hostname
     this.port = options.port
 
