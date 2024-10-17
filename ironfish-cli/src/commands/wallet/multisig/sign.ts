@@ -15,8 +15,8 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { LedgerMultiSigner } from '../../../ledger'
 import {
+  createSigningSessionManager,
   MultisigClientSigningSessionManager,
-  MultisigSigningSessionManager,
   SigningSessionManager,
 } from '../../../multisigBroker/sessionManagers'
 import * as ui from '../../../ui'
@@ -57,11 +57,9 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     }),
     hostname: Flags.string({
       description: 'hostname of the multisig broker server to connect to',
-      default: 'multisig.ironfish.network',
     }),
     port: Flags.integer({
       description: 'port to connect to on the multisig broker server',
-      default: 9035,
     }),
     sessionId: Flags.string({
       description: 'Unique ID for a multisig server session to join',
@@ -125,20 +123,16 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       )
     }
 
-    let sessionManager: SigningSessionManager
-    if (flags.server || flags.connection || flags.sessionId || flags.passphrase) {
-      sessionManager = new MultisigClientSigningSessionManager({
-        logger: this.logger,
-        connection: flags.connection,
-        hostname: flags.hostname,
-        port: flags.port,
-        passphrase: flags.passphrase,
-        sessionId: flags.sessionId,
-        tls: flags.tls,
-      })
-    } else {
-      sessionManager = new MultisigSigningSessionManager({ logger: this.logger })
-    }
+    const sessionManager = createSigningSessionManager({
+      logger: this.logger,
+      server: flags.server,
+      connection: flags.connection,
+      hostname: flags.hostname,
+      port: flags.port,
+      passphrase: flags.passphrase,
+      sessionId: flags.sessionId,
+      tls: flags.tls,
+    })
 
     const { numSigners, unsignedTransaction } = await ui.retryStep(async () => {
       return sessionManager.startSession({

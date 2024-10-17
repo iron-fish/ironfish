@@ -33,8 +33,8 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
   constructor(options: {
     logger: Logger
     connection?: string
-    hostname: string
-    port: number
+    hostname?: string
+    port?: number
     passphrase?: string
     sessionId?: string
     tls?: boolean
@@ -42,14 +42,7 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
     super({ logger: options.logger })
 
     const { hostname, port, sessionId, passphrase } =
-      MultisigBrokerUtils.parseConnectionOptions({
-        connection: options.connection,
-        hostname: options.hostname,
-        port: options.port,
-        sessionId: options.sessionId,
-        passphrase: options.passphrase,
-        logger: this.logger,
-      })
+      MultisigBrokerUtils.parseConnectionOptions(options)
 
     this.client = MultisigBrokerUtils.createClient(hostname, port, {
       tls: options.tls ?? true,

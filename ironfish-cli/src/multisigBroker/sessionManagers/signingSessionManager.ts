@@ -7,6 +7,29 @@ import { ux } from '@oclif/core'
 import * as ui from '../../ui'
 import { MultisigClientSessionManager, MultisigSessionManager } from './sessionManager'
 
+export function createSigningSessionManager(options: {
+  logger: Logger
+  server?: boolean
+  connection?: string
+  hostname?: string
+  port?: number
+  passphrase?: string
+  sessionId?: string
+  tls?: boolean
+}): SigningSessionManager {
+  if (
+    options.server ||
+    options.connection ||
+    options.hostname ||
+    options.port ||
+    options.sessionId
+  ) {
+    return new MultisigClientSigningSessionManager(options)
+  } else {
+    return new MultisigSigningSessionManager({ logger: options.logger })
+  }
+}
+
 export interface SigningSessionManager extends MultisigSessionManager {
   startSession(options: {
     numSigners?: number

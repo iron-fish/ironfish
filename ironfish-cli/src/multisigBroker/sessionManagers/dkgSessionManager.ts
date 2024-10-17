@@ -6,6 +6,29 @@ import { ux } from '@oclif/core'
 import * as ui from '../../ui'
 import { MultisigClientSessionManager, MultisigSessionManager } from './sessionManager'
 
+export function createDkgSessionManager(options: {
+  logger: Logger
+  server?: boolean
+  connection?: string
+  hostname?: string
+  port?: number
+  passphrase?: string
+  sessionId?: string
+  tls?: boolean
+}): DkgSessionManager {
+  if (
+    options.server ||
+    options.connection ||
+    options.hostname ||
+    options.port ||
+    options.sessionId
+  ) {
+    return new MultisigClientDkgSessionManager(options)
+  } else {
+    return new MultisigDkgSessionManager({ logger: options.logger })
+  }
+}
+
 export interface DkgSessionManager extends MultisigSessionManager {
   startSession(options: {
     totalParticipants?: number

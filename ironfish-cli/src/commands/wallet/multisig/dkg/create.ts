@@ -20,9 +20,8 @@ import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { LedgerMultiSigner } from '../../../../ledger'
 import {
+  createDkgSessionManager,
   DkgSessionManager,
-  MultisigClientDkgSessionManager,
-  MultisigDkgSessionManager,
 } from '../../../../multisigBroker/sessionManagers'
 import * as ui from '../../../../ui'
 
@@ -56,11 +55,9 @@ export class DkgCreateCommand extends IronfishCommand {
     }),
     hostname: Flags.string({
       description: 'hostname of the multisig broker server to connect to',
-      default: 'multisig.ironfish.network',
     }),
     port: Flags.integer({
       description: 'port to connect to on the multisig broker server',
-      default: 9035,
     }),
     sessionId: Flags.string({
       description: 'Unique ID for a multisig server session to join',
@@ -108,20 +105,16 @@ export class DkgCreateCommand extends IronfishCommand {
       accountName,
     )
 
-    let sessionManager: DkgSessionManager
-    if (flags.server || flags.connection || flags.sessionId || flags.passphrase) {
-      sessionManager = new MultisigClientDkgSessionManager({
-        connection: flags.connection,
-        hostname: flags.hostname,
-        port: flags.port,
-        passphrase: flags.passphrase,
-        sessionId: flags.sessionId,
-        tls: flags.tls ?? true,
-        logger: this.logger,
-      })
-    } else {
-      sessionManager = new MultisigDkgSessionManager({ logger: this.logger })
-    }
+    const sessionManager = createDkgSessionManager({
+      server: flags.server,
+      connection: flags.connection,
+      hostname: flags.hostname,
+      port: flags.port,
+      passphrase: flags.passphrase,
+      sessionId: flags.sessionId,
+      tls: flags.tls,
+      logger: this.logger,
+    })
 
     const { totalParticipants, minSigners } = await ui.retryStep(async () => {
       return sessionManager.startSession({
