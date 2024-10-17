@@ -49,12 +49,12 @@ pub use ironfish_zkp::primitives::ValueCommitment;
 //
 // The values are all loaded from a file in serialized form.
 pub struct Sapling {
-    spend_params: groth16::Parameters<Bls12>,
-    output_params: groth16::Parameters<Bls12>,
-    mint_params: groth16::Parameters<Bls12>,
-    spend_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
-    output_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
-    mint_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
+    pub spend_params: groth16::Parameters<Bls12>,
+    pub output_params: groth16::Parameters<Bls12>,
+    pub mint_params: groth16::Parameters<Bls12>,
+    pub spend_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
+    pub output_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
+    pub mint_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
 }
 
 impl Sapling {
