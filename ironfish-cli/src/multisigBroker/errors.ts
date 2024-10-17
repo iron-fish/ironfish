@@ -9,6 +9,7 @@ export const MultisigBrokerErrorCodes = {
   SESSION_ID_NOT_FOUND: 2,
   INVALID_DKG_SESSION_ID: 3,
   INVALID_SIGNING_SESSION_ID: 4,
+  IDENTITY_NOT_ALLOWED: 5,
 }
 
 export class MessageMalformedError extends Error {
@@ -59,6 +60,12 @@ export class SessionDecryptionError extends MultisigClientError {
 }
 
 export class InvalidSessionError extends MultisigClientError {
+  constructor(message: string) {
+    super(message)
+  }
+}
+
+export class IdentityNotAllowedError extends MultisigClientError {
   constructor(message: string) {
     super(message)
   }

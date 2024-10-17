@@ -144,6 +144,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       return sessionManager.startSession({
         unsignedTransaction: flags.unsignedTransaction,
         identity: participant.identity,
+        allowedIdentities: accountIdentities,
       })
     }, this.logger)
 

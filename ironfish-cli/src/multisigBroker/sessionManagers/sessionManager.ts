@@ -5,6 +5,7 @@ import { Assert, Logger, PromiseUtils } from '@ironfish/sdk'
 import { ux } from '@oclif/core'
 import { MultisigClient } from '../clients'
 import {
+  IdentityNotAllowedError,
   InvalidSessionError,
   MultisigBrokerErrorCodes,
   SessionDecryptionError,
@@ -110,6 +111,9 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
     this.client.onMultisigBrokerError.on((errorMessage) => {
       if (errorMessage.error.code === MultisigBrokerErrorCodes.SESSION_ID_NOT_FOUND) {
         clientError = new InvalidSessionError(errorMessage.error.message)
+      } else if (errorMessage.error.code === MultisigBrokerErrorCodes.IDENTITY_NOT_ALLOWED) {
+        // Throws error immediately instead of deferring to loop, below
+        throw new IdentityNotAllowedError(errorMessage.error.message)
       }
     })
 

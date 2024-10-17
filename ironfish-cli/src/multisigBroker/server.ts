@@ -38,6 +38,7 @@ interface MultisigSession {
   status: DkgStatus | SigningStatus
   challenge: string
   timeout: NodeJS.Timeout | undefined
+  allowedIdentities?: Set<string>
 }
 
 interface DkgSession extends MultisigSession {
@@ -521,6 +522,9 @@ export class MultisigServer {
       },
       challenge: body.result.challenge,
       timeout: undefined,
+      allowedIdentities: body.result.allowedIdentities
+        ? new Set(body.result.allowedIdentities)
+        : undefined,
     }
 
     this.sessions.set(sessionId, session)
@@ -549,6 +553,16 @@ export class MultisigServer {
         message.id,
         `Session not found: ${message.sessionId}`,
         MultisigBrokerErrorCodes.SESSION_ID_NOT_FOUND,
+      )
+      return
+    }
+
+    if (session.allowedIdentities && !session.allowedIdentities.has(body.result.identity)) {
+      this.sendErrorMessage(
+        client,
+        message.id,
+        'Identity not allowed to join this session',
+        MultisigBrokerErrorCodes.IDENTITY_NOT_ALLOWED,
       )
       return
     }
