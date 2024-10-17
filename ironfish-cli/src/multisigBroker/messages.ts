@@ -28,7 +28,6 @@ export type DkgStartSessionMessage = {
   maxSigners: number
   challenge: string
   identity: string
-  allowedIdentities?: string[]
 }
 
 export type SigningStartSessionMessage = {
@@ -120,7 +119,6 @@ export const DkgStartSessionSchema: yup.ObjectSchema<DkgStartSessionMessage> = y
     maxSigners: yup.number().defined(),
     challenge: yup.string().defined(),
     identity: yup.string().defined(),
-    allowedIdentities: yup.array(yup.string().defined()).optional(),
   })
   .defined()
 

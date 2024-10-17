@@ -178,7 +178,6 @@ export abstract class MultisigClient {
     maxSigners: number,
     minSigners: number,
     identity: string,
-    allowedIdentities?: string[],
   ): void {
     this.sessionId = uuid()
     this.passphrase = passphrase
@@ -188,7 +187,6 @@ export abstract class MultisigClient {
       minSigners,
       challenge,
       identity,
-      allowedIdentities,
     })
   }
 
