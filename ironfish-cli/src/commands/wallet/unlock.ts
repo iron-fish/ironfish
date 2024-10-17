@@ -63,7 +63,7 @@ export class UnlockCommand extends IronfishCommand {
       const timeoutDuration = TimeUtils.renderSpan(timeout, {
         hideMilliseconds: true,
         forceSecond: true,
-        forceMinute: true
+        forceMinute: true,
       })
       this.log(`Unlocked the wallet for ${timeoutDuration}.`)
     }
