@@ -182,12 +182,7 @@ export abstract class MultisigClient {
     this.sessionId = uuid()
     this.passphrase = passphrase
     const challenge = this.key.encrypt(Buffer.from('DKG')).toString('hex')
-    this.send('dkg.start_session', {
-      maxSigners,
-      minSigners,
-      challenge,
-      identity,
-    })
+    this.send('dkg.start_session', { maxSigners, minSigners, challenge, identity })
   }
 
   startSigningSession(
