@@ -60,7 +60,11 @@ export class UnlockCommand extends IronfishCommand {
         'Unlocked the wallet. Call wallet:lock or stop the node to lock the wallet again.',
       )
     } else {
-      const timeoutDuration = TimeUtils.renderSpan(timeout)
+      const timeoutDuration = TimeUtils.renderSpan(timeout, {
+        hideMilliseconds: true,
+        forceSecond: true,
+        forceMinute: true
+      })
       this.log(`Unlocked the wallet for ${timeoutDuration}.`)
     }
 
