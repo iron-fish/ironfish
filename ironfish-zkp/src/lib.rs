@@ -1,5 +1,6 @@
 mod circuits;
 pub mod constants;
+pub mod hex;
 pub mod primitives;
 pub mod util;
 
