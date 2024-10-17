@@ -1584,7 +1584,6 @@ dependencies = [
  "byteorder",
  "ff 0.12.1",
  "group 0.12.1",
- "hex",
  "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
  "lazy_static",
  "rand",

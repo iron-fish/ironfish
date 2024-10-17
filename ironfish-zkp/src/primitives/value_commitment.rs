@@ -1,5 +1,8 @@
+use byteorder::{LittleEndian, ReadBytesExt};
 use ff::Field;
-use group::cofactor::CofactorGroup;
+use group::{cofactor::CofactorGroup, GroupEncoding};
+
+use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
 use crate::constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR;
@@ -25,6 +28,29 @@ impl ValueCommitment {
     pub fn commitment(&self) -> jubjub::SubgroupPoint {
         (self.asset_generator.clear_cofactor() * jubjub::Fr::from(self.value))
             + (*VALUE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness)
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut res = vec![];
+        res.extend(self.value.to_le_bytes());
+        res.extend(self.randomness.to_bytes());
+        res.extend(self.asset_generator.to_bytes());
+        res
+    }
+
+    pub fn read<R: std::io::Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+        let value = reader.read_u64::<LittleEndian>()?;
+        let mut randomness_bytes = [0u8; 32];
+        reader.read_exact(&mut randomness_bytes)?;
+        let randomness = jubjub::Fr::from_bytes(&randomness_bytes).unwrap();
+        let mut asset_generator = [0u8; 32];
+        reader.read_exact(&mut asset_generator)?;
+        let asset_generator = ExtendedPoint::from_bytes(&asset_generator).unwrap();
+        Ok(Self {
+            value,
+            randomness,
+            asset_generator,
+        })
     }
 }
 

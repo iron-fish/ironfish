@@ -32,4 +32,3 @@ lazy_static = "1.4.0"
 rand = "0.8.5"
 zcash_primitives = { git = "https://github.com/iron-fish/librustzcash.git", branch = "blstrs", package = "zcash_primitives" }
 zcash_proofs = { git = "https://github.com/iron-fish/librustzcash.git", branch = "blstrs", package = "zcash_proofs" }
-hex = "0.4.3"

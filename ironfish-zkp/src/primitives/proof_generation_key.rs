@@ -68,6 +68,13 @@ impl ProofGenerationKey {
         Ok(ProofGenerationKey(ZcashProofGenerationKey { ak, nsk }))
     }
 
+    pub fn read<R: std::io::Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+        let mut proof_generation_key_bytes: [u8; 64] = [0; 64];
+        reader.read_exact(&mut proof_generation_key_bytes)?;
+        ProofGenerationKey::from_bytes(&proof_generation_key_bytes)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+    }
+
     pub fn hex_key(&self) -> String {
         bytes_to_hex(&self.to_bytes())
     }
