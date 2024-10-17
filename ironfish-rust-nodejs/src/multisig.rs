@@ -4,6 +4,7 @@
 
 use crate::{structs::NativeUnsignedTransaction, to_napi_err};
 use ironfish::{
+    bytes_to_hex,
     frost::{
         frost::{
             keys::PublicKeyPackage as FrostPublicKeyPackage, round1::SigningCommitments,
@@ -16,8 +17,9 @@ use ironfish::{
         account_keys::derive_account_keys, signing_package::SigningPackage,
         split_spender_key::split_spender_key,
     },
+    hex_to_vec_bytes,
     participant::{Identity, Secret},
-    serializing::{bytes_to_hex, fr::FrSerializable, hex_to_vec_bytes},
+    serializing::fr::FrSerializable,
     SaplingKey,
 };
 use ironfish_frost::{

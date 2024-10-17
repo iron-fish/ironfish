@@ -25,6 +25,7 @@ pub mod xchacha20poly1305;
 pub use {
     ironfish_frost::frost,
     ironfish_frost::participant,
+    ironfish_zkp::hex::{bytes_to_hex, hex_to_bytes, hex_to_vec_bytes},
     keys::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey},
     merkle_note::MerkleNote,
     merkle_note_hash::MerkleNoteHash,

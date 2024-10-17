@@ -3,13 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use group::GroupEncoding;
+use ironfish_zkp::hex::{bytes_to_hex, hex_to_bytes};
 pub use ironfish_zkp::ProofGenerationKey;
 use jubjub::{Fr, SubgroupPoint};
 
-use crate::{
-    errors::{IronfishError, IronfishErrorKind},
-    serializing::{bytes_to_hex, hex_to_bytes},
-};
+use crate::errors::{IronfishError, IronfishErrorKind};
 
 pub trait ProofGenerationKeySerializable {
     fn serialize(&self) -> [u8; 64];

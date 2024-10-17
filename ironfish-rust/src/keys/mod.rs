@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::errors::{IronfishError, IronfishErrorKind};
-use crate::serializing::{bytes_to_hex, hex_to_bytes, read_scalar};
+use crate::serializing::read_scalar;
 
 pub use bip39::Language;
 use bip39::Mnemonic;
@@ -13,6 +13,7 @@ use group::GroupEncoding;
 use ironfish_zkp::constants::{
     CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
 };
+use ironfish_zkp::hex::{bytes_to_hex, hex_to_bytes};
 use jubjub::SubgroupPoint;
 use rand::prelude::*;
 
