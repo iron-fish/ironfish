@@ -239,10 +239,8 @@ impl ProposedTransaction {
     ) -> Result<UnsignedTransaction, IronfishError> {
         let public_address = view_key.public_address()?;
 
-        let proof_generation_key = ProofGenerationKey {
-            ak: view_key.authorizing_key,
-            nsk: proof_authorizing_key,
-        };
+        let proof_generation_key =
+            ProofGenerationKey::new(view_key.authorizing_key, proof_authorizing_key);
 
         // skip adding change notes if this is special case of a miners fee transaction
         let is_miners_fee = self.outputs.iter().any(|output| output.get_is_miners_fee());
