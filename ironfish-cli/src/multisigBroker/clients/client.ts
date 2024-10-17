@@ -68,6 +68,7 @@ export abstract class MultisigClient {
 
   sessionId: string | null = null
   passphrase: string | null = null
+  identity: string | null = null
 
   retries: Map<number, NodeJS.Timer> = new Map()
 
@@ -148,6 +149,11 @@ export abstract class MultisigClient {
     this.connectWarned = false
     this.onConnect()
     this.onConnected.emit()
+
+    if (this.sessionId && this.passphrase && this.identity) {
+      this.logger.debug(`Rejoining session ${this.sessionId}`)
+      this.joinSession(this.sessionId, this.passphrase, this.identity)
+    }
   }
 
   stop(): void {
@@ -170,6 +176,7 @@ export abstract class MultisigClient {
   joinSession(sessionId: string, passphrase: string, identity: string): void {
     this.sessionId = sessionId
     this.passphrase = passphrase
+    this.identity = identity
     this.send('join_session', { identity })
   }
 
@@ -181,6 +188,7 @@ export abstract class MultisigClient {
   ): void {
     this.sessionId = uuid()
     this.passphrase = passphrase
+    this.identity = identity
     const challenge = this.key.encrypt(Buffer.from('DKG')).toString('hex')
     this.send('dkg.start_session', { maxSigners, minSigners, challenge, identity })
   }
@@ -194,6 +202,7 @@ export abstract class MultisigClient {
   ): void {
     this.sessionId = uuid()
     this.passphrase = passphrase
+    this.identity = identity
     const challenge = this.key.encrypt(Buffer.from('SIGNING')).toString('hex')
     this.send('sign.start_session', {
       numSigners,
