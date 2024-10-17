@@ -4,10 +4,13 @@
 import { ErrorUtils, Logger } from '@ironfish/sdk'
 import { MultisigClient, MultisigTcpClient, MultisigTlsClient } from './clients'
 
+const DEFAULT_MULTISIG_BROKER_HOSTNAME = 'multisig.ironfish.network'
+const DEFAULT_MULTISIG_BROKER_PORT = 9035
+
 function parseConnectionOptions(options: {
   connection?: string
-  hostname: string
-  port: number
+  hostname?: string
+  port?: number
   sessionId?: string
   passphrase?: string
   logger: Logger
@@ -44,8 +47,8 @@ function parseConnectionOptions(options: {
     }
   }
 
-  hostname = hostname ?? options.hostname
-  port = port ?? options.port
+  hostname = hostname ?? options.hostname ?? DEFAULT_MULTISIG_BROKER_HOSTNAME
+  port = port ?? options.port ?? DEFAULT_MULTISIG_BROKER_PORT
 
   return {
     hostname,
