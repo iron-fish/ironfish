@@ -3,13 +3,15 @@ use bellperson::{
     Circuit,
 };
 use ff::PrimeField;
-use zcash_primitives::sapling::ProofGenerationKey;
 use zcash_proofs::{
     circuit::ecc,
     constants::{PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR},
 };
 
-use crate::constants::{proof::PUBLIC_KEY_GENERATOR, CRH_IVK_PERSONALIZATION};
+use crate::{
+    constants::{proof::PUBLIC_KEY_GENERATOR, CRH_IVK_PERSONALIZATION},
+    ProofGenerationKey,
+};
 
 pub struct MintAsset {
     /// Key required to construct proofs for a particular spending key
@@ -122,9 +124,8 @@ mod test {
     use group::{Curve, Group};
     use jubjub::ExtendedPoint;
     use rand::{rngs::StdRng, SeedableRng};
-    use zcash_primitives::sapling::ProofGenerationKey;
 
-    use crate::constants::PUBLIC_KEY_GENERATOR;
+    use crate::{constants::PUBLIC_KEY_GENERATOR, ProofGenerationKey};
 
     use super::MintAsset;
 
@@ -135,10 +136,10 @@ mod test {
 
         let mut cs = TestConstraintSystem::new();
 
-        let proof_generation_key = ProofGenerationKey {
-            ak: jubjub::SubgroupPoint::random(&mut rng),
-            nsk: jubjub::Fr::random(&mut rng),
-        };
+        let proof_generation_key = ProofGenerationKey::new(
+            jubjub::SubgroupPoint::random(&mut rng),
+            jubjub::Fr::random(&mut rng),
+        );
         let incoming_view_key = proof_generation_key.to_viewing_key();
         let public_address = *PUBLIC_KEY_GENERATOR * incoming_view_key.ivk().0;
         let public_address_point = ExtendedPoint::from(public_address).to_affine();
