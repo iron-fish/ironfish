@@ -147,6 +147,18 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       })
     }, this.logger)
 
+    await renderUnsignedTransactionDetails(
+      client,
+      unsignedTransaction,
+      multisigAccountName,
+      this.logger,
+    )
+
+    // Prompt for confirmation before broker automates signing
+    if (!flags.ledger && sessionManager instanceof MultisigClientSigningSessionManager) {
+      await ui.confirmOrQuit('Sign this transaction?')
+    }
+
     const { commitment, identities } = await ui.retryStep(
       async () => {
         return this.performCreateSigningCommitment(
@@ -348,13 +360,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     })
 
     const unsignedTransactionHex = unsignedTransaction.serialize().toString('hex')
-
-    await renderUnsignedTransactionDetails(
-      client,
-      unsignedTransaction,
-      accountName,
-      this.logger,
-    )
 
     let commitment
     if (ledger) {
