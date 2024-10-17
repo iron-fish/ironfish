@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { DEFAULT_UNLOCK_TIMEOUT_MS, RpcRequestError } from '@ironfish/sdk'
+import { TimeUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -59,7 +60,8 @@ export class UnlockCommand extends IronfishCommand {
         'Unlocked the wallet. Call wallet:lock or stop the node to lock the wallet again.',
       )
     } else {
-      this.log(`Unlocked the wallet for ${timeout}ms`)
+      const timeoutDuration = TimeUtils.renderSpan(timeout)
+      this.log(`Unlocked the wallet for ${timeoutDuration}.`)
     }
 
     this.exit(0)
