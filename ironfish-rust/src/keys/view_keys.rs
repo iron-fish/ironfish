@@ -15,12 +15,13 @@
 use super::PublicAddress;
 use crate::{
     errors::{IronfishError, IronfishErrorKind},
-    serializing::{bytes_to_hex, hex_to_bytes, read_scalar},
+    serializing::read_scalar,
     SaplingKey,
 };
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
 use group::GroupEncoding;
+use ironfish_zkp::hex::{bytes_to_hex, hex_to_bytes};
 use jubjub::SubgroupPoint;
 
 use std::io;

@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::errors::{IronfishError, IronfishErrorKind};
+use ironfish_zkp::hex::{bytes_to_hex, hex_to_bytes};
 use jubjub::Fr;
-
-use super::{bytes_to_hex, hex_to_bytes};
 
 pub trait FrSerializable {
     fn serialize(&self) -> [u8; 32];

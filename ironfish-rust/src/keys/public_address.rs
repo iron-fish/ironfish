@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{
-    errors::{IronfishError, IronfishErrorKind},
-    serializing::{bytes_to_hex, hex_to_bytes},
-};
+use crate::errors::{IronfishError, IronfishErrorKind};
 use group::GroupEncoding;
-use ironfish_zkp::constants::PUBLIC_KEY_GENERATOR;
+use ironfish_zkp::{
+    constants::PUBLIC_KEY_GENERATOR,
+    hex::{bytes_to_hex, hex_to_bytes},
+};
 use jubjub::SubgroupPoint;
 
 use std::io;

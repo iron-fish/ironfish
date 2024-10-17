@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ironfish::{
+    hex_to_bytes,
     nacl::{self, box_message, bytes_to_secret_key, new_secret_key, unbox_message},
-    serializing::hex_to_bytes,
 };
 use napi::bindgen_prelude::*;
 use napi_derive::napi;

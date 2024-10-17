@@ -5,9 +5,9 @@
 use std::fmt::Display;
 use std::num::NonZeroUsize;
 
+use ironfish::bytes_to_hex;
 use ironfish::keys::generate_randomized_public_key;
 use ironfish::keys::Language;
-use ironfish::serializing::bytes_to_hex;
 use ironfish::serializing::fr::FrSerializable;
 use ironfish::IncomingViewKey;
 use ironfish::PublicAddress;

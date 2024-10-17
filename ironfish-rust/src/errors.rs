@@ -33,6 +33,7 @@ pub enum IronfishErrorKind {
     FailedXChaCha20Poly1305Decryption,
     FailedXChaCha20Poly1305Encryption,
     FailedHkdfExpansion,
+    HexError,
     IllegalValue,
     InconsistentWitness,
     InvalidAssetIdentifier,
@@ -143,5 +144,11 @@ impl From<num::TryFromIntError> for IronfishError {
 impl From<ironfish_frost::frost::Error> for IronfishError {
     fn from(e: ironfish_frost::frost::Error) -> IronfishError {
         IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e)
+    }
+}
+
+impl From<ironfish_zkp::hex::HexError> for IronfishError {
+    fn from(e: ironfish_zkp::hex::HexError) -> IronfishError {
+        IronfishError::new_with_source(IronfishErrorKind::HexError, e)
     }
 }
