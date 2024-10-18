@@ -10,6 +10,7 @@ export const MultisigBrokerErrorCodes = {
   INVALID_DKG_SESSION_ID: 3,
   INVALID_SIGNING_SESSION_ID: 4,
   IDENTITY_NOT_ALLOWED: 5,
+  NON_SESSION_CLIENT: 6,
 }
 
 export class MessageMalformedError extends Error {
