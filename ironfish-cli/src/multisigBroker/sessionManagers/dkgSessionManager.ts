@@ -143,9 +143,11 @@ export class MultisigClientDkgSessionManager
       identities = message.identities
     })
 
-    ux.action.start('Waiting for Identities from server')
     while (identities.length < totalParticipants) {
       this.client.getDkgStatus()
+      if (!ux.action.running) {
+        ux.action.start('Waiting for Identities from server')
+      }
       ux.action.status = `${identities.length}/${totalParticipants}`
       await PromiseUtils.sleep(3000)
     }
@@ -169,9 +171,11 @@ export class MultisigClientDkgSessionManager
       round1PublicPackages = message.round1PublicPackages
     })
 
-    ux.action.start('Waiting for Round 1 Public Packages from server')
     while (round1PublicPackages.length < totalParticipants) {
       this.client.getDkgStatus()
+      if (!ux.action.running) {
+        ux.action.start('Waiting for Round 1 Public Packages from server')
+      }
       ux.action.status = `${round1PublicPackages.length}/${totalParticipants}`
       await PromiseUtils.sleep(3000)
     }
@@ -195,9 +199,11 @@ export class MultisigClientDkgSessionManager
       round2PublicPackages = message.round2PublicPackages
     })
 
-    ux.action.start('Waiting for Round 2 Public Packages from server')
     while (round2PublicPackages.length < totalParticipants) {
       this.client.getDkgStatus()
+      if (!ux.action.running) {
+        ux.action.start('Waiting for Round 2 Public Packages from server')
+      }
       ux.action.status = `${round2PublicPackages.length}/${totalParticipants}`
       await PromiseUtils.sleep(3000)
     }

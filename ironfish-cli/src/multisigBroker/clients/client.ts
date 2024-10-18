@@ -59,6 +59,7 @@ export abstract class MultisigClient {
   private tryConnectUntil: number | null = null
 
   readonly onConnected = new Event<[]>()
+  readonly onDisconnected = new Event<[]>()
   readonly onDkgStatus = new Event<[DkgStatusMessage]>()
   readonly onSigningStatus = new Event<[SigningStatusMessage]>()
   readonly onConnectedMessage = new Event<[ConnectedMessage]>()
@@ -288,6 +289,8 @@ export abstract class MultisigClient {
       this.logger.warn('Disconnected from server unexpectedly. Reconnecting.')
       this.connectTimeout = setTimeout(() => void this.startConnecting(), 5000)
     }
+
+    this.onDisconnected.emit()
   }
 
   protected onError = (error: unknown): void => {
