@@ -144,9 +144,11 @@ export class MultisigClientSigningSessionManager
       identities = message.identities
     })
 
-    ux.action.start('Waiting for Identities from server')
     while (identities.length < numSigners) {
       this.client.getSigningStatus()
+      if (!ux.action.running) {
+        ux.action.start('Waiting for Identities from server')
+      }
       ux.action.status = `${identities.length}/${numSigners}`
       await PromiseUtils.sleep(3000)
     }
@@ -171,9 +173,11 @@ export class MultisigClientSigningSessionManager
       signingCommitments = message.signingCommitments
     })
 
-    ux.action.start('Waiting for Signing Commitments from server')
     while (signingCommitments.length < numSigners) {
       this.client.getSigningStatus()
+      if (!ux.action.running) {
+        ux.action.start('Waiting for Signing Commitments from server')
+      }
       ux.action.status = `${signingCommitments.length}/${numSigners}`
       await PromiseUtils.sleep(3000)
     }
@@ -198,9 +202,11 @@ export class MultisigClientSigningSessionManager
       signatureShares = message.signatureShares
     })
 
-    ux.action.start('Waiting for Signature Shares from server')
     while (signatureShares.length < numSigners) {
       this.client.getSigningStatus()
+      if (!ux.action.running) {
+        ux.action.start('Waiting for Signature Shares from server')
+      }
       ux.action.status = `${signatureShares.length}/${numSigners}`
       await PromiseUtils.sleep(3000)
     }

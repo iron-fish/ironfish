@@ -58,13 +58,22 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
       return
     }
 
+    this.client.start()
+
+    await this.waitForConnectedMessage()
+
+    this.client.onDisconnected.on(async () => {
+      await this.waitForConnectedMessage()
+      await this.waitForJoinedSession()
+    })
+  }
+
+  protected async waitForConnectedMessage(): Promise<void> {
     let confirmed = false
 
     ux.action.start(
       `Connecting to multisig broker server: ${this.client.hostname}:${this.client.port}`,
     )
-    this.client.start()
-
     this.client.onConnectedMessage.on(() => {
       confirmed = true
     })
