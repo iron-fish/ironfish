@@ -13,6 +13,7 @@ use group::GroupEncoding;
 use ironfish_zkp::constants::{
     CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
 };
+pub use ironfish_zkp::ProofGenerationKey;
 use jubjub::SubgroupPoint;
 use rand::prelude::*;
 
@@ -26,8 +27,6 @@ mod view_keys;
 pub use view_keys::*;
 mod util;
 pub use util::*;
-pub mod proof_generation_key;
-pub use proof_generation_key::*;
 
 #[cfg(test)]
 mod test;
@@ -210,10 +209,7 @@ impl SaplingKey {
     /// Adapter to convert this key to a proof generation key for use in
     /// sapling functions
     pub fn sapling_proof_generation_key(&self) -> ProofGenerationKey {
-        ProofGenerationKey {
-            ak: self.view_key.authorizing_key,
-            nsk: self.proof_authorizing_key,
-        }
+        ProofGenerationKey::new(self.view_key.authorizing_key, self.proof_authorizing_key)
     }
 
     /// Convert the spending key to another value using a pseudorandom hash

@@ -3,6 +3,7 @@ use ff::{Field, PrimeField};
 use jubjub::SubgroupPoint;
 
 use crate::constants::{CRH_IVK_PERSONALIZATION, PRF_NF_PERSONALIZATION};
+use crate::ProofGenerationKey;
 use crate::{constants::proof::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment};
 
 use super::util::expose_value_commitment;
@@ -11,7 +12,6 @@ use bellperson::gadgets::boolean;
 use bellperson::gadgets::multipack;
 use bellperson::gadgets::num;
 use bellperson::gadgets::Assignment;
-use zcash_primitives::sapling::ProofGenerationKey;
 use zcash_proofs::{
     circuit::{ecc, pedersen_hash},
     constants::{
@@ -342,15 +342,17 @@ mod test {
     use ff::{Field, PrimeField, PrimeFieldBits};
     use group::{Curve, Group, GroupEncoding};
     use rand::{rngs::StdRng, RngCore, SeedableRng};
-    use zcash_primitives::sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed};
+    use zcash_primitives::sapling::{pedersen_hash, Note, Rseed};
     use zcash_primitives::{constants::NULLIFIER_POSITION_GENERATOR, sapling::Nullifier};
 
     use crate::{
         circuits::spend::Spend,
-        constants::PUBLIC_KEY_GENERATOR,
-        constants::{PRF_NF_PERSONALIZATION, VALUE_COMMITMENT_VALUE_GENERATOR},
+        constants::{
+            PRF_NF_PERSONALIZATION, PUBLIC_KEY_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR,
+        },
         primitives::ValueCommitment,
         util::commitment_full_point,
+        ProofGenerationKey,
     };
 
     #[test]
@@ -367,10 +369,10 @@ mod test {
                 asset_generator: (*VALUE_COMMITMENT_VALUE_GENERATOR).into(),
             };
 
-            let proof_generation_key = ProofGenerationKey {
-                ak: jubjub::SubgroupPoint::random(&mut rng),
-                nsk: jubjub::Fr::random(&mut rng),
-            };
+            let proof_generation_key = ProofGenerationKey::new(
+                jubjub::SubgroupPoint::random(&mut rng),
+                jubjub::Fr::random(&mut rng),
+            );
 
             let viewing_key = proof_generation_key.to_viewing_key();
 
@@ -524,10 +526,10 @@ mod test {
                 asset_generator: (*VALUE_COMMITMENT_VALUE_GENERATOR).into(),
             };
 
-            let proof_generation_key = ProofGenerationKey {
-                ak: jubjub::SubgroupPoint::random(&mut rng),
-                nsk: jubjub::Fr::random(&mut rng),
-            };
+            let proof_generation_key = ProofGenerationKey::new(
+                jubjub::SubgroupPoint::random(&mut rng),
+                jubjub::Fr::random(&mut rng),
+            );
 
             let viewing_key = proof_generation_key.to_viewing_key();
 

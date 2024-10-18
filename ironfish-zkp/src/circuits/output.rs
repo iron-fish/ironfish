@@ -5,7 +5,6 @@ use bellperson::{gadgets::blake2s, Circuit, ConstraintSystem, SynthesisError};
 use group::Curve;
 use jubjub::SubgroupPoint;
 
-use zcash_primitives::sapling::ProofGenerationKey;
 use zcash_proofs::{
     circuit::{ecc, pedersen_hash},
     constants::{
@@ -18,6 +17,7 @@ use crate::{
     circuits::util::assert_valid_asset_generator,
     constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_LENGTH, CRH_IVK_PERSONALIZATION},
     primitives::ValueCommitment,
+    ProofGenerationKey,
 };
 
 use super::util::expose_value_commitment;
@@ -260,9 +260,9 @@ mod test {
     use group::{Curve, Group};
     use rand::rngs::StdRng;
     use rand::{Rng, RngCore, SeedableRng};
-    use zcash_primitives::sapling::ProofGenerationKey;
 
     use crate::util::asset_hash_to_point;
+    use crate::ProofGenerationKey;
     use crate::{
         circuits::output::Output, constants::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment,
         util::commitment_full_point,
@@ -296,7 +296,7 @@ mod test {
             let esk = jubjub::Fr::random(&mut rng);
             let ar = jubjub::Fr::random(&mut rng);
 
-            let proof_generation_key = ProofGenerationKey { ak, nsk };
+            let proof_generation_key = ProofGenerationKey::new(ak, nsk);
 
             let viewing_key = proof_generation_key.to_viewing_key();
 
