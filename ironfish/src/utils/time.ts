@@ -2,11 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { tr } from 'date-fns/locale'
 import { MathUtils } from './math'
 
 const MS_PER_SEC = 1000.0
 const MS_PER_MIN = 60.0 * 1000.0
 const MS_PER_HOUR = 60.0 * 60.0 * 1000.0
+const MS_PER_DAY = 24 * 60.0 * 60.0 * 1000.0
+const MS_PER_MONTH = 30 * 24 * 60.0 * 60.0 * 1000.0
+const MS_PER_YEAR = 12 * 30 * 24 * 60.0 * 60.0 * 1000.0
 
 /**
  *
@@ -31,6 +35,9 @@ const renderEstimate = (done: number, total: number, speed: number): string => {
     forceSecond: true,
     forceMinute: true,
     forceHour: true,
+    forceDay: true,
+    forceMonth: true,
+    forceYear: true,
     hideMilliseconds: true,
   })
 }
@@ -41,6 +48,9 @@ const renderEstimate = (done: number, total: number, speed: number): string => {
 const renderSpan = (
   time: number,
   options?: {
+    forceYear?: boolean
+    forceMonth?: boolean
+    forceDay?: boolean
     forceHour?: boolean
     forceMinute?: boolean
     forceSecond?: boolean
@@ -58,6 +68,29 @@ const renderSpan = (
 
   const parts = []
   let magnitude = 0
+  // Do we want to include years? Is it ok to estimate at 365 days?
+  if (time >= MS_PER_YEAR && (magnitude <= 8 || options?.forceYear)) {
+    const years = Math.floor(time / MS_PER_YEAR)
+    time -= years * MS_PER_YEAR
+    parts.push(`${years.toFixed(0)}y`)
+    magnitude = Math.max(magnitude, 7)
+  }
+
+  // Do we want to include months? Is it ok to estimate at 30 days?
+  // Should we update the abbreviation for months and minutes (both currently m) to mo and min? Do this for all time periods?
+  if (time >= MS_PER_MONTH && (magnitude <= 7 || options?.forceMonth)) {
+    const months = Math.floor(time / MS_PER_MONTH)
+    time -= months * MS_PER_MONTH
+    parts.push(`${months.toFixed(0)}m`)
+    magnitude = Math.max(magnitude, 6)
+  }
+
+  if (time >= MS_PER_DAY && (magnitude <= 6 || options?.forceDay)) {
+    const days = Math.floor(time / MS_PER_DAY)
+    time -= days * MS_PER_DAY
+    parts.push(`${days.toFixed(0)}d`)
+    magnitude = Math.max(magnitude, 5)
+  }
 
   if (time >= MS_PER_HOUR && (magnitude <= 5 || options?.forceHour)) {
     const hours = Math.floor(time / MS_PER_HOUR)
