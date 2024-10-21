@@ -7,7 +7,7 @@ import { ChainProcessor } from '../../../chainProcessor'
 import { FullNode } from '../../../node'
 import { Block } from '../../../primitives/block'
 import { BlockHeader } from '../../../primitives/blockheader'
-import { BufferUtils, CurrencyUtils } from '../../../utils'
+import { BufferUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey, isValidOutgoingViewKey } from '../../../wallet/validator'
 import { RpcValidationError } from '../../adapters/errors'
@@ -158,7 +158,7 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
 
             const assetValue = await node.chain.getAssetById(decryptedNote.assetId())
             notes.push({
-              value: CurrencyUtils.encode(decryptedNote.value()),
+              value: decryptedNote.value().toString(),
               memo,
               assetId: decryptedNote.assetId().toString('hex'),
               assetName: assetValue?.name.toString('hex') || '',
@@ -171,7 +171,7 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
         for (const burn of tx.burns) {
           const assetValue = await node.chain.getAssetById(burn.assetId)
           burns.push({
-            value: CurrencyUtils.encode(burn.value),
+            value: burn.value.toString(),
             id: burn.assetId.toString('hex'),
             assetId: burn.assetId.toString('hex'),
             assetName: assetValue?.name.toString('hex') || '',
@@ -180,7 +180,7 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
 
         for (const mint of tx.mints) {
           mints.push({
-            value: CurrencyUtils.encode(mint.value),
+            value: mint.value.toString(),
             assetId: mint.asset.id().toString('hex'),
             assetName: mint.asset.name().toString('hex'),
             id: mint.asset.id().toString('hex'),

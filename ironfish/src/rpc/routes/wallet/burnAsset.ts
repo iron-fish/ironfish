@@ -123,7 +123,7 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
       hash: transaction.hash().toString('hex'),
       name: asset.name.toString('hex'),
       assetName: asset.name.toString('hex'),
-      value: CurrencyUtils.encode(burn.value),
+      value: burn.value.toString(),
     })
   },
 )

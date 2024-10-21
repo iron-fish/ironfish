@@ -5,14 +5,6 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { CurrencyUtils } from './currency'
 
 describe('CurrencyUtils', () => {
-  it('encode', () => {
-    expect(CurrencyUtils.encode(0n)).toEqual('0')
-    expect(CurrencyUtils.encode(1n)).toEqual('1')
-    expect(CurrencyUtils.encode(100n)).toEqual('100')
-    expect(CurrencyUtils.encode(10000n)).toEqual('10000')
-    expect(CurrencyUtils.encode(100000000n)).toEqual('100000000')
-  })
-
   it('decode', () => {
     expect(CurrencyUtils.decode('0')).toEqual(0n)
     expect(CurrencyUtils.decode('1')).toEqual(1n)

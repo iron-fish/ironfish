@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { CurrencyUtils } from './currency'
 import { YupUtils } from './yup'
 
 describe('YupUtils', () => {
@@ -34,8 +33,8 @@ describe('YupUtils', () => {
     })
 
     it('currency', () => {
-      expect(YupUtils.currency().isValidSync(CurrencyUtils.encode(6n))).toBe(true)
-      expect(YupUtils.currency({ min: 0n }).isValidSync(CurrencyUtils.encode(-1n))).toBe(false)
+      expect(YupUtils.currency().isValidSync(6n.toString())).toBe(true)
+      expect(YupUtils.currency({ min: 0n }).isValidSync((-1n).toString())).toBe(false)
       expect(YupUtils.currency({ min: 0n }).isValidSync('0.1')).toBe(false)
       expect(YupUtils.currency().isValidSync('hello world')).toBe(false)
       expect(YupUtils.currency().isValidSync(0.00046)).toBe(false)

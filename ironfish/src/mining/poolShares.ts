@@ -6,7 +6,7 @@ import { Assert } from '../assert'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
 import { RpcClient } from '../rpc/clients/client'
-import { CurrencyUtils, ErrorUtils } from '../utils'
+import { ErrorUtils } from '../utils'
 import { PoolDatabase } from './poolDatabase'
 import { DatabaseBlock, DatabasePayoutTransaction } from './poolDatabase/database'
 import { WebhookNotifier } from './webhooks'
@@ -236,7 +236,7 @@ export class MiningPoolShares {
       const amount = amountPerShare * BigInt(payout.shareCount)
       outputs.push({
         publicAddress: payout.publicAddress,
-        amount: CurrencyUtils.encode(amount),
+        amount: amount.toString(),
         memo: `${this.poolName} payout ${payoutPeriod.id}`,
         assetId,
       })

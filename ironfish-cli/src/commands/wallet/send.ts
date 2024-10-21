@@ -210,13 +210,13 @@ export class Send extends IronfishCommand {
       outputs: [
         {
           publicAddress: to,
-          amount: CurrencyUtils.encode(amount),
+          amount: amount.toString(),
           memo,
           assetId,
         },
       ],
-      fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
-      feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
+      fee: flags.fee ? flags.fee.toString() : null,
+      feeRate: flags.feeRate ? flags.feeRate.toString() : null,
       expiration: expiration,
       confirmations: flags.confirmations,
       notes: flags.note,
