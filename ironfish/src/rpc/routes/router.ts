@@ -57,14 +57,18 @@ export class Router {
     const { handler, schema } = methodRoute
 
     if (schema.library === 'zod') {
-      throw new RpcValidationError('Unsupported schema library')
+      const result = schema.value.safeParse(request.data)
+      if (result.error) {
+        throw new RpcValidationError(result.error.message, 400)
+      }
+      request.data = result.data
+    } else {
+      const { result, error } = await YupUtils.tryValidate(schema.value, request.data)
+      if (error) {
+        throw new RpcValidationError(error.message, 400)
+      }
+      request.data = result
     }
-
-    const { result, error } = await YupUtils.tryValidate(schema.value, request.data)
-    if (error) {
-      throw new RpcValidationError(error.message, 400)
-    }
-    request.data = result
 
     try {
       await handler(request, this.server.context)
