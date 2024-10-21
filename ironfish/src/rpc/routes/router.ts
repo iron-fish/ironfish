@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { ZodSchema } from 'zod'
 import { Assert } from '../../assert'
 import { YupSchema, YupSchemaResult, YupUtils } from '../../utils'
 import { StrEnumUtils } from '../../utils/enums'
@@ -55,7 +56,11 @@ export class Router {
 
     const { handler, schema } = methodRoute
 
-    const { result, error } = await YupUtils.tryValidate(schema, request.data)
+    if (schema.library === 'zod') {
+      throw new RpcValidationError('Unsupported schema library')
+    }
+
+    const { result, error } = await YupUtils.tryValidate(schema.value, request.data)
     if (error) {
       throw new RpcValidationError(error.message, 400)
     }
@@ -75,13 +80,23 @@ export class Router {
   }
 }
 
+type RouteSchema =
+  | {
+      library: 'yup'
+      value: YupSchema
+    }
+  | {
+      library: 'zod'
+      value: ZodSchema
+    }
+
 class Routes {
-  routes = new Map<string, Map<string, { handler: RouteHandler; schema: YupSchema }>>()
+  routes = new Map<string, Map<string, { handler: RouteHandler; schema: RouteSchema }>>()
 
   get(
     namespace: string,
     method: string,
-  ): { handler: RouteHandler; schema: YupSchema } | undefined {
+  ): { handler: RouteHandler; schema: RouteSchema } | undefined {
     const namespaceRoutes = this.routes.get(namespace)
     if (!namespaceRoutes) {
       return undefined
@@ -103,13 +118,42 @@ class Routes {
     let namespaceRoutes = this.routes.get(namespace)
 
     if (!namespaceRoutes) {
-      namespaceRoutes = new Map<string, { handler: RouteHandler; schema: YupSchema }>()
+      namespaceRoutes = new Map<string, { handler: RouteHandler; schema: RouteSchema }>()
       this.routes.set(namespace, namespaceRoutes)
     }
 
     namespaceRoutes.set(method, {
       handler: handler as RouteHandler<unknown, unknown>,
-      schema: requestSchema,
+      schema: {
+        library: 'yup',
+        value: requestSchema,
+      },
+    })
+  }
+
+  registerZod<TRequest, TResponse>(
+    route: string,
+    requestSchema: ZodSchema<TRequest>,
+    handler: RouteHandler<TRequest, TResponse>,
+  ): void {
+    const [namespace, method] = parseRoute(route)
+
+    Assert.isNotUndefined(namespace, `Invalid namespace: ${String(namespace)}: ${route}`)
+    Assert.isNotUndefined(method, `Invalid method: ${String(namespace)}: ${route}`)
+
+    let namespaceRoutes = this.routes.get(namespace)
+
+    if (!namespaceRoutes) {
+      namespaceRoutes = new Map<string, { handler: RouteHandler; schema: RouteSchema }>()
+      this.routes.set(namespace, namespaceRoutes)
+    }
+
+    namespaceRoutes.set(method, {
+      handler: handler as RouteHandler<unknown, unknown>,
+      schema: {
+        library: 'zod',
+        value: requestSchema,
+      },
     })
   }
 
