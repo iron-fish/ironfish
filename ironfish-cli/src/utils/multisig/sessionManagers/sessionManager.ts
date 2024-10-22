@@ -1,16 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, Logger, PromiseUtils } from '@ironfish/sdk'
-import { ux } from '@oclif/core'
-import { MultisigClient } from '../clients'
 import {
   IdentityNotAllowedError,
   InvalidSessionError,
   MultisigBrokerErrorCodes,
+  MultisigBrokerUtils,
+  MultisigClient,
   SessionDecryptionError,
-} from '../errors'
-import { MultisigBrokerUtils } from '../utils'
+} from '@ironfish/multisig-broker'
+import { Assert, Logger, PromiseUtils } from '@ironfish/sdk'
+import { ux } from '@oclif/core'
 
 export abstract class MultisigSessionManager {
   sessionId: string | null = null

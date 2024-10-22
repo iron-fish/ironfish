@@ -4,7 +4,7 @@
 
 import { Logger, PromiseUtils, UnsignedTransaction } from '@ironfish/sdk'
 import { ux } from '@oclif/core'
-import * as ui from '../../ui'
+import * as ui from '../../../ui'
 import { MultisigClientSessionManager, MultisigSessionManager } from './sessionManager'
 
 export function createSigningSessionManager(options: {

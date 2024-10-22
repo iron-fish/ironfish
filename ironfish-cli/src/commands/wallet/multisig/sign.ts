@@ -14,12 +14,12 @@ import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { LedgerMultiSigner } from '../../../ledger'
+import * as ui from '../../../ui'
 import {
   createSigningSessionManager,
   MultisigClientSigningSessionManager,
   SigningSessionManager,
-} from '../../../multisigBroker/sessionManagers'
-import * as ui from '../../../ui'
+} from '../../../utils/multisig/sessionManagers'
 import { renderUnsignedTransactionDetails, watchTransaction } from '../../../utils/transaction'
 
 // todo(patnir): this command does not differentiate between a participant and an account.

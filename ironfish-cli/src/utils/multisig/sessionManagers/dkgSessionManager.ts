@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger, PromiseUtils } from '@ironfish/sdk'
 import { ux } from '@oclif/core'
-import * as ui from '../../ui'
+import * as ui from '../../../ui'
 import { MultisigClientSessionManager, MultisigSessionManager } from './sessionManager'
 
 export function createDkgSessionManager(options: {

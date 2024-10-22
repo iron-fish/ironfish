@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import {
+  IMultisigBrokerAdapter,
+  MultisigServer,
+  MultisigTcpAdapter,
+  MultisigTlsAdapter,
+} from '@ironfish/multisig-broker'
 import { TlsUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
-import { MultisigServer } from '../../../multisigBroker'
-import {
-  IMultisigBrokerAdapter,
-  MultisigTcpAdapter,
-  MultisigTlsAdapter,
-} from '../../../multisigBroker/adapters'
 
 export class MultisigServerCommand extends IronfishCommand {
   static description = 'start a server to broker messages for a multisig session'
