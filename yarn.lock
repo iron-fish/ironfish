@@ -1115,6 +1115,17 @@
   dependencies:
     mute-stream "^1.0.0"
 
+"@ironfish/multisig-broker@0.1.1":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@ironfish/multisig-broker/-/multisig-broker-0.1.1.tgz#9c4abfbe09f8199fb13fb672d0e1714203ed9a60"
+  integrity sha512-v7KaSvmsx3ihlVRi6er8YyLf7zRHB46uP6Rc2/zVvZqSoEeASViN1bpdDYM4YzuVeqTNQBF6Em79eT4tI40IpA==
+  dependencies:
+    "@ironfish/rust-nodejs" "^2.7.0"
+    "@ironfish/sdk" "^2.8.1"
+    eslint-plugin-simple-import-sort "10.0.0"
+    uuid "8.3.2"
+    yup "0.29.3"
+
 "@isaacs/string-locale-compare@^1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@isaacs/string-locale-compare/-/string-locale-compare-1.1.0.tgz#291c227e93fd407a96ecd59879a35809120e432b"
@@ -5525,6 +5536,11 @@ eslint-plugin-prettier@3.4.0:
   integrity sha512-UDK6rJT6INSfcOo545jiaOwB701uAIt2/dR7WnFQoGCVl1/EMqdANBmwUaqqQ45aXprsTGzSa39LI1PyuRBxxw==
   dependencies:
     prettier-linter-helpers "^1.0.0"
+
+eslint-plugin-simple-import-sort@10.0.0:
+  version "10.0.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-simple-import-sort/-/eslint-plugin-simple-import-sort-10.0.0.tgz#cc4ceaa81ba73252427062705b64321946f61351"
+  integrity sha512-AeTvO9UCMSNzIHRkg8S6c3RPy5YEwKWSQPx3DYghLedo2ZQxowPFLGDN1AZ2evfg6r6mjBSZSLxLFsWSu3acsw==
 
 eslint-plugin-simple-import-sort@7.0.0:
   version "7.0.0"

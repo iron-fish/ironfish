@@ -19,11 +19,11 @@ import path from 'path'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { LedgerMultiSigner } from '../../../../ledger'
+import * as ui from '../../../../ui'
 import {
   createDkgSessionManager,
   DkgSessionManager,
-} from '../../../../multisigBroker/sessionManagers'
-import * as ui from '../../../../ui'
+} from '../../../../utils/multisig/sessionManagers'
 
 export class DkgCreateCommand extends IronfishCommand {
   static description = 'Interactive command to create a multisignature account using DKG'
