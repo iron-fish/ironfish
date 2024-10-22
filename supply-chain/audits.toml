@@ -132,6 +132,6 @@ notes = "Fork of the official zcash_proofs owned by Iron Fish"
 
 [[trusted.reddsa]]
 criteria = "safe-to-deploy"
-user-id = 6289 # str4d
+user-id = 6289 # Jack Grigg (str4d)
 start = "2021-01-08"
 end = "2025-09-12"
