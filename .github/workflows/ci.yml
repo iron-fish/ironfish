@@ -74,7 +74,12 @@ jobs:
 
       - name: Upload coverage
         if: github.repository == 'iron-fish/ironfish'
-        run: CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} ROOT_PATH=$GITHUB_WORKSPACE/ yarn coverage:upload
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: ironfish
+
 
   testslow:
     name: Slow Tests
@@ -111,4 +116,8 @@ jobs:
 
       - name: Upload coverage
         if: github.repository == 'iron-fish/ironfish'
-        run: CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} ROOT_PATH=$GITHUB_WORKSPACE/ yarn coverage:upload
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: ironfish
