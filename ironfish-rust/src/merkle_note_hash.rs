@@ -11,8 +11,8 @@ use super::serializing::read_scalar;
 use blstrs::Scalar;
 use ff::{PrimeField, PrimeFieldBits};
 use group::Curve;
+use ironfish_jubjub::ExtendedPoint;
 use ironfish_zkp::pedersen_hash::{pedersen_hash, Personalization};
-use jubjub::ExtendedPoint;
 
 use std::io;
 

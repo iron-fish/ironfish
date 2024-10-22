@@ -268,7 +268,7 @@ pub fn randomize_pk(
     let view_key = ViewKey::from_hex(&view_key_string).map_err(to_napi_err)?;
 
     let public_key_randomness =
-        jubjub::Fr::from_hex(&public_key_randomness_string).map_err(to_napi_err)?;
+        ironfish_jubjub::Fr::from_hex(&public_key_randomness_string).map_err(to_napi_err)?;
 
     let public_key =
         generate_randomized_public_key(view_key, public_key_randomness).map_err(to_napi_err)?;

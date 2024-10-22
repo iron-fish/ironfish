@@ -21,14 +21,14 @@ workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bellperson = { git = "https://github.com/iron-fish/bellperson.git", branch = "blstrs", features = ["groth16"] }
+ironfish-bellperson = { version = "0.1.0", features = ["groth16"] }
 blake2s_simd = "1.0.0"
 blstrs = { version = "0.6.0", features = ["portable"] }
 byteorder = "1.4.3"
 ff = "0.12.0"
 group = "0.12.0"
-jubjub = { git = "https://github.com/iron-fish/jubjub.git", branch = "blstrs" }
+ironfish-jubjub = { version = "0.1.0" }
 lazy_static = "1.4.0"
 rand = "0.8.5"
-zcash_primitives = { git = "https://github.com/iron-fish/librustzcash.git", branch = "blstrs", package = "zcash_primitives" }
-zcash_proofs = { git = "https://github.com/iron-fish/librustzcash.git", branch = "blstrs", package = "zcash_proofs" }
+ironfish-primitives = { version = "0.1.0" }
+ironfish-proofs = { version = "0.1.0" }

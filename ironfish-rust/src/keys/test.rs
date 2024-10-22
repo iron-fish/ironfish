@@ -6,7 +6,7 @@ use crate::keys::{ephemeral::EphemeralKeyPair, PUBLIC_ADDRESS_SIZE};
 
 use super::{shared_secret, PublicAddress, SaplingKey};
 use group::Curve;
-use jubjub::ExtendedPoint;
+use ironfish_jubjub::ExtendedPoint;
 
 #[test]
 fn test_key_generation_and_construction() {

@@ -129,8 +129,8 @@ impl From<string::FromUtf8Error> for IronfishError {
     }
 }
 
-impl From<bellperson::SynthesisError> for IronfishError {
-    fn from(e: bellperson::SynthesisError) -> IronfishError {
+impl From<ironfish_bellperson::SynthesisError> for IronfishError {
+    fn from(e: ironfish_bellperson::SynthesisError) -> IronfishError {
         IronfishError::new_with_source(IronfishErrorKind::BellpersonSynthesis, e)
     }
 }

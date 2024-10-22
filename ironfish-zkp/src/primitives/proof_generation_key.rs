@@ -1,9 +1,9 @@
 use group::GroupEncoding;
-use jubjub::{Fr, SubgroupPoint};
+use ironfish_jubjub::{Fr, SubgroupPoint};
+use ironfish_primitives::sapling::ProofGenerationKey as ZcashProofGenerationKey;
 use std::error::Error;
 use std::fmt;
 use std::ops::Deref;
-use zcash_primitives::sapling::ProofGenerationKey as ZcashProofGenerationKey;
 
 use crate::hex::{bytes_to_hex, hex_to_bytes};
 
@@ -105,7 +105,7 @@ mod test {
     use ff::Field;
     use group::{Group, GroupEncoding};
 
-    use jubjub;
+    use ironfish_jubjub;
     use rand::{rngs::StdRng, SeedableRng};
 
     use crate::primitives::proof_generation_key::{ProofGenerationKey, ProofGenerationKeyError};
@@ -115,8 +115,8 @@ mod test {
         let mut rng = StdRng::seed_from_u64(0);
 
         let proof_generation_key = ProofGenerationKey::new(
-            jubjub::SubgroupPoint::random(&mut rng),
-            jubjub::Fr::random(&mut rng),
+            ironfish_jubjub::SubgroupPoint::random(&mut rng),
+            ironfish_jubjub::Fr::random(&mut rng),
         );
 
         let serialized_bytes = proof_generation_key.to_bytes();
@@ -145,7 +145,7 @@ mod test {
     fn test_deserialize_nsk_error() {
         let mut proof_generation_key_bytes: [u8; 64] = [0; 64];
         // Populate with valid bytes for ak and invalid bytes for nsk
-        let valid_ak = jubjub::SubgroupPoint::random(&mut StdRng::seed_from_u64(0));
+        let valid_ak = ironfish_jubjub::SubgroupPoint::random(&mut StdRng::seed_from_u64(0));
         proof_generation_key_bytes[0..32].copy_from_slice(&valid_ak.to_bytes()); // Assuming these are valid bytes for ak
         proof_generation_key_bytes[32..64].fill(0xFF); // Invalid bytes for nsk
 
@@ -166,8 +166,8 @@ mod test {
         let mut rng = StdRng::seed_from_u64(0);
 
         let proof_generation_key = ProofGenerationKey::new(
-            jubjub::SubgroupPoint::random(&mut rng),
-            jubjub::Fr::random(&mut rng),
+            ironfish_jubjub::SubgroupPoint::random(&mut rng),
+            ironfish_jubjub::Fr::random(&mut rng),
         );
 
         let serialized_bytes = proof_generation_key.to_bytes();
@@ -190,8 +190,8 @@ mod test {
         let mut rng = StdRng::seed_from_u64(0);
 
         let proof_generation_key = ProofGenerationKey::new(
-            jubjub::SubgroupPoint::random(&mut rng),
-            jubjub::Fr::random(&mut rng),
+            ironfish_jubjub::SubgroupPoint::random(&mut rng),
+            ironfish_jubjub::Fr::random(&mut rng),
         );
 
         let hex_key = proof_generation_key.hex_key();

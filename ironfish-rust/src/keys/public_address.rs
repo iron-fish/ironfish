@@ -7,8 +7,8 @@ use crate::{
     serializing::{bytes_to_hex, hex_to_bytes},
 };
 use group::GroupEncoding;
+use ironfish_jubjub::SubgroupPoint;
 use ironfish_zkp::constants::PUBLIC_KEY_GENERATOR;
-use jubjub::SubgroupPoint;
 
 use std::io;
 

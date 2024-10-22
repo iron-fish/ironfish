@@ -4,7 +4,7 @@ pub mod hex;
 pub mod primitives;
 pub mod util;
 
-pub use zcash_primitives::sapling::{
+pub use ironfish_primitives::sapling::{
     group_hash::group_hash, pedersen_hash, redjubjub, Diversifier, Note as SaplingNote, Nullifier,
     PaymentAddress, Rseed, ViewingKey,
 };

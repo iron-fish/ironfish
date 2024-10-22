@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::errors::{IronfishError, IronfishErrorKind};
-use jubjub::Fr;
+use ironfish_jubjub::Fr;
 
 use super::{bytes_to_hex, hex_to_bytes};
 
@@ -88,7 +88,7 @@ mod test {
     fn test_hex() {
         let mut rng = StdRng::seed_from_u64(0);
 
-        let fr = jubjub::Fr::random(&mut rng);
+        let fr = ironfish_jubjub::Fr::random(&mut rng);
 
         let hex_key = fr.hex_key();
 

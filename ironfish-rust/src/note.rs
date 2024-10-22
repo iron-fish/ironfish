@@ -19,12 +19,12 @@ use blstrs::Scalar;
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
+use ironfish_jubjub::SubgroupPoint;
 use ironfish_zkp::{
     constants::{ASSET_ID_LENGTH, NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
     util::commitment_full_point,
     Nullifier,
 };
-use jubjub::SubgroupPoint;
 use rand::thread_rng;
 use std::{fmt, io, io::Read};
 pub const ENCRYPTED_NOTE_SIZE: usize =
@@ -99,7 +99,7 @@ pub struct Note {
     /// This helps create zero knowledge around the note,
     /// allowing the owner to prove they have the note without revealing
     /// anything else about it.
-    pub(crate) randomness: jubjub::Fr,
+    pub(crate) randomness: ironfish_jubjub::Fr,
 
     /// Arbitrary note the spender can supply when constructing a spend so the
     /// receiver has some record from whence it came.
@@ -120,7 +120,7 @@ impl Note {
         asset_id: AssetIdentifier,
         sender: PublicAddress,
     ) -> Self {
-        let randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
+        let randomness: ironfish_jubjub::Fr = ironfish_jubjub::Fr::random(thread_rng());
 
         Self {
             owner,
@@ -142,7 +142,7 @@ impl Note {
         let asset_id = AssetIdentifier::read(&mut reader)?;
 
         let value = reader.read_u64::<LittleEndian>()?;
-        let randomness: jubjub::Fr = read_scalar(&mut reader)?;
+        let randomness: ironfish_jubjub::Fr = read_scalar(&mut reader)?;
 
         let mut memo = Memo::default();
         reader.read_exact(&mut memo.0)?;
@@ -244,7 +244,7 @@ impl Note {
         self.owner
     }
 
-    pub fn asset_generator(&self) -> jubjub::ExtendedPoint {
+    pub fn asset_generator(&self) -> ironfish_jubjub::ExtendedPoint {
         self.asset_id.asset_generator()
     }
 
@@ -286,7 +286,7 @@ impl Note {
     }
 
     /// Computes the note commitment, returning the full point.
-    fn commitment_full_point(&self) -> jubjub::SubgroupPoint {
+    fn commitment_full_point(&self) -> ironfish_jubjub::SubgroupPoint {
         commitment_full_point(
             self.asset_generator(),
             self.value,
@@ -304,7 +304,7 @@ impl Note {
     pub fn nullifier(&self, view_key: &ViewKey, position: u64) -> Nullifier {
         // Compute rho = cm + position.G
         let rho = self.commitment_full_point()
-            + (*NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+            + (*NULLIFIER_POSITION_GENERATOR * ironfish_jubjub::Fr::from(position));
 
         // Compute nf = BLAKE2s(nk | rho)
         Nullifier::from_slice(
@@ -335,7 +335,7 @@ impl Note {
     pub(crate) fn commitment_point(&self) -> Scalar {
         // The commitment is in the prime order subgroup, so mapping the
         // commitment to the u-coordinate is an injective encoding.
-        jubjub::ExtendedPoint::from(self.commitment_full_point())
+        ironfish_jubjub::ExtendedPoint::from(self.commitment_full_point())
             .to_affine()
             .get_u()
     }
@@ -352,7 +352,16 @@ impl Note {
     fn decrypt_note_parts(
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<(jubjub::Fr, AssetIdentifier, u64, Memo, PublicAddress), IronfishError> {
+    ) -> Result<
+        (
+            ironfish_jubjub::Fr,
+            AssetIdentifier,
+            u64,
+            Memo,
+            PublicAddress,
+        ),
+        IronfishError,
+    > {
         let plaintext_bytes: [u8; ENCRYPTED_NOTE_SIZE] =
             aead::decrypt(shared_secret, encrypted_bytes)?;
         let mut reader = &plaintext_bytes[..];
