@@ -63,6 +63,18 @@ who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
 delta = "1.9.3 -> 2.2.6"
 
+[[audits.ironfish-frost]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "0.1.0"
+notes = "Crate owned by the Iron Fish organization"
+
+[[audits.ironfish-reddsa]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "0.1.0"
+notes = "Crate owned by the Iron Fish organization"
+
 [[audits.jubjub]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
