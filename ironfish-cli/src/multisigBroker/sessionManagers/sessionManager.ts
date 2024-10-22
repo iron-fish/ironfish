@@ -137,6 +137,7 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
   }
 
   endSession(): void {
+    this.client.onDisconnected.clear()
     this.client.stop()
   }
 
