@@ -42,6 +42,9 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shard: [1,2]
 
     steps:
       - name: Check out Git repository
@@ -63,7 +66,7 @@ jobs:
         run: yarn --non-interactive --frozen-lockfile
 
       - name: Run tests
-        run: yarn test:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
+        run: yarn test:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - name: Check for missing fixtures
         run: |
