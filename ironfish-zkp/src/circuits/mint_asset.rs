@@ -1,13 +1,13 @@
-use bellperson::{
+use ff::PrimeField;
+use ironfish_bellperson::{
     gadgets::{blake2s, boolean},
     Circuit,
 };
-use ff::PrimeField;
-use std::io::{Read, Write};
-use zcash_proofs::{
+use ironfish_proofs::{
     circuit::ecc,
     constants::{PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR},
 };
+use std::io::{Read, Write};
 
 use crate::{
     constants::{proof::PUBLIC_KEY_GENERATOR, CRH_IVK_PERSONALIZATION},
@@ -23,7 +23,7 @@ pub struct MintAsset {
 
     /// Used to add randomness to signature generation without leaking the
     /// key. Referred to as `ar` in the literature.
-    pub public_key_randomness: Option<jubjub::Fr>,
+    pub public_key_randomness: Option<ironfish_jubjub::Fr>,
 }
 
 impl MintAsset {
@@ -50,7 +50,7 @@ impl MintAsset {
         }
         let mut public_key_randomness = None;
         if reader.read_u8()? == 1 {
-            public_key_randomness = Some(jubjub::Fr::read(&mut reader)?);
+            public_key_randomness = Some(ironfish_jubjub::Fr::read(&mut reader)?);
         }
         Ok(MintAsset {
             proof_generation_key,
@@ -60,10 +60,10 @@ impl MintAsset {
 }
 
 impl Circuit<blstrs::Scalar> for MintAsset {
-    fn synthesize<CS: bellperson::ConstraintSystem<blstrs::Scalar>>(
+    fn synthesize<CS: ironfish_bellperson::ConstraintSystem<blstrs::Scalar>>(
         self,
         cs: &mut CS,
-    ) -> Result<(), bellperson::SynthesisError> {
+    ) -> Result<(), ironfish_bellperson::SynthesisError> {
         // Prover witnesses ak (ensures that it's on the curve)
         let ak = ecc::EdwardsPoint::witness(
             cs.namespace(|| "ak"),
@@ -139,7 +139,7 @@ impl Circuit<blstrs::Scalar> for MintAsset {
         )?;
 
         // drop_5 to ensure it's in the field
-        ivk.truncate(jubjub::Fr::CAPACITY as usize);
+        ivk.truncate(ironfish_jubjub::Fr::CAPACITY as usize);
 
         // Compute owner public address
         let owner_public_address = ecc::fixed_base_multiplication(
@@ -156,10 +156,10 @@ impl Circuit<blstrs::Scalar> for MintAsset {
 
 #[cfg(test)]
 mod test {
-    use bellperson::{gadgets::test::TestConstraintSystem, Circuit, ConstraintSystem};
     use ff::Field;
     use group::{Curve, Group};
-    use jubjub::ExtendedPoint;
+    use ironfish_bellperson::{gadgets::test::TestConstraintSystem, Circuit, ConstraintSystem};
+    use ironfish_jubjub::ExtendedPoint;
     use rand::{rngs::StdRng, SeedableRng};
 
     use crate::{constants::PUBLIC_KEY_GENERATOR, ProofGenerationKey};
@@ -174,14 +174,14 @@ mod test {
         let mut cs = TestConstraintSystem::new();
 
         let proof_generation_key = ProofGenerationKey::new(
-            jubjub::SubgroupPoint::random(&mut rng),
-            jubjub::Fr::random(&mut rng),
+            ironfish_jubjub::SubgroupPoint::random(&mut rng),
+            ironfish_jubjub::Fr::random(&mut rng),
         );
         let incoming_view_key = proof_generation_key.to_viewing_key();
         let public_address = *PUBLIC_KEY_GENERATOR * incoming_view_key.ivk().0;
         let public_address_point = ExtendedPoint::from(public_address).to_affine();
 
-        let public_key_randomness = jubjub::Fr::random(&mut rng);
+        let public_key_randomness = ironfish_jubjub::Fr::random(&mut rng);
         let randomized_public_key =
             ExtendedPoint::from(incoming_view_key.rk(public_key_randomness)).to_affine();
 
@@ -226,10 +226,10 @@ mod test {
 
         // Create a MintAsset instance with random data
         let proof_generation_key = ProofGenerationKey::new(
-            jubjub::SubgroupPoint::random(&mut rng),
-            jubjub::Fr::random(&mut rng),
+            ironfish_jubjub::SubgroupPoint::random(&mut rng),
+            ironfish_jubjub::Fr::random(&mut rng),
         );
-        let public_key_randomness = jubjub::Fr::random(&mut rng);
+        let public_key_randomness = ironfish_jubjub::Fr::random(&mut rng);
 
         let mint_asset = MintAsset {
             proof_generation_key: Some(proof_generation_key.clone()),

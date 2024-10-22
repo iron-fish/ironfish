@@ -3,7 +3,7 @@ use std::io::Write;
 use byteorder::{LittleEndian, WriteBytesExt};
 use ff::PrimeField;
 use group::{cofactor::CofactorGroup, Group, GroupEncoding};
-use zcash_primitives::{
+use ironfish_primitives::{
     constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
     sapling::pedersen_hash::{pedersen_hash, Personalization},
 };
@@ -12,12 +12,12 @@ use crate::constants::VALUE_COMMITMENT_GENERATOR_PERSONALIZATION;
 
 /// Computes the note commitment with sender address, returning the full point.
 pub fn commitment_full_point(
-    asset_generator: jubjub::ExtendedPoint,
+    asset_generator: ironfish_jubjub::ExtendedPoint,
     value: u64,
-    pk_d: jubjub::SubgroupPoint,
-    rcm: jubjub::Fr,
-    sender_address: jubjub::SubgroupPoint,
-) -> jubjub::SubgroupPoint {
+    pk_d: ironfish_jubjub::SubgroupPoint,
+    rcm: ironfish_jubjub::Fr,
+    sender_address: ironfish_jubjub::SubgroupPoint,
+) -> ironfish_jubjub::SubgroupPoint {
     // Calculate the note contents, as bytes
     let mut note_contents = vec![];
 
@@ -56,7 +56,7 @@ pub fn commitment_full_point(
 
 /// This is a lightly modified group_hash function, for use with the asset identifier/generator flow
 #[allow(clippy::assertions_on_constants)]
-pub fn asset_hash_to_point(tag: &[u8]) -> Option<jubjub::ExtendedPoint> {
+pub fn asset_hash_to_point(tag: &[u8]) -> Option<ironfish_jubjub::ExtendedPoint> {
     assert_eq!(VALUE_COMMITMENT_GENERATOR_PERSONALIZATION.len(), 8);
 
     // Check to see that scalar field is 255 bits
@@ -69,7 +69,7 @@ pub fn asset_hash_to_point(tag: &[u8]) -> Option<jubjub::ExtendedPoint> {
         .update(tag)
         .finalize();
 
-    let p = jubjub::ExtendedPoint::from_bytes(h.as_array());
+    let p = ironfish_jubjub::ExtendedPoint::from_bytes(h.as_array());
     if p.is_some().into() {
         let p = p.unwrap();
 

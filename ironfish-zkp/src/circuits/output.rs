@@ -3,12 +3,12 @@ use std::io::{Read, Write};
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use ff::PrimeField;
 
-use bellperson::{gadgets::blake2s, Circuit, ConstraintSystem, SynthesisError};
+use ironfish_bellperson::{gadgets::blake2s, Circuit, ConstraintSystem, SynthesisError};
 
 use group::{Curve, GroupEncoding};
-use jubjub::SubgroupPoint;
+use ironfish_jubjub::SubgroupPoint;
 
-use zcash_proofs::{
+use ironfish_proofs::{
     circuit::{ecc, pedersen_hash},
     constants::{
         NOTE_COMMITMENT_RANDOMNESS_GENERATOR, PROOF_GENERATION_KEY_GENERATOR,
@@ -24,7 +24,7 @@ use crate::{
 };
 
 use super::util::{expose_value_commitment, FromBytes};
-use bellperson::gadgets::boolean;
+use ironfish_bellperson::gadgets::boolean;
 
 /// This is a circuit instance inspired from ZCash's `Output` circuit in the Sapling protocol
 /// https://github.com/zcash/librustzcash/blob/main/zcash_proofs/src/circuit/sapling.rs#L57-L70
@@ -39,17 +39,17 @@ pub struct Output {
     pub payment_address: Option<SubgroupPoint>,
 
     /// The randomness used to hide the note commitment data
-    pub commitment_randomness: Option<jubjub::Fr>,
+    pub commitment_randomness: Option<ironfish_jubjub::Fr>,
 
     /// The ephemeral secret key for DH with recipient
-    pub esk: Option<jubjub::Fr>,
+    pub esk: Option<ironfish_jubjub::Fr>,
 
     /// Key required to construct proofs for spending notes
     /// for a particular spending key
     pub proof_generation_key: Option<ProofGenerationKey>,
 
     /// Re-randomization of the public key
-    pub ar: Option<jubjub::Fr>,
+    pub ar: Option<ironfish_jubjub::Fr>,
 }
 
 impl Output {
@@ -107,11 +107,11 @@ impl Output {
         }
         let mut commitment_randomness = None;
         if reader.read_u8()? == 1 {
-            commitment_randomness = Some(jubjub::Fr::read(&mut reader)?);
+            commitment_randomness = Some(ironfish_jubjub::Fr::read(&mut reader)?);
         }
         let mut esk = None;
         if reader.read_u8()? == 1 {
-            esk = Some(jubjub::Fr::read(&mut reader)?);
+            esk = Some(ironfish_jubjub::Fr::read(&mut reader)?);
         }
         let mut proof_generation_key = None;
         if reader.read_u8()? == 1 {
@@ -119,7 +119,7 @@ impl Output {
         }
         let mut ar = None;
         if reader.read_u8()? == 1 {
-            ar = Some(jubjub::Fr::read(&mut reader)?);
+            ar = Some(ironfish_jubjub::Fr::read(&mut reader)?);
         }
         Ok(Output {
             value_commitment,
@@ -212,7 +212,7 @@ impl Circuit<blstrs::Scalar> for Output {
         )?;
 
         // drop_5 to ensure it's in the field
-        ivk.truncate(jubjub::Fr::CAPACITY as usize);
+        ivk.truncate(ironfish_jubjub::Fr::CAPACITY as usize);
 
         // Compute pk_d
         let pk_d_sender = ecc::fixed_base_multiplication(
@@ -272,7 +272,7 @@ impl Circuit<blstrs::Scalar> for Output {
             let pk_d = self
                 .payment_address
                 .as_ref()
-                .map(|e| jubjub::ExtendedPoint::from(*e).to_affine());
+                .map(|e| ironfish_jubjub::ExtendedPoint::from(*e).to_affine());
 
             // Witness the v-coordinate, encoded as little
             // endian bits (to match the representation)
@@ -339,9 +339,9 @@ impl Circuit<blstrs::Scalar> for Output {
 
 #[cfg(test)]
 mod test {
-    use bellperson::{gadgets::test::*, Circuit, ConstraintSystem};
     use ff::Field;
     use group::{Curve, Group};
+    use ironfish_bellperson::{gadgets::test::*, Circuit, ConstraintSystem};
     use rand::rngs::StdRng;
     use rand::{Rng, RngCore, SeedableRng};
 
@@ -367,18 +367,18 @@ mod test {
                 }
             };
 
-            let value_commitment_randomness = jubjub::Fr::random(&mut rng);
-            let note_commitment_randomness = jubjub::Fr::random(&mut rng);
+            let value_commitment_randomness = ironfish_jubjub::Fr::random(&mut rng);
+            let note_commitment_randomness = ironfish_jubjub::Fr::random(&mut rng);
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
                 randomness: value_commitment_randomness,
                 asset_generator,
             };
 
-            let nsk = jubjub::Fr::random(&mut rng);
-            let ak = jubjub::SubgroupPoint::random(&mut rng);
-            let esk = jubjub::Fr::random(&mut rng);
-            let ar = jubjub::Fr::random(&mut rng);
+            let nsk = ironfish_jubjub::Fr::random(&mut rng);
+            let ak = ironfish_jubjub::SubgroupPoint::random(&mut rng);
+            let esk = ironfish_jubjub::Fr::random(&mut rng);
+            let ar = ironfish_jubjub::Fr::random(&mut rng);
 
             let proof_generation_key = ProofGenerationKey::new(ak, nsk);
 
@@ -389,7 +389,7 @@ mod test {
             let sender_address = payment_address;
 
             {
-                let rk = jubjub::ExtendedPoint::from(viewing_key.rk(ar)).to_affine();
+                let rk = ironfish_jubjub::ExtendedPoint::from(viewing_key.rk(ar)).to_affine();
                 let mut cs = TestConstraintSystem::new();
 
                 let instance = Output {
@@ -422,13 +422,15 @@ mod test {
                     note_commitment_randomness,
                     sender_address,
                 );
-                let expected_cmu = jubjub::ExtendedPoint::from(commitment).to_affine().get_u();
+                let expected_cmu = ironfish_jubjub::ExtendedPoint::from(commitment)
+                    .to_affine()
+                    .get_u();
 
                 let expected_value_commitment =
-                    jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
+                    ironfish_jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
 
                 let expected_epk =
-                    jubjub::ExtendedPoint::from(*PUBLIC_KEY_GENERATOR * esk).to_affine();
+                    ironfish_jubjub::ExtendedPoint::from(*PUBLIC_KEY_GENERATOR * esk).to_affine();
 
                 assert_eq!(cs.num_inputs(), 8);
                 assert_eq!(cs.get_input(0, "ONE"), blstrs::Scalar::one());
@@ -469,18 +471,18 @@ mod test {
                 }
             };
 
-            let value_commitment_randomness = jubjub::Fr::random(&mut rng);
-            let note_commitment_randomness = jubjub::Fr::random(&mut rng);
+            let value_commitment_randomness = ironfish_jubjub::Fr::random(&mut rng);
+            let note_commitment_randomness = ironfish_jubjub::Fr::random(&mut rng);
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
                 randomness: value_commitment_randomness,
                 asset_generator,
             };
 
-            let nsk = jubjub::Fr::random(&mut rng);
-            let ak = jubjub::SubgroupPoint::random(&mut rng);
-            let esk = jubjub::Fr::random(&mut rng);
-            let ar = jubjub::Fr::random(&mut rng);
+            let nsk = ironfish_jubjub::Fr::random(&mut rng);
+            let ak = ironfish_jubjub::SubgroupPoint::random(&mut rng);
+            let esk = ironfish_jubjub::Fr::random(&mut rng);
+            let ar = ironfish_jubjub::Fr::random(&mut rng);
 
             let proof_generation_key = ProofGenerationKey::new(ak, nsk);
 

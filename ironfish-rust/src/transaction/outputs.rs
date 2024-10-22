@@ -11,12 +11,12 @@ use crate::{
     OutgoingViewKey,
 };
 
-use bellperson::groth16;
 use blstrs::{Bls12, Scalar};
 use ff::Field;
 use group::Curve;
+use ironfish_bellperson::groth16;
+use ironfish_jubjub::ExtendedPoint;
 use ironfish_zkp::{primitives::ValueCommitment, proofs::Output, redjubjub, ProofGenerationKey};
-use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
 use std::io;
@@ -83,7 +83,7 @@ impl OutputBuilder {
         &self,
         proof_generation_key: &ProofGenerationKey,
         outgoing_view_key: &OutgoingViewKey,
-        public_key_randomness: &jubjub::Fr,
+        public_key_randomness: &ironfish_jubjub::Fr,
         randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<OutputDescription, IronfishError> {
         let diffie_hellman_keys = EphemeralKeyPair::new();
@@ -232,8 +232,8 @@ mod test {
     };
     use ff::{Field, PrimeField};
     use group::Curve;
+    use ironfish_jubjub::ExtendedPoint;
     use ironfish_zkp::{constants::SPENDING_KEY_GENERATOR, redjubjub};
-    use jubjub::ExtendedPoint;
     use rand::thread_rng;
 
     #[test]
@@ -241,7 +241,7 @@ mod test {
     /// set will use the hard-coded note encryption keys
     fn test_output_miners_fee() {
         let spender_key = SaplingKey::generate_key();
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let randomized_public_key =
             redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
                 .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
@@ -276,7 +276,7 @@ mod test {
     fn test_output_not_miners_fee() {
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let randomized_public_key =
             redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
                 .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
@@ -310,12 +310,12 @@ mod test {
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
 
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let randomized_public_key =
             redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
                 .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
-        let other_public_key_randomness = jubjub::Fr::random(thread_rng());
+        let other_public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let other_randomized_public_key =
             redjubjub::PublicKey(receiver_key.view_key.authorizing_key.into())
                 .randomize(other_public_key_randomness, *SPENDING_KEY_GENERATOR);
@@ -385,7 +385,7 @@ mod test {
     fn test_output_round_trip() {
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let randomized_public_key =
             redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
                 .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);

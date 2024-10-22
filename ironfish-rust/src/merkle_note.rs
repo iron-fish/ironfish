@@ -22,8 +22,8 @@ use blake2b_simd::Params as Blake2b;
 use blstrs::Scalar;
 use ff::PrimeField;
 use group::GroupEncoding;
+use ironfish_jubjub::{ExtendedPoint, SubgroupPoint};
 use ironfish_zkp::primitives::ValueCommitment;
-use jubjub::{ExtendedPoint, SubgroupPoint};
 
 use std::{convert::TryInto, io};
 

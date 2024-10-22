@@ -11,13 +11,13 @@ use rand::thread_rng;
 /// [`crate::keys::shared_secret`]
 #[derive(Default)]
 pub struct EphemeralKeyPair {
-    secret: jubjub::Fr,
-    public: jubjub::SubgroupPoint,
+    secret: ironfish_jubjub::Fr,
+    public: ironfish_jubjub::SubgroupPoint,
 }
 
 impl EphemeralKeyPair {
     pub fn new() -> Self {
-        let secret = jubjub::Fr::random(thread_rng());
+        let secret = ironfish_jubjub::Fr::random(thread_rng());
 
         Self {
             secret,
@@ -25,11 +25,11 @@ impl EphemeralKeyPair {
         }
     }
 
-    pub fn secret(&self) -> &jubjub::Fr {
+    pub fn secret(&self) -> &ironfish_jubjub::Fr {
         &self.secret
     }
 
-    pub fn public(&self) -> &jubjub::SubgroupPoint {
+    pub fn public(&self) -> &ironfish_jubjub::SubgroupPoint {
         &self.public
     }
 }

@@ -336,7 +336,7 @@ impl NativeTransaction {
         let view_key = ViewKey::from_hex(&view_key_str).map_err(to_napi_err)?;
         let outgoing_view_key =
             OutgoingViewKey::from_hex(&outgoing_view_key_str).map_err(to_napi_err)?;
-        let proof_authorizing_key = jubjub::Fr::from_hex(&proof_authorizing_key_str)
+        let proof_authorizing_key = ironfish_jubjub::Fr::from_hex(&proof_authorizing_key_str)
             .map_err(|_| to_napi_err("PublicKeyPackage authorizing key hex to bytes failed"))?;
 
         let change_address = match change_goes_to {

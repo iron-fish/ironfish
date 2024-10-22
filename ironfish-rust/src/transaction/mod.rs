@@ -23,11 +23,11 @@ use crate::{
 
 use rand::{rngs::OsRng, thread_rng};
 
-use bellperson::groth16::{verify_proofs_batch, PreparedVerifyingKey};
 use blake2b_simd::Params as Blake2b;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
-use jubjub::ExtendedPoint;
+use ironfish_bellperson::groth16::{verify_proofs_batch, PreparedVerifyingKey};
+use ironfish_jubjub::ExtendedPoint;
 
 use ironfish_zkp::{
     constants::{
@@ -116,7 +116,7 @@ pub struct ProposedTransaction {
     // allows us to verify the sender address is valid and stored in the notes
     // Used to add randomness to signature generation without leaking the
     // key. Referred to as `ar` in the literature.
-    public_key_randomness: jubjub::Fr,
+    public_key_randomness: ironfish_jubjub::Fr,
     // NOTE: If adding fields here, you may need to add fields to
     // signature hash method, and also to Transaction.
 }
@@ -131,7 +131,7 @@ impl ProposedTransaction {
             burns: vec![],
             value_balances: ValueBalances::new(),
             expiration: 0,
-            public_key_randomness: jubjub::Fr::random(thread_rng()),
+            public_key_randomness: ironfish_jubjub::Fr::random(thread_rng()),
         }
     }
 
@@ -231,7 +231,7 @@ impl ProposedTransaction {
 
     pub fn build(
         &mut self,
-        proof_authorizing_key: jubjub::Fr,
+        proof_authorizing_key: ironfish_jubjub::Fr,
         view_key: ViewKey,
         outgoing_view_key: OutgoingViewKey,
         intended_transaction_fee: i64,
@@ -480,7 +480,7 @@ impl ProposedTransaction {
     ) -> Result<(redjubjub::PrivateKey, redjubjub::PublicKey), IronfishError> {
         // A "private key" manufactured from a bunch of randomness added for each
         // spend and output.
-        let mut binding_signature_key = jubjub::Fr::zero();
+        let mut binding_signature_key = ironfish_jubjub::Fr::zero();
 
         // A "public key" manufactured from a combination of the values of each
         // description and the same randomness as above
@@ -777,7 +777,7 @@ fn fee_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
         None => return Err(IronfishError::new(IronfishErrorKind::IllegalValue)),
     };
 
-    let mut value_balance = *NATIVE_VALUE_COMMITMENT_GENERATOR * jubjub::Fr::from(abs);
+    let mut value_balance = *NATIVE_VALUE_COMMITMENT_GENERATOR * ironfish_jubjub::Fr::from(abs);
 
     if is_negative {
         value_balance = -value_balance;
@@ -802,12 +802,12 @@ fn calculate_value_balance(
 
     for mint in mints {
         let mint_generator = mint.asset.value_commitment_generator();
-        value_balance_point += mint_generator * jubjub::Fr::from(mint.value);
+        value_balance_point += mint_generator * ironfish_jubjub::Fr::from(mint.value);
     }
 
     for burn in burns {
         let burn_generator = burn.asset_id.value_commitment_generator();
-        value_balance_point -= burn_generator * jubjub::Fr::from(burn.value);
+        value_balance_point -= burn_generator * ironfish_jubjub::Fr::from(burn.value);
     }
 
     Ok(value_balance_point)

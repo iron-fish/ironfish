@@ -68,7 +68,7 @@ pub struct UnsignedTransaction {
     pub(crate) randomized_public_key: redjubjub::PublicKey,
 
     // TODO: Verify if this is actually okay to store on the unsigned transaction
-    pub(crate) public_key_randomness: jubjub::Fr,
+    pub(crate) public_key_randomness: ironfish_jubjub::Fr,
 
     /// The balance of total spends - outputs, which is the amount that the miner gets to keep
     pub(crate) fee: i64,
@@ -319,7 +319,7 @@ impl UnsignedTransaction {
     }
 
     // Exposes the public key package for use in round two of FROST multisig protocol
-    pub fn public_key_randomness(&self) -> jubjub::Fr {
+    pub fn public_key_randomness(&self) -> ironfish_jubjub::Fr {
         self.public_key_randomness
     }
 

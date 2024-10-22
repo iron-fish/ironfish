@@ -8,8 +8,8 @@ use crate::{
     PublicAddress,
 };
 use byteorder::{ReadBytesExt, WriteBytesExt};
+use ironfish_jubjub::{ExtendedPoint, SubgroupPoint};
 use ironfish_zkp::constants::{ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, GH_FIRST_BLOCK};
-use jubjub::{ExtendedPoint, SubgroupPoint};
 use std::io;
 
 use super::asset_identifier::AssetIdentifier;

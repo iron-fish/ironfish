@@ -1,13 +1,13 @@
-use bellperson::{
+use ff::PrimeField;
+use group::GroupEncoding;
+use ironfish_bellperson::{
     gadgets::{
         blake2s,
         boolean::{self, AllocatedBit, Boolean},
     },
     ConstraintSystem, SynthesisError,
 };
-use ff::PrimeField;
-use group::GroupEncoding;
-use zcash_proofs::{
+use ironfish_proofs::{
     circuit::ecc::{self, EdwardsPoint},
     constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
@@ -110,7 +110,7 @@ where
     Ok(value_bits)
 }
 
-pub fn assert_valid_asset_generator<CS: bellperson::ConstraintSystem<blstrs::Scalar>>(
+pub fn assert_valid_asset_generator<CS: ironfish_bellperson::ConstraintSystem<blstrs::Scalar>>(
     mut cs: CS,
     asset_id: &[u8; ASSET_ID_LENGTH],
     asset_generator_repr: &[Boolean],
@@ -149,20 +149,20 @@ pub(crate) trait FromBytes: Sized {
     fn read<R: std::io::Read>(reader: R) -> Result<Self, std::io::Error>;
 }
 
-impl FromBytes for jubjub::SubgroupPoint {
+impl FromBytes for ironfish_jubjub::SubgroupPoint {
     fn read<R: std::io::Read>(mut reader: R) -> Result<Self, std::io::Error> {
         let mut bytes = [0u8; 32];
         reader.read_exact(&mut bytes)?;
-        Option::from(jubjub::SubgroupPoint::from_bytes(&bytes))
+        Option::from(ironfish_jubjub::SubgroupPoint::from_bytes(&bytes))
             .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid point"))
     }
 }
 
-impl FromBytes for jubjub::Fr {
+impl FromBytes for ironfish_jubjub::Fr {
     fn read<R: std::io::Read>(mut reader: R) -> Result<Self, std::io::Error> {
         let mut bytes = [0u8; 32];
         reader.read_exact(&mut bytes)?;
-        Option::from(jubjub::Fr::from_bytes(&bytes)).ok_or_else(|| {
+        Option::from(ironfish_jubjub::Fr::from_bytes(&bytes)).ok_or_else(|| {
             std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid field element")
         })
     }

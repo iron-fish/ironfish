@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use group::GroupEncoding;
+use ironfish_jubjub::Fr;
 use ironfish_zkp::{constants::SPENDING_KEY_GENERATOR, redjubjub};
-use jubjub::Fr;
 
 use crate::{errors::IronfishError, ViewKey};
 

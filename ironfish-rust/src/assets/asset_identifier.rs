@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use crate::errors::{IronfishError, IronfishErrorKind};
 use group::cofactor::CofactorGroup;
+use ironfish_jubjub::{ExtendedPoint, SubgroupPoint};
 use ironfish_zkp::{constants::ASSET_ID_LENGTH, util::asset_hash_to_point};
-use jubjub::{ExtendedPoint, SubgroupPoint};
 use std::io;
 
 pub const NATIVE_ASSET: AssetIdentifier = AssetIdentifier([

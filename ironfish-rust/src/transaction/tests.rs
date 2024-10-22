@@ -442,7 +442,7 @@ fn test_batch_verify_wrong_spend_params() {
     let rng = &mut thread_rng();
 
     let wrong_spend_params =
-        bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
+        ironfish_bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
             Spend {
                 value_commitment: None,
                 proof_generation_key: None,
@@ -457,7 +457,8 @@ fn test_batch_verify_wrong_spend_params() {
         )
         .unwrap();
 
-    let wrong_spend_vk = bellperson::groth16::prepare_verifying_key(&wrong_spend_params.vk);
+    let wrong_spend_vk =
+        ironfish_bellperson::groth16::prepare_verifying_key(&wrong_spend_params.vk);
 
     //
     // TRANSACTION GENERATION
@@ -519,7 +520,7 @@ fn test_batch_verify_wrong_output_params() {
     let rng = &mut thread_rng();
 
     let wrong_output_params =
-        bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
+        ironfish_bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
             Output {
                 value_commitment: None,
                 payment_address: None,
@@ -533,7 +534,8 @@ fn test_batch_verify_wrong_output_params() {
         )
         .unwrap();
 
-    let wrong_output_vk = bellperson::groth16::prepare_verifying_key(&wrong_output_params.vk);
+    let wrong_output_vk =
+        ironfish_bellperson::groth16::prepare_verifying_key(&wrong_output_params.vk);
 
     //
     // TRANSACTION GENERATION
@@ -594,16 +596,17 @@ fn test_batch_verify_wrong_output_params() {
 fn test_batch_verify_wrong_mint_params() {
     let rng = &mut thread_rng();
 
-    let wrong_mint_params = bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
-        MintAsset {
-            proof_generation_key: None,
-            public_key_randomness: None,
-        },
-        rng,
-    )
-    .unwrap();
+    let wrong_mint_params =
+        ironfish_bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
+            MintAsset {
+                proof_generation_key: None,
+                public_key_randomness: None,
+            },
+            rng,
+        )
+        .unwrap();
 
-    let wrong_mint_vk = bellperson::groth16::prepare_verifying_key(&wrong_mint_params.vk);
+    let wrong_mint_vk = ironfish_bellperson::groth16::prepare_verifying_key(&wrong_mint_params.vk);
 
     //
     // TRANSACTION GENERATION
@@ -686,7 +689,7 @@ fn test_batch_verify() {
     let key = SaplingKey::generate_key();
     let other_key = SaplingKey::generate_key();
 
-    let public_key_randomness = jubjub::Fr::random(thread_rng());
+    let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
     let other_randomized_public_key =
         redjubjub::PublicKey(other_key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
