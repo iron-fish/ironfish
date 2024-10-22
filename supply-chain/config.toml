@@ -40,9 +40,6 @@ audit-as-crates-io = true
 [policy."jubjub:0.9.0@git:531157cfa7b81ade207e819ef50c563843b10e30"]
 audit-as-crates-io = true
 
-[policy.reddsa]
-audit-as-crates-io = true
-
 [policy.zcash_address]
 audit-as-crates-io = true
 
@@ -612,10 +609,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.rand]]
 version = "0.8.5"
-criteria = "safe-to-deploy"
-
-[[exemptions.reddsa]]
-version = "0.5.1@git:ed49e9ca0699a6450f6d4a9fe62ff168f5ea1ead"
 criteria = "safe-to-deploy"
 
 [[exemptions.redjubjub]]

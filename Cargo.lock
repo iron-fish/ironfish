@@ -1524,17 +1524,37 @@ dependencies = [
 [[package]]
 name = "ironfish-frost"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#d4681df8a5a613fd9e716212aae3be8602acd227"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bee779ebf008aa92e1bb90993a47ab730065a8d39f5fa6630cde1ddfcf56a46"
 dependencies = [
  "blake3",
  "chacha20 0.9.1",
  "chacha20poly1305 0.10.1",
  "ed25519-dalek",
+ "ironfish-reddsa",
  "rand_chacha",
  "rand_core",
- "reddsa 0.5.1",
  "siphasher",
  "x25519-dalek",
+]
+
+[[package]]
+name = "ironfish-reddsa"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb4aecfd3334f0128215ce47f57360d91d68ff9d6fd890e1faca3c79b2bfa28d"
+dependencies = [
+ "blake2b_simd",
+ "byteorder",
+ "frost-rerandomized",
+ "group 0.13.0",
+ "hex",
+ "jubjub 0.10.0",
+ "pasta_curves 0.5.0",
+ "rand_core",
+ "serde",
+ "thiserror",
+ "zeroize",
 ]
 
 [[package]]
@@ -1960,7 +1980,7 @@ dependencies = [
  "nonempty",
  "pasta_curves 0.4.1",
  "rand",
- "reddsa 0.3.0",
+ "reddsa",
  "serde",
  "subtle",
  "tracing",
@@ -2254,24 +2274,6 @@ dependencies = [
  "group 0.12.1",
  "jubjub 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "pasta_curves 0.4.1",
- "rand_core",
- "serde",
- "thiserror",
- "zeroize",
-]
-
-[[package]]
-name = "reddsa"
-version = "0.5.1"
-source = "git+https://github.com/ZcashFoundation/reddsa.git?rev=ed49e9ca0699a6450f6d4a9fe62ff168f5ea1ead#ed49e9ca0699a6450f6d4a9fe62ff168f5ea1ead"
-dependencies = [
- "blake2b_simd",
- "byteorder",
- "frost-rerandomized",
- "group 0.13.0",
- "hex",
- "jubjub 0.10.0",
- "pasta_curves 0.5.0",
  "rand_core",
  "serde",
  "thiserror",
