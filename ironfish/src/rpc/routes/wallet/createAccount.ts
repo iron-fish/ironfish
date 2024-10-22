@@ -21,10 +21,7 @@ import { AssertHasRpcContext } from '../rpcContext'
 export type CreateAccountRequest = {
   name: string
   default?: boolean
-  createdAt?: {
-    hash: string
-    sequence: number
-  }
+  createdAt?: number | null
 }
 
 export type CreateAccountResponse = {
@@ -37,12 +34,7 @@ export const CreateAccountRequestSchema: yup.ObjectSchema<CreateAccountRequest> 
   .object({
     name: yup.string().defined(),
     default: yup.boolean().optional(),
-    createdAt: yup
-      .object({
-        hash: yup.string(),
-        sequence: yup.number(),
-      })
-      .optional(),
+    createdAt: yup.number().optional().nullable(),
   })
   .defined()
 
@@ -59,23 +51,18 @@ routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
   CreateAccountRequestSchema,
   async (request, context): Promise<void> => {
     AssertHasRpcContext(request, context, 'wallet')
-    if (
-      request.data.createdAt?.hash === undefined ||
-      request.data.createdAt?.sequence === undefined
-    ) {
-      request.data.createdAt = undefined
-    }
 
-    const createdAt = request.data.createdAt && {
-      hash: Buffer.from(request.data.createdAt.hash, 'hex'),
-      sequence: request.data.createdAt.sequence,
-    }
-
-    const setDefault = !context.wallet.hasDefaultAccount || (request.data.default ?? false)
+    const createdAt =
+      typeof request.data.createdAt === 'number'
+        ? {
+            hash: Buffer.alloc(32, 0),
+            sequence: request.data.createdAt,
+          }
+        : request.data.createdAt
 
     let account
     try {
-      account = await context.wallet.createAccount(request.data.name, { setDefault, createdAt })
+      account = await context.wallet.createAccount(request.data.name, { createdAt })
     } catch (e) {
       if (e instanceof DuplicateAccountNameError) {
         throw new RpcValidationError(e.message, 400, RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME)
@@ -87,10 +74,16 @@ routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
       void context.wallet.scan()
     }
 
+    let isDefaultAccount = false
+    if (!context.wallet.hasDefaultAccount || request.data.default) {
+      await context.wallet.setDefaultAccount(account.name)
+      isDefaultAccount = true
+    }
+
     request.end({
       name: account.name,
       publicAddress: account.publicAddress,
-      isDefaultAccount: setDefault,
+      isDefaultAccount,
     })
   },
 )
