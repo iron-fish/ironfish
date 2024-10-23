@@ -75,7 +75,7 @@ describe('TlsAdapter', () => {
 
     const response = await client.request('foo/bar', 'hello world').waitForEnd()
     expect(response.content).toBe('hello world')
-  }, 20000)
+  })
 
   it('should reject when authentication failed', async () => {
     adapter.enableAuthentication = true
@@ -117,5 +117,5 @@ describe('TlsAdapter', () => {
       code: RPC_ERROR_CODES.UNAUTHENTICATED,
       codeMessage: expect.stringContaining('Missing authentication token'),
     })
-  }, 20000)
+  })
 })
