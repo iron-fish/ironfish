@@ -15,7 +15,7 @@ use crate::{
 };
 use byteorder::{ReadBytesExt, WriteBytesExt};
 
-use super::util::Reader;
+use super::util::FromBytes;
 
 pub struct MintAsset {
     /// Key required to construct proofs for a particular spending key
@@ -28,13 +28,13 @@ pub struct MintAsset {
 
 impl MintAsset {
     pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
-        if let Some(proof_generation_key) = &self.proof_generation_key {
+        if let Some(ref proof_generation_key) = self.proof_generation_key {
             writer.write_u8(1)?;
             writer.write_all(proof_generation_key.to_bytes().as_ref())?;
         } else {
             writer.write_u8(0)?;
         }
-        if let Some(public_key_randomness) = &self.public_key_randomness {
+        if let Some(ref public_key_randomness) = self.public_key_randomness {
             writer.write_u8(1)?;
             writer.write_all(public_key_randomness.to_bytes().as_ref())?;
         } else {
@@ -242,27 +242,24 @@ mod test {
         let deserialized_mint_asset = MintAsset::read(&buffer[..]).unwrap();
 
         assert_eq!(
-            mint_asset.proof_generation_key.is_some(),
-            deserialized_mint_asset.proof_generation_key.is_some()
+            mint_asset.proof_generation_key.clone().unwrap().ak,
+            deserialized_mint_asset
+                .proof_generation_key
+                .clone()
+                .unwrap()
+                .ak
         );
         assert_eq!(
-            mint_asset.public_key_randomness.is_some(),
-            deserialized_mint_asset.public_key_randomness.is_some()
+            mint_asset.proof_generation_key.clone().unwrap().nsk,
+            deserialized_mint_asset
+                .proof_generation_key
+                .clone()
+                .unwrap()
+                .nsk
         );
-
-        if let (Some(pk1), Some(pk2)) = (
-            &mint_asset.proof_generation_key,
-            &deserialized_mint_asset.proof_generation_key,
-        ) {
-            assert_eq!(pk1.ak, pk2.ak);
-            assert_eq!(pk1.nsk, pk2.nsk);
-        }
-
-        if let (Some(r1), Some(r2)) = (
-            &mint_asset.public_key_randomness,
-            &deserialized_mint_asset.public_key_randomness,
-        ) {
-            assert_eq!(r1, r2);
-        }
+        assert_eq!(
+            mint_asset.public_key_randomness.unwrap(),
+            deserialized_mint_asset.public_key_randomness.unwrap()
+        );
     }
 }

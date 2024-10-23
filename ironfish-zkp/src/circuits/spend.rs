@@ -10,7 +10,7 @@ use crate::constants::{CRH_IVK_PERSONALIZATION, PRF_NF_PERSONALIZATION};
 use crate::ProofGenerationKey;
 use crate::{constants::proof::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment};
 
-use super::util::{expose_value_commitment, Reader};
+use super::util::{expose_value_commitment, FromBytes};
 use bellperson::gadgets::blake2s;
 use bellperson::gadgets::boolean;
 use bellperson::gadgets::multipack;
@@ -56,64 +56,54 @@ pub struct Spend {
 
 impl Spend {
     pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
-        if let Some(value_commitment) = &self.value_commitment {
+        if let Some(ref value_commitment) = self.value_commitment {
             writer.write_u8(1)?;
             writer.write_all(&value_commitment.to_bytes())?;
         } else {
             writer.write_u8(0)?;
         }
-        if let Some(proof_generation_key) = &self.proof_generation_key {
+        if let Some(ref proof_generation_key) = self.proof_generation_key {
             writer.write_u8(1)?;
             writer.write_all(proof_generation_key.to_bytes().as_ref())?;
         } else {
             writer.write_u8(0)?;
         }
-        if let Some(payment_address) = &self.payment_address {
+        if let Some(ref payment_address) = self.payment_address {
             writer.write_u8(1)?;
             writer.write_all(payment_address.to_bytes().as_ref())?;
         } else {
             writer.write_u8(0)?;
         }
-        if let Some(commitment_randomness) = &self.commitment_randomness {
+        if let Some(ref commitment_randomness) = self.commitment_randomness {
             writer.write_u8(1)?;
             writer.write_all(commitment_randomness.to_bytes().as_ref())?;
         } else {
             writer.write_u8(0)?;
         }
-        if let Some(ar) = &self.ar {
+        if let Some(ref ar) = self.ar {
             writer.write_u8(1)?;
             writer.write_all(ar.to_bytes().as_ref())?;
         } else {
             writer.write_u8(0)?;
         }
-        writer.write_all((self.auth_path.len() as u32).to_le_bytes().as_ref())?;
-        let bytes = self
-            .auth_path
-            .iter()
-            .flat_map(|auth_path| {
-                let mut res = vec![];
-                match auth_path {
-                    Some((val, flag)) => {
-                        res.push(1);
-                        res.extend(val.to_bytes_le());
-                        let flag = if *flag { 0u8 } else { 1u8 };
-                        res.push(flag);
-                    }
-                    None => {
-                        res.push(0);
-                    }
+        writer.write_all((self.auth_path.len() as u64).to_le_bytes().as_ref())?;
+        for auth_path in &self.auth_path {
+            match auth_path {
+                Some((val, flag)) => {
+                    writer.write_u8(1)?;
+                    writer.write_all(&val.to_bytes_le())?;
+                    writer.write_u8(*flag as u8)?;
                 }
-                res
-            })
-            .collect::<Vec<u8>>();
-        writer.write_all(bytes.as_ref())?;
+                None => writer.write_u8(0)?,
+            }
+        }
         if let Some(anchor) = &self.anchor {
             writer.write_u8(1)?;
             writer.write_all(anchor.to_bytes_le().as_ref())?;
         } else {
             writer.write_u8(0)?;
         }
-        if let Some(sender_address) = &self.sender_address {
+        if let Some(ref sender_address) = self.sender_address {
             writer.write_u8(1)?;
             writer.write_all(sender_address.to_bytes().as_ref())?;
         } else {
@@ -143,12 +133,12 @@ impl Spend {
         if reader.read_u8()? == 1 {
             ar = Some(jubjub::Fr::read(&mut reader)?);
         }
-        let len = reader.read_u32::<LittleEndian>().unwrap();
+        let len = reader.read_u64::<LittleEndian>().unwrap();
         let mut auth_path = vec![];
         for _ in 0..len {
             if reader.read_u8()? == 1 {
                 let val = blstrs::Scalar::read(&mut reader)?;
-                let flag = reader.read_u8()? == 0;
+                let flag = reader.read_u8()? == 1;
                 auth_path.push(Some((val, flag)));
             } else {
                 auth_path.push(None);
@@ -783,10 +773,8 @@ mod test {
 
     #[test]
     fn test_spend_read_write() {
-        // Seed a fixed RNG for determinism in the test
         let mut rng = StdRng::seed_from_u64(0);
 
-        // Create an instance of Spend with some test data
         let value_commitment = ValueCommitment {
             value: rng.next_u64(),
             randomness: jubjub::Fr::random(&mut rng),
@@ -824,49 +812,52 @@ mod test {
         let mut buffer = vec![];
         spend.write(&mut buffer).unwrap();
 
-        // Read the Spend from the buffer
         let deserialized_spend = Spend::read(&buffer[..]).unwrap();
-
-        // Compare the original Spend and the read Spend
-        // Since some fields might not implement PartialEq, we'll compare their bytes
         assert_eq!(
-            spend.value_commitment.is_some(),
-            deserialized_spend.value_commitment.is_some()
+            spend.value_commitment.clone().unwrap().value,
+            deserialized_spend.value_commitment.clone().unwrap().value
         );
-        if let (Some(vc1), Some(vc2)) = (
-            spend.value_commitment.as_ref(),
-            deserialized_spend.value_commitment.as_ref(),
-        ) {
-            assert_eq!(vc1.value, vc2.value);
-            assert_eq!(vc1.randomness, vc2.randomness);
-            assert_eq!(
-                vc1.asset_generator.to_bytes(),
-                vc2.asset_generator.to_bytes()
-            );
-        }
-
         assert_eq!(
-            spend.proof_generation_key.is_some(),
-            deserialized_spend.proof_generation_key.is_some()
+            spend.value_commitment.clone().unwrap().randomness,
+            deserialized_spend
+                .value_commitment
+                .clone()
+                .unwrap()
+                .randomness
         );
-        if let (Some(pk1), Some(pk2)) = (
-            spend.proof_generation_key.as_ref(),
-            deserialized_spend.proof_generation_key.as_ref(),
-        ) {
-            assert_eq!(pk1.ak.to_bytes(), pk2.ak.to_bytes());
-            assert_eq!(pk1.nsk, pk2.nsk);
-        }
+        assert_eq!(
+            spend
+                .value_commitment
+                .clone()
+                .unwrap()
+                .asset_generator
+                .to_bytes(),
+            deserialized_spend
+                .value_commitment
+                .clone()
+                .unwrap()
+                .asset_generator
+                .to_bytes()
+        );
 
         assert_eq!(
-            spend.payment_address.is_some(),
-            deserialized_spend.payment_address.is_some()
+            spend.proof_generation_key.clone().unwrap().ak.to_bytes(),
+            deserialized_spend
+                .proof_generation_key
+                .clone()
+                .unwrap()
+                .ak
+                .to_bytes()
         );
-        if let (Some(sp1), Some(sp2)) = (
-            spend.payment_address.as_ref(),
-            deserialized_spend.payment_address.as_ref(),
-        ) {
-            assert_eq!(sp1.to_bytes(), sp2.to_bytes());
-        }
+        assert_eq!(
+            spend.proof_generation_key.clone().unwrap().nsk,
+            deserialized_spend.proof_generation_key.clone().unwrap().nsk
+        );
+
+        assert_eq!(
+            spend.payment_address.unwrap().to_bytes(),
+            deserialized_spend.payment_address.unwrap().to_bytes()
+        );
 
         assert_eq!(
             spend.commitment_randomness,
@@ -881,24 +872,15 @@ mod test {
             .iter()
             .zip(deserialized_spend.auth_path.iter())
         {
-            assert_eq!(ap1.is_some(), ap2.is_some());
-            if let (Some((s1, b1)), Some((s2, b2))) = (ap1, ap2) {
-                assert_eq!(s1, s2);
-                assert_eq!(b1, b2);
-            }
+            assert_eq!((*ap1).unwrap().0, (*ap2).unwrap().0);
+            assert_eq!((*ap1).unwrap().1, (*ap2).unwrap().1);
         }
 
         assert_eq!(spend.anchor, deserialized_spend.anchor);
 
         assert_eq!(
-            spend.sender_address.is_some(),
-            deserialized_spend.sender_address.is_some()
+            spend.sender_address.unwrap().to_bytes(),
+            deserialized_spend.sender_address.unwrap().to_bytes()
         );
-        if let (Some(sp1), Some(sp2)) = (
-            spend.sender_address.as_ref(),
-            deserialized_spend.sender_address.as_ref(),
-        ) {
-            assert_eq!(sp1.to_bytes(), sp2.to_bytes());
-        }
     }
 }

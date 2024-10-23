@@ -23,7 +23,7 @@ use crate::{
     ProofGenerationKey,
 };
 
-use super::util::{expose_value_commitment, Reader};
+use super::util::{expose_value_commitment, FromBytes};
 use bellperson::gadgets::boolean;
 
 /// This is a circuit instance inspired from ZCash's `Output` circuit in the Sapling protocol
@@ -54,38 +54,38 @@ pub struct Output {
 
 impl Output {
     pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
-        if let Some(value_commitment) = &self.value_commitment {
+        if let Some(ref value_commitment) = self.value_commitment {
             writer.write_u8(1)?;
             writer.write_all(value_commitment.to_bytes().as_ref())?;
         } else {
             writer.write_u8(0)?;
         }
         writer.write_all(&self.asset_id)?;
-        if let Some(payment_address) = &self.payment_address {
+        if let Some(ref payment_address) = self.payment_address {
             writer.write_u8(1)?;
             writer.write_all(payment_address.to_bytes().as_ref())?;
         } else {
             writer.write_u8(0)?;
         }
-        if let Some(commitment_randomness) = &self.commitment_randomness {
+        if let Some(ref commitment_randomness) = self.commitment_randomness {
             writer.write_u8(1)?;
             writer.write_all(commitment_randomness.to_bytes().as_ref())?;
         } else {
             writer.write_u8(0)?;
         }
-        if let Some(esk) = &self.esk {
+        if let Some(ref esk) = self.esk {
             writer.write_u8(1)?;
             writer.write_all(esk.to_bytes().as_ref())?;
         } else {
             writer.write_u8(0)?;
         }
-        if let Some(proof_generation_key) = &self.proof_generation_key {
+        if let Some(ref proof_generation_key) = self.proof_generation_key {
             writer.write_u8(1)?;
             writer.write_all(proof_generation_key.to_bytes().as_ref())?;
         } else {
             writer.write_u8(0)?;
         }
-        if let Some(ar) = &self.ar {
+        if let Some(ref ar) = self.ar {
             writer.write_u8(1)?;
             writer.write_all(ar.to_bytes().as_ref())?;
         } else {
@@ -502,24 +502,26 @@ mod test {
             let mut writer = vec![];
             output.write(&mut writer).unwrap();
             let deserialized_output: Output = Output::read(&writer[..]).unwrap();
-
             assert_eq!(
-                output.value_commitment.is_some(),
-                deserialized_output.value_commitment.is_some()
+                output.value_commitment.clone().unwrap().value,
+                deserialized_output.value_commitment.clone().unwrap().value
             );
-            if let Some(ref value_commitment) = output.value_commitment {
-                let deserialized_value_commitment =
-                    deserialized_output.value_commitment.as_ref().unwrap();
-                assert_eq!(value_commitment.value, deserialized_value_commitment.value);
-                assert_eq!(
-                    value_commitment.randomness,
-                    deserialized_value_commitment.randomness
-                );
-                assert_eq!(
-                    value_commitment.asset_generator,
-                    deserialized_value_commitment.asset_generator
-                );
-            }
+            assert_eq!(
+                output.value_commitment.clone().unwrap().randomness,
+                deserialized_output
+                    .value_commitment
+                    .clone()
+                    .unwrap()
+                    .randomness
+            );
+            assert_eq!(
+                output.value_commitment.clone().unwrap().asset_generator,
+                deserialized_output
+                    .value_commitment
+                    .clone()
+                    .unwrap()
+                    .asset_generator
+            );
 
             assert_eq!(output.asset_id, deserialized_output.asset_id);
             assert_eq!(output.payment_address, deserialized_output.payment_address);
@@ -528,17 +530,20 @@ mod test {
                 deserialized_output.commitment_randomness
             );
             assert_eq!(output.esk, deserialized_output.esk);
-            assert_eq!(
-                output.proof_generation_key.is_some(),
-                deserialized_output.proof_generation_key.is_some()
-            );
-            if let Some(ref proof_generation_key) = output.proof_generation_key {
-                let deserialized_pgk = deserialized_output.proof_generation_key.as_ref().unwrap();
-                assert_eq!(proof_generation_key.ak, deserialized_pgk.ak);
-                assert_eq!(proof_generation_key.nsk, deserialized_pgk.nsk);
-            }
 
-            // Compare ar
+            assert_eq!(
+                output.proof_generation_key.clone().unwrap().ak,
+                deserialized_output.proof_generation_key.clone().unwrap().ak
+            );
+            assert_eq!(
+                output.proof_generation_key.clone().unwrap().nsk,
+                deserialized_output
+                    .proof_generation_key
+                    .clone()
+                    .unwrap()
+                    .nsk
+            );
+
             assert_eq!(output.ar, deserialized_output.ar);
         }
     }
