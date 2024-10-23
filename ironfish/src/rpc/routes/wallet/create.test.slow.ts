@@ -10,7 +10,7 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 import { RPC_ERROR_CODES } from '../../adapters'
 import { RpcRequestError } from '../../clients/errors'
 
-describe('Route wallet/create', () => {
+describe('Route wallet/createAccount', () => {
   jest.setTimeout(15000)
   const routeTest = createRouteTest()
 
@@ -20,6 +20,10 @@ describe('Route wallet/create', () => {
 
   it('should create an account', async () => {
     await routeTest.node.wallet.createAccount('existingAccount', { setDefault: true })
+    const createdAtHead = {
+      hash: routeTest.node.chain.head.hash,
+      sequence: routeTest.node.chain.head.sequence,
+    }
 
     const name = uuid()
 
@@ -35,6 +39,7 @@ describe('Route wallet/create', () => {
     expect(account).toMatchObject({
       name: name,
       publicAddress: response.content.publicAddress,
+      createdAt: createdAtHead,
     })
   })
 
@@ -87,5 +92,55 @@ describe('Route wallet/create', () => {
     })
 
     expect(scanSpy).toHaveBeenCalled()
+  })
+
+  it('should set account createdAt if passed', async () => {
+    const name = uuid()
+    const createdAt = 10
+
+    const response = await routeTest.client.wallet.createAccount({
+      name,
+      createdAt,
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.content).toMatchObject({
+      name: name,
+      publicAddress: expect.any(String),
+      isDefaultAccount: true,
+    })
+
+    const account = routeTest.node.wallet.getAccountByName(name)
+    expect(account).toMatchObject({
+      name: name,
+      publicAddress: response.content.publicAddress,
+      createdAt: {
+        hash: Buffer.alloc(32, 0),
+        sequence: 10,
+      },
+    })
+  })
+
+  it('should set account createdAt to null', async () => {
+    const name = uuid()
+
+    const response = await routeTest.client.wallet.createAccount({
+      name,
+      createdAt: null,
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.content).toMatchObject({
+      name: name,
+      publicAddress: expect.any(String),
+      isDefaultAccount: true,
+    })
+
+    const account = routeTest.node.wallet.getAccountByName(name)
+    expect(account).toMatchObject({
+      name: name,
+      publicAddress: response.content.publicAddress,
+      createdAt: null,
+    })
   })
 })
