@@ -87,8 +87,18 @@ jobs:
   ironfish_rust:
     name: Test ironfish-rust
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shard: [1/2, 2/2]
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
@@ -96,12 +106,15 @@ jobs:
           shared-key: base
 
       # Run tests to collect code coverage
-      - name: Run cargo-tarpaulin on ironfish-rust
+      - name: Run tests
         run: |
-          wget -O tarpaulin.tar.gz https://github.com/xd009642/tarpaulin/releases/download/0.22.0/cargo-tarpaulin-0.22.0-travis.tar.gz
-          tar -xzf tarpaulin.tar.gz
-          mv cargo-tarpaulin ~/.cargo/bin/
-          cargo tarpaulin -p ironfish --release --out Xml --avoid-cfg-tarpaulin --skip-clean --timeout 300 -- --test-threads 1
+          cargo llvm-cov nextest \
+            --no-clean \
+            --codecov \
+            --output-path codecov.json \
+            --package ironfish \
+            --release \
+            --partition count:${{ matrix.shard }}
 
       # Upload code coverage to Codecov
       - name: Upload to codecov.io
@@ -116,18 +129,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: zkp
 
       # Run tests to collect code coverage
-      - name: Run cargo-tarpaulin on ironfish-zkp
+      - name: Run tests
         run: |
-          wget -O tarpaulin.tar.gz https://github.com/xd009642/tarpaulin/releases/download/0.22.0/cargo-tarpaulin-0.22.0-travis.tar.gz
-          tar -xzf tarpaulin.tar.gz
-          mv cargo-tarpaulin ~/.cargo/bin/
-          cargo tarpaulin -p ironfish_zkp --release --out Xml --avoid-cfg-tarpaulin --skip-clean --timeout 300 -- --test-threads 1
+          cargo llvm-cov nextest \
+            --no-clean \
+            --codecov \
+            --output-path codecov.json \
+            --package ironfish_zkp \
+            --release
 
       # Upload code coverage to Codecov
       - name: Upload to codecov.io
