@@ -1,26 +1,25 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import * as yup from 'yup'
-import { ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
+import { z } from 'zod'
+import { ConfigOptions } from '../../../fileStores/config'
 import { RpcValidationError } from '../../adapters/errors'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
 
-export type GetConfigRequest = { user?: boolean; name?: string } | undefined
 export type GetConfigResponse = Partial<ConfigOptions>
 
-export const GetConfigRequestSchema: yup.ObjectSchema<GetConfigRequest> = yup
+export const GetConfigRequestSchema = z
   .object({
-    user: yup.boolean().optional(),
-    name: yup.string().optional(),
+    user: z.boolean().optional(),
+    name: z.string().optional(),
   })
   .optional()
 
-export const GetConfigResponseSchema: yup.ObjectSchema<GetConfigResponse> = ConfigOptionsSchema
+export type GetConfigRequest = z.infer<typeof GetConfigRequestSchema>
 
-routes.register<typeof GetConfigRequestSchema, GetConfigResponse>(
+routes.registerZod<GetConfigRequest, GetConfigResponse>(
   `${ApiNamespace.config}/getConfig`,
   GetConfigRequestSchema,
   (request, context): void => {
