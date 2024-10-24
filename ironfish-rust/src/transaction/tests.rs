@@ -438,7 +438,7 @@ fn test_transaction_value_overflows() {
 }
 
 #[test]
-fn test_batch_verify_wrong_params() {
+fn test_batch_verify_wrong_spend_params() {
     let rng = &mut thread_rng();
 
     let wrong_spend_params =
@@ -457,6 +457,67 @@ fn test_batch_verify_wrong_params() {
         )
         .unwrap();
 
+    let wrong_spend_vk = bellperson::groth16::prepare_verifying_key(&wrong_spend_params.vk);
+
+    //
+    // TRANSACTION GENERATION
+    //
+    let key = SaplingKey::generate_key();
+    let other_key = SaplingKey::generate_key();
+
+    // Native asset
+    let in_note = Note::new(
+        key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        key.public_address(),
+    );
+    let out_note = Note::new(
+        key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        key.public_address(),
+    );
+
+    let witness = make_fake_witness(&in_note);
+
+    // Custom asset
+    let asset = Asset::new(other_key.public_address(), "Othercoin", "").unwrap();
+
+    let mut proposed_transaction1 = ProposedTransaction::new(TransactionVersion::latest());
+
+    proposed_transaction1.add_spend(in_note, &witness).unwrap();
+    proposed_transaction1.add_output(out_note).unwrap();
+
+    let transaction1 = proposed_transaction1
+        .post(&key, None, 1)
+        .expect("should be able to post transaction");
+
+    let mut proposed_transaction2 = ProposedTransaction::new(TransactionVersion::latest());
+    proposed_transaction2.add_mint(asset, 5).unwrap();
+
+    let transaction2 = proposed_transaction2.post(&other_key, None, 0).unwrap();
+    //
+    // END TRANSACTION CREATION
+    //
+
+    batch_verify_transactions([&transaction1, &transaction2])
+        .expect("Should verify using Sapling params");
+    internal_batch_verify_transactions(
+        [&transaction1, &transaction2],
+        &wrong_spend_vk,
+        &SAPLING.output_verifying_key,
+        &SAPLING.mint_verifying_key,
+    )
+    .expect_err("Should not verify if spend verifying key is wrong");
+}
+
+#[test]
+fn test_batch_verify_wrong_output_params() {
+    let rng = &mut thread_rng();
+
     let wrong_output_params =
         bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
             Output {
@@ -472,6 +533,67 @@ fn test_batch_verify_wrong_params() {
         )
         .unwrap();
 
+    let wrong_output_vk = bellperson::groth16::prepare_verifying_key(&wrong_output_params.vk);
+
+    //
+    // TRANSACTION GENERATION
+    //
+    let key = SaplingKey::generate_key();
+    let other_key = SaplingKey::generate_key();
+
+    // Native asset
+    let in_note = Note::new(
+        key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        key.public_address(),
+    );
+    let out_note = Note::new(
+        key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        key.public_address(),
+    );
+
+    let witness = make_fake_witness(&in_note);
+
+    // Custom asset
+    let asset = Asset::new(other_key.public_address(), "Othercoin", "").unwrap();
+
+    let mut proposed_transaction1 = ProposedTransaction::new(TransactionVersion::latest());
+
+    proposed_transaction1.add_spend(in_note, &witness).unwrap();
+    proposed_transaction1.add_output(out_note).unwrap();
+
+    let transaction1 = proposed_transaction1
+        .post(&key, None, 1)
+        .expect("should be able to post transaction");
+
+    let mut proposed_transaction2 = ProposedTransaction::new(TransactionVersion::latest());
+    proposed_transaction2.add_mint(asset, 5).unwrap();
+
+    let transaction2 = proposed_transaction2.post(&other_key, None, 0).unwrap();
+    //
+    // END TRANSACTION CREATION
+    //
+
+    batch_verify_transactions([&transaction1, &transaction2])
+        .expect("Should verify using Sapling params");
+    internal_batch_verify_transactions(
+        [&transaction1, &transaction2],
+        &SAPLING.spend_verifying_key,
+        &wrong_output_vk,
+        &SAPLING.mint_verifying_key,
+    )
+    .expect_err("Should not verify if output verifying key is wrong");
+}
+
+#[test]
+fn test_batch_verify_wrong_mint_params() {
+    let rng = &mut thread_rng();
+
     let wrong_mint_params = bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
         MintAsset {
             proof_generation_key: None,
@@ -481,8 +603,6 @@ fn test_batch_verify_wrong_params() {
     )
     .unwrap();
 
-    let wrong_spend_vk = bellperson::groth16::prepare_verifying_key(&wrong_spend_params.vk);
-    let wrong_output_vk = bellperson::groth16::prepare_verifying_key(&wrong_output_params.vk);
     let wrong_mint_vk = bellperson::groth16::prepare_verifying_key(&wrong_mint_params.vk);
 
     //
@@ -552,20 +672,6 @@ fn test_batch_verify_wrong_params() {
 
     batch_verify_transactions([&transaction1, &transaction2])
         .expect("Should verify using Sapling params");
-    internal_batch_verify_transactions(
-        [&transaction1, &transaction2],
-        &wrong_spend_vk,
-        &SAPLING.output_verifying_key,
-        &SAPLING.mint_verifying_key,
-    )
-    .expect_err("Should not verify if spend verifying key is wrong");
-    internal_batch_verify_transactions(
-        [&transaction1, &transaction2],
-        &SAPLING.spend_verifying_key,
-        &wrong_output_vk,
-        &SAPLING.mint_verifying_key,
-    )
-    .expect_err("Should not verify if output verifying key is wrong");
     internal_batch_verify_transactions(
         [&transaction1, &transaction2],
         &SAPLING.spend_verifying_key,
