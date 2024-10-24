@@ -45,4 +45,4 @@ jobs:
           status: ${{ job.status }}
           notify_when: 'failure'
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.GITHUB_ACTIONS_SLACK_WEBHOOK }}
+          SLACK_WEBHOOK_URL: ${{ secrets.GH_ACTIONS_SLACK_WEBHOOK }}
