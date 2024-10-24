@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
-  IdentityNotAllowedError,
-  InvalidSessionError,
   MultisigBrokerErrorCodes,
   MultisigBrokerUtils,
   MultisigClient,
@@ -113,6 +111,8 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
     this.client.onMultisigBrokerError.on((errorMessage) => {
       if (errorMessage.error.code === MultisigBrokerErrorCodes.SESSION_ID_NOT_FOUND) {
         clientError = new InvalidSessionError(errorMessage.error.message)
+      } else if (errorMessage.error.code === MultisigBrokerErrorCodes.DKG_SESSION_FULL) {
+        clientError = new DkgSessionFullError(errorMessage.error.message)
       } else if (errorMessage.error.code === MultisigBrokerErrorCodes.IDENTITY_NOT_ALLOWED) {
         // Throws error immediately instead of deferring to loop, below
         throw new IdentityNotAllowedError(errorMessage.error.message)
@@ -143,3 +143,11 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
 
   abstract getSessionConfig(): Promise<object>
 }
+
+export class MultisigSessionError extends Error {
+  name = this.constructor.name
+}
+
+export class DkgSessionFullError extends MultisigSessionError {}
+export class InvalidSessionError extends MultisigSessionError {}
+export class IdentityNotAllowedError extends MultisigSessionError {}
