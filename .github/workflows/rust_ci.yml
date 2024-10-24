@@ -100,10 +100,6 @@ jobs:
       - name: Install nextest
         uses: taiki-e/install-action@nextest
 
-      - name: Clean coverage artifacts
-        run: |
-          cargo llvm-cov clean --workspace
-
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
@@ -138,10 +134,6 @@ jobs:
 
       - name: Install nextest
         uses: taiki-e/install-action@nextest
-
-      - name: Clean coverage artifacts
-        run: |
-          cargo llvm-cov clean --workspace
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
