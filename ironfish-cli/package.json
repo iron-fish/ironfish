@@ -60,7 +60,7 @@
     "oclif:version": "oclif readme && git add README.md"
   },
   "dependencies": {
-    "@ironfish/multisig-broker": "0.1.1",
+    "@ironfish/multisig-broker": "0.3.0",
     "@ironfish/rust-nodejs": "2.7.0",
     "@ironfish/sdk": "2.8.1",
     "@ledgerhq/errors": "6.19.1",
