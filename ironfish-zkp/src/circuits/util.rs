@@ -6,6 +6,7 @@ use bellperson::{
     ConstraintSystem, SynthesisError,
 };
 use ff::PrimeField;
+use group::GroupEncoding;
 use zcash_proofs::{
     circuit::ecc::{self, EdwardsPoint},
     constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
@@ -142,4 +143,36 @@ pub fn assert_valid_asset_generator<CS: bellperson::ConstraintSystem<blstrs::Sca
     }
 
     Ok(())
+}
+
+pub(crate) trait FromBytes: Sized {
+    fn read<R: std::io::Read>(reader: R) -> Result<Self, std::io::Error>;
+}
+
+impl FromBytes for jubjub::SubgroupPoint {
+    fn read<R: std::io::Read>(mut reader: R) -> Result<Self, std::io::Error> {
+        let mut bytes = [0u8; 32];
+        reader.read_exact(&mut bytes)?;
+        Option::from(jubjub::SubgroupPoint::from_bytes(&bytes))
+            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid point"))
+    }
+}
+
+impl FromBytes for jubjub::Fr {
+    fn read<R: std::io::Read>(mut reader: R) -> Result<Self, std::io::Error> {
+        let mut bytes = [0u8; 32];
+        reader.read_exact(&mut bytes)?;
+        Option::from(jubjub::Fr::from_bytes(&bytes)).ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid field element")
+        })
+    }
+}
+
+impl FromBytes for blstrs::Scalar {
+    fn read<R: std::io::Read>(mut reader: R) -> Result<Self, std::io::Error> {
+        let mut bytes = [0u8; 32];
+        reader.read_exact(&mut bytes)?;
+        Option::from(blstrs::Scalar::from_bytes_le(&bytes))
+            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid scalar"))
+    }
 }

@@ -1,5 +1,8 @@
+use byteorder::{LittleEndian, ReadBytesExt};
 use ff::Field;
-use group::cofactor::CofactorGroup;
+use group::{cofactor::CofactorGroup, GroupEncoding};
+
+use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
 use crate::constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR;
@@ -25,6 +28,34 @@ impl ValueCommitment {
     pub fn commitment(&self) -> jubjub::SubgroupPoint {
         (self.asset_generator.clear_cofactor() * jubjub::Fr::from(self.value))
             + (*VALUE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness)
+    }
+
+    pub fn to_bytes(&self) -> [u8; 72] {
+        let mut res = [0u8; 72];
+        res[0..8].copy_from_slice(&self.value.to_le_bytes());
+        res[8..40].copy_from_slice(&self.randomness.to_bytes());
+        res[40..72].copy_from_slice(&self.asset_generator.to_bytes());
+        res
+    }
+
+    pub fn write<W: std::io::Write>(&self, mut writer: W) -> Result<(), std::io::Error> {
+        writer.write_all(&self.to_bytes())?;
+        Ok(())
+    }
+
+    pub fn read<R: std::io::Read>(mut reader: R) -> Result<Self, std::io::Error> {
+        let value = reader.read_u64::<LittleEndian>()?;
+        let mut randomness_bytes = [0u8; 32];
+        reader.read_exact(&mut randomness_bytes)?;
+        let randomness = jubjub::Fr::from_bytes(&randomness_bytes).unwrap();
+        let mut asset_generator = [0u8; 32];
+        reader.read_exact(&mut asset_generator)?;
+        let asset_generator = ExtendedPoint::from_bytes(&asset_generator).unwrap();
+        Ok(Self {
+            value,
+            randomness,
+            asset_generator,
+        })
     }
 }
 
@@ -185,6 +216,32 @@ mod test {
         assert_eq!(
             value_commitment_one.randomness,
             value_commitment_two.randomness
+        );
+    }
+
+    #[test]
+    fn test_value_commitment_read_write() {
+        // Seed a fixed rng for determinism in the test
+        let mut rng = StdRng::seed_from_u64(0);
+
+        let value_commitment = ValueCommitment {
+            value: 5,
+            randomness: jubjub::Fr::random(&mut rng),
+            asset_generator: jubjub::ExtendedPoint::random(&mut rng),
+        };
+
+        // Serialize to bytes
+        let serialized = value_commitment.to_bytes();
+
+        // Deserialize from bytes
+        let deserialized = ValueCommitment::read(&serialized[..]).unwrap();
+
+        // Assert equality
+        assert_eq!(value_commitment.value, deserialized.value);
+        assert_eq!(value_commitment.randomness, deserialized.randomness);
+        assert_eq!(
+            value_commitment.asset_generator,
+            deserialized.asset_generator
         );
     }
 }

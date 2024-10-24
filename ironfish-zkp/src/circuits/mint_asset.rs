@@ -3,6 +3,7 @@ use bellperson::{
     Circuit,
 };
 use ff::PrimeField;
+use std::io::{Read, Write};
 use zcash_proofs::{
     circuit::ecc,
     constants::{PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR},
@@ -12,6 +13,9 @@ use crate::{
     constants::{proof::PUBLIC_KEY_GENERATOR, CRH_IVK_PERSONALIZATION},
     ProofGenerationKey,
 };
+use byteorder::{ReadBytesExt, WriteBytesExt};
+
+use super::util::FromBytes;
 
 pub struct MintAsset {
     /// Key required to construct proofs for a particular spending key
@@ -20,6 +24,39 @@ pub struct MintAsset {
     /// Used to add randomness to signature generation without leaking the
     /// key. Referred to as `ar` in the literature.
     pub public_key_randomness: Option<jubjub::Fr>,
+}
+
+impl MintAsset {
+    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
+        if let Some(ref proof_generation_key) = self.proof_generation_key {
+            writer.write_u8(1)?;
+            writer.write_all(proof_generation_key.to_bytes().as_ref())?;
+        } else {
+            writer.write_u8(0)?;
+        }
+        if let Some(ref public_key_randomness) = self.public_key_randomness {
+            writer.write_u8(1)?;
+            writer.write_all(public_key_randomness.to_bytes().as_ref())?;
+        } else {
+            writer.write_u8(0)?;
+        }
+        Ok(())
+    }
+
+    pub fn read<R: Read>(mut reader: R) -> std::io::Result<MintAsset> {
+        let mut proof_generation_key = None;
+        if reader.read_u8()? == 1 {
+            proof_generation_key = Some(ProofGenerationKey::read(&mut reader)?);
+        }
+        let mut public_key_randomness = None;
+        if reader.read_u8()? == 1 {
+            public_key_randomness = Some(jubjub::Fr::read(&mut reader)?);
+        }
+        Ok(MintAsset {
+            proof_generation_key,
+            public_key_randomness,
+        })
+    }
 }
 
 impl Circuit<blstrs::Scalar> for MintAsset {
@@ -180,5 +217,49 @@ mod test {
 
         // Sanity check
         assert!(cs.verify(&public_inputs));
+    }
+
+    #[test]
+    fn test_mint_asset_read_write() {
+        // Seed a fixed RNG for determinism in the test
+        let mut rng = StdRng::seed_from_u64(0);
+
+        // Create a MintAsset instance with random data
+        let proof_generation_key = ProofGenerationKey::new(
+            jubjub::SubgroupPoint::random(&mut rng),
+            jubjub::Fr::random(&mut rng),
+        );
+        let public_key_randomness = jubjub::Fr::random(&mut rng);
+
+        let mint_asset = MintAsset {
+            proof_generation_key: Some(proof_generation_key.clone()),
+            public_key_randomness: Some(public_key_randomness),
+        };
+
+        let mut buffer = vec![];
+        mint_asset.write(&mut buffer).unwrap();
+
+        let deserialized_mint_asset = MintAsset::read(&buffer[..]).unwrap();
+
+        assert_eq!(
+            mint_asset.proof_generation_key.clone().unwrap().ak,
+            deserialized_mint_asset
+                .proof_generation_key
+                .clone()
+                .unwrap()
+                .ak
+        );
+        assert_eq!(
+            mint_asset.proof_generation_key.clone().unwrap().nsk,
+            deserialized_mint_asset
+                .proof_generation_key
+                .clone()
+                .unwrap()
+                .nsk
+        );
+        assert_eq!(
+            mint_asset.public_key_randomness.unwrap(),
+            deserialized_mint_asset.public_key_randomness.unwrap()
+        );
     }
 }
