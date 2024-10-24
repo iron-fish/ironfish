@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { CurrencyUtils } from '../../../utils'
 import { RpcAsset, RpcAssetSchema } from '../chain'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -50,7 +49,7 @@ routes.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
         status: await node.wallet.getAssetStatus(account, asset, {
           confirmations: request.data.confirmations,
         }),
-        supply: asset.supply !== null ? CurrencyUtils.encode(asset.supply) : undefined,
+        supply: asset.supply !== null ? asset.supply.toString() : undefined,
         createdTransactionHash: asset.createdTransactionHash.toString('hex'),
         verification: node.assetsVerifier.verify(asset.id),
       })

@@ -4,7 +4,6 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
-import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 
@@ -36,9 +35,9 @@ routes.register<typeof EstimateFeeRatesRequestSchema, EstimateFeeRatesResponse>(
     const rates = node.memPool.feeEstimator.estimateFeeRates()
 
     request.end({
-      slow: CurrencyUtils.encode(rates.slow),
-      average: CurrencyUtils.encode(rates.average),
-      fast: CurrencyUtils.encode(rates.fast),
+      slow: rates.slow.toString(),
+      average: rates.average.toString(),
+      fast: rates.fast.toString(),
     })
   },
 )

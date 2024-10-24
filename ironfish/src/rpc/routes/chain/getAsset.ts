@@ -6,7 +6,6 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { AssetValue } from '../../../blockchain/database/assetValue'
 import { FullNode } from '../../../node'
-import { CurrencyUtils } from '../../../utils'
 import { AssetStatus } from '../../../wallet'
 import { RpcNotFoundError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
@@ -81,7 +80,7 @@ routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
       nonce: asset.nonce,
       creator: asset.creator.toString('hex'),
       owner: asset.owner.toString('hex'),
-      supply: CurrencyUtils.encode(asset.supply),
+      supply: asset.supply.toString(),
       status: await getAssetStatus(node, asset),
       verification: node.assetsVerifier.verify(asset.id),
     })
