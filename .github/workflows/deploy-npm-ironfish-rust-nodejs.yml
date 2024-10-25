@@ -42,6 +42,13 @@ jobs:
         run: ls -R .
         shell: bash
 
+      - name: Verify artifacts exist
+        run: |
+          if [ -z "$(ls -A './artifacts')" ]; then
+            echo "artifacts folder was empty. ironfish-rust-nodejs artifacts were not uploaded correctly."
+            exit 1
+          fi
+
       - name: Move and publish artifacts
         run: yarn artifacts
 
