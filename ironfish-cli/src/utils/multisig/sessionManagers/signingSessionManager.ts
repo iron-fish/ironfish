@@ -60,10 +60,7 @@ export class MultisigClientSigningSessionManager
     allowedIdentities?: string[]
   }): Promise<{ numSigners: number; unsignedTransaction: UnsignedTransaction }> {
     if (!this.sessionId) {
-      this.sessionId = await ui.inputPrompt(
-        'Enter the ID of a multisig session to join, or press enter to start a new session',
-        false,
-      )
+      await this.promptSessionConnection()
     }
 
     if (!this.passphrase) {

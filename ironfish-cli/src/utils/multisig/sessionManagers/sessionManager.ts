@@ -7,8 +7,9 @@ import {
   MultisigClient,
   SessionDecryptionError,
 } from '@ironfish/multisig-broker'
-import { Assert, Logger, PromiseUtils } from '@ironfish/sdk'
+import { Logger, PromiseUtils } from '@ironfish/sdk'
 import { ux } from '@oclif/core'
+import * as ui from '../../../ui'
 
 export abstract class MultisigSessionManager {
   sessionId: string | null = null
@@ -24,9 +25,13 @@ export abstract class MultisigSessionManager {
 }
 
 export abstract class MultisigClientSessionManager extends MultisigSessionManager {
-  client: MultisigClient
+  _client: MultisigClient | null = null
+
+  hostname: string
+  port: number
   sessionId: string | null
   passphrase: string | null
+  tls: boolean
 
   constructor(options: {
     logger: Logger
@@ -42,16 +47,54 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
     const { hostname, port, sessionId, passphrase } =
       MultisigBrokerUtils.parseConnectionOptions(options)
 
-    this.client = MultisigBrokerUtils.createClient(hostname, port, {
-      tls: options.tls ?? true,
-      logger: this.logger,
-    })
-
+    this.hostname = hostname
+    this.port = port
     this.sessionId = sessionId ?? null
     this.passphrase = passphrase ?? null
+    this.tls = options.tls ?? true
+  }
+
+  async promptSessionConnection(): Promise<void> {
+    const sessionInput = await ui.inputPrompt(
+      'Enter the ID of a multisig session to join, or press enter to start a new session',
+      false,
+    )
+
+    try {
+      const url = new URL(sessionInput)
+      this.hostname = url.hostname
+      this.port = Number(url.port)
+      this.sessionId = url.username
+      this.passphrase = decodeURI(url.password)
+    } catch (e) {
+      if (e instanceof TypeError && e.message.includes('Invalid URL')) {
+        this.sessionId = sessionInput
+      } else {
+        throw e
+      }
+    }
+  }
+
+  get client(): MultisigClient {
+    if (!this._client) {
+      throw new Error('MultisigClient has not been initialized')
+    }
+    return this._client
+  }
+
+  protected createClient() {
+    if (this._client) {
+      return
+    }
+    this._client = MultisigBrokerUtils.createClient(this.hostname, this.port, {
+      tls: this.tls,
+      logger: this.logger,
+    })
   }
 
   protected async connect(): Promise<void> {
+    this.createClient()
+
     if (this.client.isConnected()) {
       return
     }
@@ -94,8 +137,6 @@ export abstract class MultisigClientSessionManager extends MultisigSessionManage
   }
 
   protected async waitForJoinedSession(): Promise<void> {
-    Assert.isNotNull(this.client)
-
     ux.action.start(`Waiting to join session: ${this.client.sessionId}`)
 
     let confirmed = false
