@@ -54,7 +54,7 @@
     "typescript": "5.0.4"
   },
   "resolutions": {
-    "axios": "1.7.2",
+    "axios": "1.7.7",
     "ejs": "^3.1.7",
     "handlebars": "4.7.7",
     "node-notifier": "8.0.1",
