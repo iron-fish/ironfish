@@ -69,7 +69,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     }),
     tls: Flags.boolean({
       description: 'connect to the multisig server over TLS',
-      dependsOn: ['server'],
       allowNo: true,
     }),
   }

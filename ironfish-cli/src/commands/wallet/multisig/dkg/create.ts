@@ -67,7 +67,6 @@ export class DkgCreateCommand extends IronfishCommand {
     }),
     tls: Flags.boolean({
       description: 'connect to the multisig server over TLS',
-      dependsOn: ['server'],
       allowNo: true,
     }),
     minSigners: Flags.integer({
