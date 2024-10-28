@@ -209,11 +209,10 @@ This will create tokens and increase supply for a given asset.`
       amount = await promptCurrency({
         client: client,
         required: true,
-        text: 'Enter the amount',
+        text: 'Enter the amount to mint',
         minimum: 0n,
         logger: this.logger,
-        assetId: assetId,
-        assetVerification: assetData?.verification,
+        assetData,
       })
     }
 
