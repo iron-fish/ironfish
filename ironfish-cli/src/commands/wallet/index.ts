@@ -44,6 +44,10 @@ export class AccountsCommand extends IronfishCommand {
           header: 'Account',
           minWidth: 11,
         },
+        default: {
+          get: (row) => (row.default ? chalk.green('✓') : ''),
+          header: 'Default',
+        },
         viewOnly: {
           get: (row) => (row.viewOnly ? chalk.green('✓') : ''),
           header: 'View Only',
@@ -73,7 +77,6 @@ export class AccountsCommand extends IronfishCommand {
       {
         ...flags,
         printLine: this.log.bind(this),
-        'no-header': flags['no-header'] ?? !flags.extended,
       },
     )
 

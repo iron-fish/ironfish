@@ -170,5 +170,6 @@ export async function serializeRpcAccountStatus(
       : null,
     scanningEnabled: account.scanningEnabled,
     viewOnly: !account.isSpendingAccount(),
+    default: wallet.getDefaultAccount()?.id === account.id,
   }
 }
