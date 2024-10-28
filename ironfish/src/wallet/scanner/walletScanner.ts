@@ -105,9 +105,12 @@ export class WalletScanner {
       this.state = scan
       unlock()
 
-      this.logger.debug(
-        `Scan starting from block ${scan.start.sequence} to ${scan.start.sequence}`,
-      )
+      const logScanState = scan.start.sequence !== scan.end.sequence
+      if (logScanState) {
+        this.logger.debug(
+          `Scan starting from block ${scan.start.sequence} to ${scan.end.sequence}`,
+        )
+      }
 
       decryptor.start(scan.abortController)
 
@@ -136,11 +139,13 @@ export class WalletScanner {
         await decryptor.flush()
       })()
         .then(() => {
-          this.logger.debug(
-            `Finished scanning for transactions after ${Math.floor(
-              (Date.now() - scan.startedAt) / 1000,
-            )} seconds`,
-          )
+          if (logScanState) {
+            this.logger.debug(
+              `Finished scanning for transactions after ${Math.floor(
+                (Date.now() - scan.startedAt) / 1000,
+              )} seconds`,
+            )
+          }
         })
         .finally(() => {
           decryptor.stop()
