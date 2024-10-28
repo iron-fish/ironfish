@@ -172,6 +172,7 @@ export type RpcAccountStatus = {
   } | null
   scanningEnabled: boolean
   viewOnly: boolean
+  default: boolean
 }
 
 export const RpcAccountStatusSchema: yup.ObjectSchema<RpcAccountStatus> = yup
@@ -188,5 +189,6 @@ export const RpcAccountStatusSchema: yup.ObjectSchema<RpcAccountStatus> = yup
       .defined(),
     scanningEnabled: yup.boolean().defined(),
     viewOnly: yup.boolean().defined(),
+    default: yup.boolean().defined(),
   })
   .defined()
