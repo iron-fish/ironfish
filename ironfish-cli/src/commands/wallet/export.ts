@@ -82,7 +82,7 @@ export class ExportCommand extends IronfishCommand {
 
         if (fs.existsSync(resolved)) {
           await confirmOrQuit(
-            `There is already an account backup at ${exportPath}` +
+            `There is already an account backup at ${resolved}` +
               `\n\nOverwrite the account backup with new file?`,
           )
         }
