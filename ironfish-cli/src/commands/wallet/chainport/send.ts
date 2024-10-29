@@ -296,11 +296,10 @@ export class BridgeCommand extends IronfishCommand {
       amount = await promptCurrency({
         client: client,
         required: true,
-        text: 'Enter the amount in the major denomination',
+        text: 'Enter the amount',
         minimum: 1n,
         logger: this.logger,
-        assetId: assetId,
-        assetVerification: assetData.verification,
+        assetData,
         balance: {
           account: from,
         },

@@ -151,11 +151,10 @@ This will destroy tokens and decrease supply for a given asset.`
       amount = await promptCurrency({
         client: client,
         required: true,
-        text: 'Enter the amount of the custom asset to burn',
+        text: 'Enter the amount to burn',
         minimum: 1n,
         logger: this.logger,
-        assetId: assetId,
-        assetVerification: assetData.verification,
+        assetData,
         balance: {
           account,
           confirmations: flags.confirmations,
