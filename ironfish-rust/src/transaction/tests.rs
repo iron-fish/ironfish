@@ -2,44 +2,52 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{BTreeMap, HashMap};
+use crate::{
+    errors::{IronfishError, IronfishErrorKind},
+    transaction::Transaction,
+};
 
-#[cfg(test)]
-use super::internal_batch_verify_transactions;
-use super::{ProposedTransaction, Transaction, TRANSACTION_PUBLIC_KEY_SIZE};
-use crate::frost_utils::account_keys::derive_account_keys;
-use crate::test_util::create_multisig_identities;
-use crate::transaction::tests::split_spender_key::split_spender_key;
+#[cfg(feature = "transaction-proofs")]
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
-    errors::{IronfishError, IronfishErrorKind},
-    frost_utils::split_spender_key,
+    frost_utils::{account_keys::derive_account_keys, split_spender_key::split_spender_key},
     keys::SaplingKey,
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,
     sapling_bls12::SAPLING,
-    test_util::make_fake_witness,
+    test_util::{create_multisig_identities, make_fake_witness},
     transaction::{
-        batch_verify_transactions, verify_transaction, TransactionVersion,
-        TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE, TRANSACTION_SIGNATURE_SIZE,
+        verify::batch_verify_transactions, verify::internal_batch_verify_transactions,
+        verify_transaction, ProposedTransaction, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
+        TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
     },
 };
+#[cfg(feature = "transaction-proofs")]
 use ff::Field;
+#[cfg(feature = "transaction-proofs")]
 use group::GroupEncoding;
-use ironfish_frost::dkg::{round1 as round1_dkg, round2 as round2_dkg, round3 as round3_dkg};
-use ironfish_frost::participant::Secret;
+#[cfg(feature = "transaction-proofs")]
 use ironfish_frost::{
+    dkg::{
+        round1::round1 as dkg_round1, round2::round2 as dkg_round2, round3::round3 as dkg_round3,
+    },
     frost::{round2, round2::SignatureShare, Identifier, Randomizer},
     nonces::deterministic_signing_nonces,
+    participant::Secret,
 };
+#[cfg(feature = "transaction-proofs")]
 use ironfish_zkp::{
     constants::{ASSET_ID_LENGTH, SPENDING_KEY_GENERATOR, TREE_DEPTH},
     proofs::{MintAsset, Output, Spend},
     redjubjub::{self, Signature},
 };
+#[cfg(feature = "transaction-proofs")]
 use rand::thread_rng;
+#[cfg(feature = "transaction-proofs")]
+use std::collections::{BTreeMap, HashMap};
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_transaction() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -163,6 +171,7 @@ fn test_transaction() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_transaction_simple() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -211,6 +220,7 @@ fn test_transaction_simple() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_proposed_transaction_build() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -266,6 +276,7 @@ fn test_proposed_transaction_build() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_miners_fee() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -294,6 +305,7 @@ fn test_miners_fee() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_transaction_signature() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -333,6 +345,7 @@ fn test_transaction_signature() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_transaction_created_with_version_1() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -406,6 +419,7 @@ fn test_transaction_version_is_checked() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_transaction_value_overflows() {
     let key = SaplingKey::generate_key();
 
@@ -438,6 +452,7 @@ fn test_transaction_value_overflows() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_batch_verify_wrong_spend_params() {
     let rng = &mut thread_rng();
 
@@ -516,6 +531,7 @@ fn test_batch_verify_wrong_spend_params() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_batch_verify_wrong_output_params() {
     let rng = &mut thread_rng();
 
@@ -593,6 +609,7 @@ fn test_batch_verify_wrong_output_params() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_batch_verify_wrong_mint_params() {
     let rng = &mut thread_rng();
 
@@ -685,6 +702,7 @@ fn test_batch_verify_wrong_mint_params() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_batch_verify() {
     let key = SaplingKey::generate_key();
     let other_key = SaplingKey::generate_key();
@@ -762,6 +780,7 @@ fn test_batch_verify() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_sign_simple() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -813,6 +832,7 @@ fn test_sign_simple() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_sign_key_mismatch_failure() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -865,6 +885,7 @@ fn test_sign_key_mismatch_failure() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_aggregate_signature_shares() {
     let spender_key = SaplingKey::generate_key();
 
@@ -1003,6 +1024,7 @@ fn test_aggregate_signature_shares() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_add_signature_by_building_transaction() {
     let spender_key = SaplingKey::generate_key();
 
@@ -1079,6 +1101,7 @@ fn test_add_signature_by_building_transaction() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_dkg_signing() {
     let secret1 = Secret::random(thread_rng());
     let secret2 = Secret::random(thread_rng());
@@ -1088,7 +1111,7 @@ fn test_dkg_signing() {
     let identity3 = secret3.to_identity();
     let identities = &[identity1.clone(), identity2.clone(), identity3.clone()];
 
-    let (round1_secret_package_1, package1) = round1_dkg::round1(
+    let (round1_secret_package_1, package1) = dkg_round1(
         &identity1,
         2,
         [&identity1, &identity2, &identity3],
@@ -1096,7 +1119,7 @@ fn test_dkg_signing() {
     )
     .expect("round 1 failed");
 
-    let (round1_secret_package_2, package2) = round1_dkg::round1(
+    let (round1_secret_package_2, package2) = dkg_round1(
         &identity2,
         2,
         [&identity1, &identity2, &identity3],
@@ -1104,7 +1127,7 @@ fn test_dkg_signing() {
     )
     .expect("round 1 failed");
 
-    let (round1_secret_package_3, package3) = round1_dkg::round1(
+    let (round1_secret_package_3, package3) = dkg_round1(
         &identity3,
         2,
         [&identity1, &identity2, &identity3],
@@ -1112,7 +1135,7 @@ fn test_dkg_signing() {
     )
     .expect("round 1 failed");
 
-    let (encrypted_secret_package_1, round2_public_packages_1) = round2_dkg::round2(
+    let (encrypted_secret_package_1, round2_public_packages_1) = dkg_round2(
         &secret1,
         &round1_secret_package_1,
         [&package1, &package2, &package3],
@@ -1120,7 +1143,7 @@ fn test_dkg_signing() {
     )
     .expect("round 2 failed");
 
-    let (encrypted_secret_package_2, round2_public_packages_2) = round2_dkg::round2(
+    let (encrypted_secret_package_2, round2_public_packages_2) = dkg_round2(
         &secret2,
         &round1_secret_package_2,
         [&package1, &package2, &package3],
@@ -1128,7 +1151,7 @@ fn test_dkg_signing() {
     )
     .expect("round 2 failed");
 
-    let (encrypted_secret_package_3, round2_public_packages_3) = round2_dkg::round2(
+    let (encrypted_secret_package_3, round2_public_packages_3) = dkg_round2(
         &secret3,
         &round1_secret_package_3,
         [&package1, &package2, &package3],
@@ -1136,7 +1159,7 @@ fn test_dkg_signing() {
     )
     .expect("round 2 failed");
 
-    let (key_package_1, public_key_package, group_secret_key) = round3_dkg::round3(
+    let (key_package_1, public_key_package, group_secret_key) = dkg_round3(
         &secret1,
         &encrypted_secret_package_1,
         [&package1, &package2, &package3],
@@ -1144,7 +1167,7 @@ fn test_dkg_signing() {
     )
     .expect("round 3 failed");
 
-    let (key_package_2, _, _) = round3_dkg::round3(
+    let (key_package_2, _, _) = dkg_round3(
         &secret2,
         &encrypted_secret_package_2,
         [&package1, &package2, &package3],
@@ -1152,7 +1175,7 @@ fn test_dkg_signing() {
     )
     .expect("round 3 failed");
 
-    let (key_package_3, _, _) = round3_dkg::round3(
+    let (key_package_3, _, _) = dkg_round3(
         &secret3,
         &encrypted_secret_package_3,
         [&package1, &package2, &package3],

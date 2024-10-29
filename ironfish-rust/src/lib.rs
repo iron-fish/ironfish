@@ -14,13 +14,18 @@ pub mod mining;
 pub mod nacl;
 pub mod note;
 pub mod rolling_filter;
-pub mod sapling_bls12;
 pub mod serializing;
 pub mod signal_catcher;
 pub mod transaction;
 pub mod util;
 pub mod witness;
 pub mod xchacha20poly1305;
+
+#[cfg(any(test, feature = "benchmark"))]
+pub mod test_util;
+
+#[cfg(feature = "transaction-proofs")]
+pub mod sapling_bls12;
 
 pub use {
     ironfish_frost::frost,
@@ -29,16 +34,14 @@ pub use {
     merkle_note::MerkleNote,
     merkle_note_hash::MerkleNoteHash,
     note::Note,
-    transaction::{
-        outputs::OutputDescription, spends::SpendDescription, ProposedTransaction, Transaction,
-    },
+    transaction::{outputs::OutputDescription, spends::SpendDescription, Transaction},
 };
-
-#[cfg(any(test, feature = "benchmark"))]
-pub mod test_util;
 
 #[cfg(feature = "benchmark")]
 pub use ironfish_zkp::primitives::ValueCommitment;
+
+#[cfg(feature = "transaction-proofs")]
+pub use transaction::ProposedTransaction;
 
 // The main entry-point to the sapling API. Construct this with loaded parameters, and then call
 // methods on it to do the actual work.
@@ -57,6 +60,7 @@ pub struct Sapling {
     pub mint_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
 }
 
+#[cfg(feature = "transaction-proofs")]
 impl Sapling {
     /// Initialize a Sapling instance and prepare for proving. Load the parameters from files
     /// at a known location (`$OUT_DIR/sapling_params`).

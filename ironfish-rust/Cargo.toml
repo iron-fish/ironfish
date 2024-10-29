@@ -24,9 +24,12 @@ workspace = true
 workspace = true
 
 [features]
+default = ["transaction-proofs"]
+
 benchmark = []
 download-params = ["dep:reqwest"]
 note-encryption-stats = []
+transaction-proofs = []
 
 [lib]
 name = "ironfish"

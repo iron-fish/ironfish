@@ -4,28 +4,29 @@
 
 use crate::{
     errors::{IronfishError, IronfishErrorKind},
-    keys::EphemeralKeyPair,
     merkle_note::MerkleNote,
-    note::Note,
-    sapling_bls12::SAPLING,
-    OutgoingViewKey,
 };
-
 use blstrs::{Bls12, Scalar};
 use ff::Field;
 use group::Curve;
 use ironfish_bellperson::groth16;
 use ironfish_jubjub::ExtendedPoint;
-use ironfish_zkp::{primitives::ValueCommitment, proofs::Output, redjubjub, ProofGenerationKey};
-use rand::thread_rng;
-
+use ironfish_zkp::redjubjub;
 use std::io;
 
-use super::utils::verify_output_proof;
+#[cfg(feature = "transaction-proofs")]
+use super::verify::verify_output_proof;
+#[cfg(feature = "transaction-proofs")]
+use crate::{keys::EphemeralKeyPair, note::Note, sapling_bls12::SAPLING, OutgoingViewKey};
+#[cfg(feature = "transaction-proofs")]
+use ironfish_zkp::{primitives::ValueCommitment, proofs::Output, ProofGenerationKey};
+#[cfg(feature = "transaction-proofs")]
+use rand::thread_rng;
 
 /// Parameters used when constructing proof that a new note exists. The owner
 /// of this note is the recipient of funds in a transaction. The note is signed
 /// with the owners public key so only they can read it.
+#[cfg(feature = "transaction-proofs")]
 pub struct OutputBuilder {
     pub(crate) note: Note,
 
@@ -42,6 +43,7 @@ pub struct OutputBuilder {
 
 pub const PROOF_SIZE: u32 = 192;
 
+#[cfg(feature = "transaction-proofs")]
 impl OutputBuilder {
     /// Create a new [`OutputBuilder`] attempting to create a note.
     pub(crate) fn new(note: Note) -> Self {
@@ -223,12 +225,13 @@ impl OutputDescription {
 }
 
 #[cfg(test)]
+#[cfg(feature = "transaction-proofs")]
 mod test {
     use super::{OutputBuilder, OutputDescription};
     use crate::{
         assets::asset_identifier::NATIVE_ASSET, keys::SaplingKey,
         merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note,
-        transaction::utils::verify_output_proof,
+        transaction::verify::verify_output_proof,
     };
     use ff::{Field, PrimeField};
     use group::Curve;

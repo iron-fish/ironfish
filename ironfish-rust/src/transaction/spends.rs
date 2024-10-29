@@ -5,37 +5,41 @@
 use crate::{
     errors::{IronfishError, IronfishErrorKind},
     keys::SaplingKey,
-    merkle_note::{position as witness_position, sapling_auth_path},
-    note::Note,
-    sapling_bls12::SAPLING,
     serializing::{read_point, read_scalar},
-    witness::WitnessTrait,
-    ViewKey,
+    transaction::TRANSACTION_PUBLIC_KEY_SIZE,
 };
-
 use blstrs::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
-use ironfish_bellperson::gadgets::multipack;
-use ironfish_bellperson::groth16;
+use ironfish_bellperson::{gadgets::multipack, groth16};
 use ironfish_jubjub::ExtendedPoint;
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
-    primitives::ValueCommitment,
-    proofs::Spend,
     redjubjub::{self, Signature},
-    Nullifier, ProofGenerationKey,
+    Nullifier,
 };
 use rand::thread_rng;
 use std::io;
 
-use super::{utils::verify_spend_proof, TRANSACTION_PUBLIC_KEY_SIZE};
+#[cfg(feature = "transaction-proofs")]
+use crate::transaction::verify::verify_spend_proof;
+#[cfg(feature = "transaction-proofs")]
+use crate::{
+    merkle_note::{position as witness_position, sapling_auth_path},
+    note::Note,
+    sapling_bls12::SAPLING,
+    witness::WitnessTrait,
+    ViewKey,
+};
+#[cfg(feature = "transaction-proofs")]
+use ironfish_zkp::{primitives::ValueCommitment, proofs::Spend, ProofGenerationKey};
 
 /// Parameters used when constructing proof that the spender owns a note with
 /// a given value.
 ///
 /// Contains all the working values needed to construct the proof.
+#[cfg(feature = "transaction-proofs")]
 pub struct SpendBuilder {
     pub(crate) note: Note,
 
@@ -56,6 +60,7 @@ pub struct SpendBuilder {
     pub(crate) auth_path: Vec<Option<(Scalar, bool)>>,
 }
 
+#[cfg(feature = "transaction-proofs")]
 impl SpendBuilder {
     /// Create a new [`SpendBuilder`] attempting to spend a note at a given
     /// location in the merkle tree.
@@ -405,18 +410,20 @@ fn serialize_signature_fields<W: io::Write>(
 }
 
 #[cfg(test)]
+#[cfg(feature = "transaction-proofs")]
 mod test {
-
     use super::{SpendBuilder, SpendDescription};
-    use crate::assets::asset_identifier::NATIVE_ASSET;
-    use crate::transaction::utils::verify_spend_proof;
-    use crate::{keys::SaplingKey, note::Note, test_util::make_fake_witness};
+    use crate::{
+        assets::asset_identifier::NATIVE_ASSET, keys::SaplingKey, note::Note,
+        test_util::make_fake_witness, transaction::verify::verify_spend_proof,
+    };
     use ff::Field;
     use group::Curve;
-    use ironfish_zkp::constants::SPENDING_KEY_GENERATOR;
-    use ironfish_zkp::redjubjub::{self, PrivateKey, PublicKey};
-    use rand::prelude::*;
-    use rand::{thread_rng, Rng};
+    use ironfish_zkp::{
+        constants::SPENDING_KEY_GENERATOR,
+        redjubjub::{self, PrivateKey, PublicKey},
+    };
+    use rand::{random, thread_rng, Rng};
 
     #[test]
     fn test_spend_builder() {
