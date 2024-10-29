@@ -2,8 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::io;
-
+use crate::{
+    assets::asset::Asset,
+    errors::{IronfishError, IronfishErrorKind},
+    serializing::read_scalar,
+    transaction::TransactionVersion,
+    PublicAddress, SaplingKey,
+};
 use blstrs::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
@@ -12,25 +17,19 @@ use ironfish_bellperson::groth16;
 use ironfish_jubjub::ExtendedPoint;
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
-    proofs::MintAsset,
     redjubjub::{self, Signature},
-    ProofGenerationKey,
 };
 use rand::thread_rng;
+use std::io;
 
-use crate::{
-    assets::asset::Asset,
-    errors::{IronfishError, IronfishErrorKind},
-    sapling_bls12::SAPLING,
-    serializing::read_scalar,
-    transaction::TransactionVersion,
-    PublicAddress, SaplingKey,
-};
-
-use super::utils::verify_mint_proof;
+#[cfg(feature = "transaction-proofs")]
+use crate::{sapling_bls12::SAPLING, transaction::verify::verify_mint_proof};
+#[cfg(feature = "transaction-proofs")]
+use ironfish_zkp::{proofs::MintAsset, ProofGenerationKey};
 
 /// Parameters used to build a circuit that verifies an asset can be minted with
 /// a given key
+#[cfg(feature = "transaction-proofs")]
 pub struct MintBuilder {
     /// Asset to be minted
     pub asset: Asset,
@@ -43,6 +42,7 @@ pub struct MintBuilder {
     pub transfer_ownership_to: Option<PublicAddress>,
 }
 
+#[cfg(feature = "transaction-proofs")]
 impl MintBuilder {
     pub fn new(asset: Asset, value: u64) -> Self {
         Self {
@@ -362,25 +362,25 @@ impl MintDescription {
 }
 
 #[cfg(test)]
+#[cfg(feature = "transaction-proofs")]
 mod test {
-    use ff::Field;
-    use ironfish_zkp::{constants::SPENDING_KEY_GENERATOR, redjubjub};
-    use rand::{random, thread_rng};
-
     use crate::{
         assets::asset::Asset,
         errors::IronfishErrorKind,
         transaction::{
             mints::{MintBuilder, MintDescription},
-            utils::verify_mint_proof,
+            verify::verify_mint_proof,
             TransactionVersion,
         },
         PublicAddress, SaplingKey,
     };
+    use ff::Field;
+    use ironfish_zkp::{constants::SPENDING_KEY_GENERATOR, redjubjub};
+    use rand::{random, thread_rng};
 
-    #[test]
     /// Test that we can create a builder with a valid asset and proof
     /// generation key
+    #[test]
     fn test_mint_builder() {
         let key = SaplingKey::generate_key();
         let creator = key.public_address();
