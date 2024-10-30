@@ -37,6 +37,7 @@ import {
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
+import { IdentifyMessage } from './messages/identify'
 import { NetworkMessage } from './messages/networkMessage'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewCompactBlockMessage } from './messages/newCompactBlock'
@@ -368,11 +369,25 @@ export class PeerNetwork {
       // it's running on the default ironfish websocket port
       const port = url.port ? url.port : DEFAULT_WEBSOCKET_PORT
 
-      this.peerManager.connectToWebSocketAddress({
+      const bootstrapNodePeer = this.peerManager.connectToWebSocketAddress({
         host: url.hostname,
         port,
         whitelist: true,
       })
+
+      const warnNetworkMismatch = (message: NetworkMessage) => {
+        if (message instanceof IdentifyMessage) {
+          if (message.networkId !== this.networkId) {
+            this.logger.warn(
+              `Bootstrap node ${node} is on network ${message.networkId} while we are on network ${this.networkId}`,
+            )
+          }
+
+          bootstrapNodePeer?.onMessage.off(warnNetworkMismatch)
+        }
+      }
+
+      bootstrapNodePeer?.onMessage.on(warnNetworkMismatch)
     }
   }
 

@@ -662,7 +662,7 @@ export class Peer {
    */
   dispose(): void {
     this.onStateChanged.clearAfter()
-    this.onMessage.clear()
+    this.onMessage.clearAfter()
     this.onBanned.clear()
     this.disposeMessageMeter()
   }
