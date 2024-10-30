@@ -813,6 +813,58 @@ fn test_sign_simple() {
 }
 
 #[test]
+fn test_sign_key_mismatch_failure() {
+    let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
+    let sender_key = SaplingKey::generate_key();
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        sender_key.public_address(),
+    );
+    let out_note = Note::new(
+        receiver_key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        spender_key.public_address(),
+    );
+    let witness = make_fake_witness(&in_note);
+
+    // create transaction, add spend and output
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
+    transaction
+        .add_spend(in_note, &witness)
+        .expect("should be able to add a spend");
+    transaction
+        .add_output(out_note)
+        .expect("should be able to add an output");
+
+    // build transaction, generate proofs
+    let unsigned_transaction = transaction
+        .build(
+            spender_key.proof_authorizing_key,
+            spender_key.view_key().clone(),
+            spender_key.outgoing_view_key().clone(),
+            1,
+            Some(spender_key.public_address()),
+        )
+        .expect("should be able to build unsigned transaction");
+
+    // sign with different, mismatched key
+    let signer_key = SaplingKey::generate_key();
+    let signed_transaction = unsigned_transaction
+        .sign(&signer_key)
+        .expect("should be able to sign transaction");
+
+    // verify transaction
+    verify_transaction(&signed_transaction).expect_err("should not be able to verify transaction");
+}
+
+#[test]
 fn test_aggregate_signature_shares() {
     let spender_key = SaplingKey::generate_key();
 
