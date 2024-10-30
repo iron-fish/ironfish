@@ -13,12 +13,12 @@ import {
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { checkWalletUnlocked, table, TableColumns, TableFlags } from '../../ui'
+import * as ui from '../../ui'
 import { getAssetsByIDs, useAccount } from '../../utils'
 import { extractChainportDataFromTransaction } from '../../utils/chainport'
 import { Format, TableCols } from '../../utils/table'
 
-const { sort: _, ...tableFlags } = TableFlags
+const { sort: _, ...tableFlags } = ui.TableFlags
 export class TransactionsCommand extends IronfishCommand {
   static description = `list the account's transactions`
 
@@ -64,7 +64,7 @@ export class TransactionsCommand extends IronfishCommand {
         : Format.cli
 
     const client = await this.connectRpc()
-    await checkWalletUnlocked(client)
+    await ui.checkWalletUnlocked(client)
 
     const account = await useAccount(client, flags.account)
 
@@ -114,7 +114,7 @@ export class TransactionsCommand extends IronfishCommand {
         transactionRows = this.getTransactionRows(assetLookup, transaction, format)
       }
 
-      table(transactionRows, columns, {
+      ui.table(transactionRows, columns, {
         printLine: this.log.bind(this),
         ...flags,
         'no-header': !showHeader,
@@ -254,8 +254,8 @@ export class TransactionsCommand extends IronfishCommand {
     extended: boolean,
     notes: boolean,
     format: Format,
-  ): TableColumns<PartialRecursive<TransactionRow>> {
-    let columns: TableColumns<PartialRecursive<TransactionRow>> = {
+  ): ui.TableColumns<PartialRecursive<TransactionRow>> {
+    let columns: ui.TableColumns<PartialRecursive<TransactionRow>> = {
       timestamp: TableCols.timestamp({
         streaming: true,
       }),

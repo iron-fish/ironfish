@@ -146,7 +146,9 @@ class Table<T extends Record<string, unknown>> {
       }
       columnHeaders.push(sanitizeCsvValue(column.header))
     }
-    this.options.printLine(columnHeaders.join(','))
+    if (!this.options['no-header']) {
+      this.options.printLine(columnHeaders.join(','))
+    }
 
     for (const row of rows) {
       const rowValues = []
