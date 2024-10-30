@@ -12,6 +12,7 @@ import {
 } from '../../../wallet/exporter/multisig'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
+import { isSignerMultisig } from '../../../wallet/walletdb/multisigKeys'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import {
   RpcAccountAssetBalanceDelta,
@@ -157,6 +158,9 @@ export async function serializeRpcAccountStatus(
   account: Account,
 ): Promise<RpcAccountStatus> {
   const head = await account.getHead()
+  const isMultisigAccount = account.multisigKeys
+    ? isSignerMultisig(account.multisigKeys)
+    : false
 
   return {
     name: account.name,
@@ -171,5 +175,6 @@ export async function serializeRpcAccountStatus(
     scanningEnabled: account.scanningEnabled,
     viewOnly: !account.isSpendingAccount(),
     default: wallet.getDefaultAccount()?.id === account.id,
+    multisigAccount: isMultisigAccount,
   }
 }

@@ -173,6 +173,7 @@ export type RpcAccountStatus = {
   scanningEnabled: boolean
   viewOnly: boolean
   default: boolean
+  multisigAccount: boolean
 }
 
 export const RpcAccountStatusSchema: yup.ObjectSchema<RpcAccountStatus> = yup
@@ -190,5 +191,6 @@ export const RpcAccountStatusSchema: yup.ObjectSchema<RpcAccountStatus> = yup
     scanningEnabled: yup.boolean().defined(),
     viewOnly: yup.boolean().defined(),
     default: yup.boolean().defined(),
+    multisigAccount: yup.boolean().defined(),
   })
   .defined()
