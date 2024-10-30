@@ -31,8 +31,44 @@ describe('Route wallet/getAccountStatus', () => {
         },
         scanningEnabled: true,
         viewOnly: false,
+        multisigAccount: false,
       },
     })
+  })
+
+  it('returns true if multisig account', async () => {
+    // Create 2 multisig identities
+    const accountNames = Array.from({ length: 2 }, (_, index) => `test-account-${index}`)
+    const participants = await Promise.all(
+      accountNames.map(
+        async (name) =>
+          (
+            await routeTest.client.wallet.multisig.createParticipant({ name })
+          ).content,
+      ),
+    )
+
+    // Initialize the group though TDK and import one of the accounts generated
+    const trustedDealerPackage = (
+      await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage({
+        minSigners: 2,
+        participants,
+      })
+    ).content
+    const importAccount = trustedDealerPackage.participantAccounts.find(
+      ({ identity }) => identity === participants[0].identity,
+    )
+    expect(importAccount).not.toBeUndefined()
+    await routeTest.client.wallet.importAccount({
+      name: accountNames[0],
+      account: importAccount!.account,
+    })
+
+    const response = await routeTest.client.wallet.getAccountStatus({
+      account: accountNames[0],
+    })
+
+    expect(response.content.account.multisigAccount).toBe(true)
   })
 
   it('returns false if scanning is disabled', async () => {
@@ -57,6 +93,7 @@ describe('Route wallet/getAccountStatus', () => {
         },
         scanningEnabled: false,
         viewOnly: false,
+        multisigAccount: false,
       },
     })
   })
