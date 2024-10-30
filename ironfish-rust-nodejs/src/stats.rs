@@ -13,7 +13,7 @@ use std::sync::Once;
 use std::thread;
 
 fn print_stats(colors: bool) {
-    let ecpm_stats = jubjub::stats();
+    let ecpm_stats = ironfish_jubjub::stats();
     let note_stats = ironfish::merkle_note::stats::get();
 
     // Write the stats in a buffer first, then write the buffer to stderr. The goal of the buffer
