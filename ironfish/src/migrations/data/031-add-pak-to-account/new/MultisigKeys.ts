@@ -12,12 +12,13 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
   serialize(value: MultisigKeys): Buffer {
     const bw = bufio.write(this.getSize(value))
 
-    let flags = 0
-    flags |= Number(!!isSignerMultisig(value)) << 0
-    bw.writeU8(flags)
+    const isMultisigSigner = isSignerMultisig(value)
+    const flags = Number(!!isMultisigSigner) << 0
 
+    bw.writeU8(flags)
     bw.writeVarBytes(Buffer.from(value.publicKeyPackage, 'hex'))
-    if (isSignerMultisig(value)) {
+
+    if (isMultisigSigner) {
       bw.writeVarBytes(Buffer.from(value.secret, 'hex'))
       bw.writeVarBytes(Buffer.from(value.keyPackage, 'hex'))
     }
