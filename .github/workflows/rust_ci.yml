@@ -62,7 +62,7 @@ jobs:
 
       - name: "Clippy check on ironfish-rust"
         run: |
-          cargo clippy --all-targets -- -D warnings
+          cargo clippy --all-targets --all-features -- -D warnings
 
   cargo_vet:
     name: Vet Dependencies
