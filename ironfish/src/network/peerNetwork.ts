@@ -17,6 +17,7 @@ import {
 import { PeerStore } from '../fileStores/peerStore'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
+import { renderNetworkName } from '../networks'
 import { FullNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
@@ -379,7 +380,9 @@ export class PeerNetwork {
         if (message instanceof IdentifyMessage) {
           if (message.networkId !== this.networkId) {
             this.logger.warn(
-              `Bootstrap node ${node} is on network ${message.networkId} while we are on network ${this.networkId}`,
+              `Bootstrap node ${node} is on ${renderNetworkName(
+                message.networkId,
+              )} while we are on ${renderNetworkName(this.networkId)}`,
             )
           }
 
