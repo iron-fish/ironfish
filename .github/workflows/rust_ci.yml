@@ -41,14 +41,6 @@ jobs:
           save-if: false
           shared-key: base
 
-      - name: Install Cargo tools
-        run: |
-          rustup component add rustfmt clippy
-
-      - name: Check that cargo lockfile is up to date
-        run: |
-          cargo check --locked --all-targets
-
       # Note: ironfish-zkp is does not need this due to different licensing
       - name: Check for license headers for ironfish-rust
         run: ./ci/lintHeaders.sh ./ironfish-rust/src *.rs
@@ -63,6 +55,26 @@ jobs:
       - name: "Clippy check on ironfish-rust"
         run: |
           cargo clippy --all-targets --all-features -- -D warnings
+
+  cargo_check:
+    name: Check Rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: false
+          shared-key: base
+
+      - name: Install cargo-all-features
+        run: |
+          cargo install --locked cargo-all-features
+
+      - name: Check that cargo lockfile is up to date
+        run: |
+          cargo check-all-features --locked --all-targets
 
   cargo_vet:
     name: Vet Dependencies
