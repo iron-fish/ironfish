@@ -83,9 +83,22 @@ fn verify_integrity(checksum_path: &Path, files_dir: &Path) {
         let expected_hash = hex::decode(parts[0])
             .unwrap_or_else(|_| panic!("{}: invalid syntax", checksum_path.display()));
 
-        let path = files_dir.join(parts[1]);
-        let mut file = fs::File::open(&path)
-            .unwrap_or_else(|err| panic!("failed to open {}: {}", path.display(), err));
+        let file_name = parts[1];
+        let path = files_dir.join(file_name);
+        let mut file = match fs::File::open(&path) {
+            Ok(file) => file,
+            Err(err) if err.kind() == io::ErrorKind::NotFound => {
+                println!(
+                    "cargo:warning=could not find `{file_name}`. \
+                         Consider enabling the `download-params` feature \
+                         so that this file can be downloaded and verified \
+                         automatically"
+                );
+                continue;
+            }
+            Err(err) => panic!("failed to open {}: {}", path.display(), err),
+        };
+
         let mut hasher = Sha512::new();
         io::copy(&mut file, &mut hasher)
             .unwrap_or_else(|err| panic!("failed to read {}: {}", path.display(), err));
