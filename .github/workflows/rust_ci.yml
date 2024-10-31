@@ -123,6 +123,58 @@ jobs:
           token: ${{secrets.CODECOV_TOKEN}}
           flags: ironfish-rust
 
+  ironfish_rust_no_default_features:
+    name: Test ironfish-rust (no default features)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shard: [1/2, 2/2]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: base
+
+      - name: Run tests
+        run: |
+          cargo nextest run \
+            --package ironfish \
+            --release \
+            --no-default-features \
+            --partition count:${{ matrix.shard }}
+
+  ironfish_rust_all_features:
+    name: Test ironfish-rust (all features)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shard: [1/2, 2/2]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: base
+
+      - name: Run tests (all features)
+        run: |
+          cargo nextest run \
+            --package ironfish \
+            --release \
+            --all-features \
+            --partition count:${{ matrix.shard }}
+
   ironfish_zkp:
     name: Test ironfish-zkp
     runs-on: ubuntu-latest
