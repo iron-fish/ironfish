@@ -33,7 +33,7 @@ export class BannedCommand extends IronfishCommand {
     if (!flags.follow) {
       await this.sdk.client.connect()
       const response = await this.sdk.client.peer.getBannedPeers()
-      this.log(renderTable(response.content))
+      this.log(renderTable(response.content, flags.limit))
       this.exit(0)
     }
 
@@ -59,14 +59,14 @@ export class BannedCommand extends IronfishCommand {
 
       for await (const value of response.contentStream()) {
         text.clearBaseLine(0)
-        text.setContent(renderTable(value))
+        text.setContent(renderTable(value, flags.limit))
         screen.render()
       }
     }
   }
 }
 
-function renderTable(content: GetBannedPeersResponse): string {
+function renderTable(content: GetBannedPeersResponse, limit: number): string {
   const columns: TableColumns<BannedPeerResponse> = {
     identity: {
       minWidth: 45,
@@ -87,6 +87,7 @@ function renderTable(content: GetBannedPeersResponse): string {
   let result = ''
 
   table(content.peers, columns, {
+    limit,
     printLine: (line) => (result += `${String(line)}\n`),
   })
 

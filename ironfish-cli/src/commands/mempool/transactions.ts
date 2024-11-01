@@ -131,6 +131,9 @@ export class TransactionsCommand extends IronfishCommand {
 
     const transactions: GetMempoolTransactionResponse[] = []
     for await (const transaction of response.contentStream()) {
+      if (transactions.length >= flags.limit) {
+        break
+      }
       transactions.push(transaction)
     }
 
@@ -208,22 +211,16 @@ function renderTable(
 
   let result = ''
 
-  const limit = flags.csv ? 0 : flags.show
-  table(getRows(response, limit), columns, {
+  table(getRows(response), columns, {
     printLine: (line) => (result += `${String(line)}\n`),
     ...flags,
   })
 
-  if (limit > 0 && response.length > limit) {
-    result += ` ... ${response.length - limit} more rows\n`
-  }
-
   return result
 }
 
-function getRows(response: GetMempoolTransactionResponse[], limit: number): TransactionRow[] {
-  const transactions = limit > 0 ? response.slice(0, limit) : response
-  return transactions.map(({ serializedTransaction, position, expiresIn }) => {
+function getRows(response: GetMempoolTransactionResponse[]): TransactionRow[] {
+  return response.map(({ serializedTransaction, position, expiresIn }) => {
     const transaction = new Transaction(Buffer.from(serializedTransaction, 'hex'))
 
     return {

@@ -52,68 +52,68 @@ export class AssetsCommand extends IronfishCommand {
     const assetNameWidth = flags.extended
       ? MAX_ASSET_NAME_COLUMN_WIDTH
       : MIN_ASSET_NAME_COLUMN_WIDTH
-    let showHeader = !flags['no-header']
-
+    const assets = []
     for await (const asset of response.contentStream()) {
-      table(
-        [asset],
-        {
-          name: TableCols.fixedWidth({
-            header: 'Name',
-            width: assetNameWidth,
-            get: (row) =>
-              renderAssetWithVerificationStatus(
-                BufferUtils.toHuman(Buffer.from(row.name, 'hex')),
-                {
-                  verification: row.verification,
-                  outputType: flags.output,
-                },
-              ),
-          }),
-          id: {
-            header: 'ID',
-            minWidth: ASSET_ID_LENGTH + 1,
-            get: (row) => row.id,
-          },
-          metadata: TableCols.fixedWidth({
-            header: 'Metadata',
-            width: assetMetadataWidth,
-            get: (row) => BufferUtils.toHuman(Buffer.from(row.metadata, 'hex')),
-          }),
-          createdTransactionHash: {
-            header: 'Created Transaction Hash',
-            get: (row) => row.createdTransactionHash,
-          },
-          supply: {
-            header: 'Supply',
-            minWidth: 16,
-            get: (row) => row.supply ?? 'NULL',
-          },
-          creator: {
-            header: 'Creator',
-            minWidth: PUBLIC_ADDRESS_LENGTH + 1,
-            get: (row) =>
-              row.id === Asset.nativeId().toString('hex')
-                ? BufferUtils.toHuman(Buffer.from(row.creator, 'hex'))
-                : row.creator,
-          },
-          owner: {
-            header: 'Owner',
-            minWidth: PUBLIC_ADDRESS_LENGTH + 1,
-            get: (row) =>
-              row.id === Asset.nativeId().toString('hex')
-                ? BufferUtils.toHuman(Buffer.from(row.owner, 'hex'))
-                : row.owner,
-          },
-        },
-        {
-          printLine: this.log.bind(this),
-          ...flags,
-          'no-header': !showHeader,
-        },
-      )
-
-      showHeader = false
+      assets.push(asset)
+      if (assets.length >= flags.limit) {
+        break
+      }
     }
+    table(
+      assets,
+      {
+        name: TableCols.fixedWidth({
+          header: 'Name',
+          width: assetNameWidth,
+          get: (row) =>
+            renderAssetWithVerificationStatus(
+              BufferUtils.toHuman(Buffer.from(row.name, 'hex')),
+              {
+                verification: row.verification,
+                outputType: flags.output,
+              },
+            ),
+        }),
+        id: {
+          header: 'ID',
+          minWidth: ASSET_ID_LENGTH + 1,
+          get: (row) => row.id,
+        },
+        metadata: TableCols.fixedWidth({
+          header: 'Metadata',
+          width: assetMetadataWidth,
+          get: (row) => BufferUtils.toHuman(Buffer.from(row.metadata, 'hex')),
+        }),
+        createdTransactionHash: {
+          header: 'Created Transaction Hash',
+          get: (row) => row.createdTransactionHash,
+        },
+        supply: {
+          header: 'Supply',
+          minWidth: 16,
+          get: (row) => row.supply ?? 'NULL',
+        },
+        creator: {
+          header: 'Creator',
+          minWidth: PUBLIC_ADDRESS_LENGTH + 1,
+          get: (row) =>
+            row.id === Asset.nativeId().toString('hex')
+              ? BufferUtils.toHuman(Buffer.from(row.creator, 'hex'))
+              : row.creator,
+        },
+        owner: {
+          header: 'Owner',
+          minWidth: PUBLIC_ADDRESS_LENGTH + 1,
+          get: (row) =>
+            row.id === Asset.nativeId().toString('hex')
+              ? BufferUtils.toHuman(Buffer.from(row.owner, 'hex'))
+              : row.owner,
+        },
+      },
+      {
+        printLine: this.log.bind(this),
+        ...flags,
+      },
+    )
   }
 }
