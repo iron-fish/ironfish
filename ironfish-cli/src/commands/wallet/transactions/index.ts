@@ -11,12 +11,12 @@ import {
   TransactionType,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
-import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
-import * as ui from '../../ui'
-import { getAssetsByIDs, useAccount } from '../../utils'
-import { extractChainportDataFromTransaction } from '../../utils/chainport'
-import { Format, TableCols } from '../../utils/table'
+import { IronfishCommand } from '../../../command'
+import { RemoteFlags } from '../../../flags'
+import * as ui from '../../../ui'
+import { getAssetsByIDs, useAccount } from '../../../utils'
+import { extractChainportDataFromTransaction } from '../../../utils/chainport'
+import { Format, TableCols } from '../../../utils/table'
 
 const { sort: _, ...tableFlags } = ui.TableFlags
 export class TransactionsCommand extends IronfishCommand {
