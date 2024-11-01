@@ -38,9 +38,6 @@ export class TransactionsCommand extends IronfishCommand {
       char: 's',
       description: 'Block sequence to get transactions for',
     }),
-    limit: Flags.integer({
-      description: 'Number of latest transactions to get details for',
-    }),
     offset: Flags.integer({
       description: 'Number of latest transactions to skip',
     }),
@@ -82,11 +79,13 @@ export class TransactionsCommand extends IronfishCommand {
 
     const columns = this.getColumns(flags.extended, flags.notes, format)
 
-    let showHeader = !flags['no-header']
     let hasTransactions = false
 
+    let transactionRows: PartialRecursive<TransactionRow>[] = []
     for await (const transaction of response.contentStream()) {
-      let transactionRows: PartialRecursive<TransactionRow>[]
+      if (transactionRows.length >= flags.limit) {
+        break
+      }
       if (flags.notes) {
         Assert.isNotUndefined(transaction.notes)
         const assetLookup = await getAssetsByIDs(
@@ -113,16 +112,13 @@ export class TransactionsCommand extends IronfishCommand {
         )
         transactionRows = this.getTransactionRows(assetLookup, transaction, format)
       }
-
-      ui.table(transactionRows, columns, {
-        printLine: this.log.bind(this),
-        ...flags,
-        'no-header': !showHeader,
-      })
-
-      showHeader = false
       hasTransactions = true
     }
+
+    ui.table(transactionRows, columns, {
+      printLine: this.log.bind(this),
+      ...flags,
+    })
 
     if (!hasTransactions) {
       this.log('No transactions found')
