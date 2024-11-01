@@ -8,11 +8,31 @@
  * is the verbObject naming convention. For example, `POST /wallet/burnAsset` burns an asset.
  */
 
+import * as yup from 'yup'
 import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
-import { CreateAccountRequestSchema, CreateAccountResponse } from '../wallet'
+
+type CreateAccountRequest = {
+  name: string
+  default?: boolean
+  createdAt?: number | null
+}
+
+type CreateAccountResponse = {
+  name: string
+  publicAddress: string
+  isDefaultAccount: boolean
+}
+
+const CreateAccountRequestSchema: yup.ObjectSchema<CreateAccountRequest> = yup
+  .object({
+    name: yup.string().defined(),
+    default: yup.boolean().optional(),
+    createdAt: yup.number().optional().nullable(),
+  })
+  .defined()
 
 routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
   `${ApiNamespace.wallet}/create`,
