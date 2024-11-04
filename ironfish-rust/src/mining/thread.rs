@@ -192,8 +192,7 @@ fn process_commands(
                     }
 
                     if remaining_search_space < default_batch_size {
-                        // miner has exhausted it's search space, stop mining
-                        println!("Search space exhausted, no longer mining this block.");
+                        // miner has exhausted its search space, stop mining
                         break;
                     }
                     batch_start += batch_size + step_size as u64 - (batch_size % step_size as u64);
