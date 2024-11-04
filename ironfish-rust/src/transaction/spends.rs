@@ -13,7 +13,7 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
 use ironfish_bellperson::{gadgets::multipack, groth16};
-use ironfish_jubjub::ExtendedPoint;
+use ironfish_jubjub::{ExtendedPoint, Fr};
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
     redjubjub::{self, Signature},
@@ -98,7 +98,7 @@ impl SpendBuilder {
         &self,
         proof_generation_key: &ProofGenerationKey,
         view_key: &ViewKey,
-        public_key_randomness: &ironfish_jubjub::Fr,
+        public_key_randomness: &Fr,
         randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<UnsignedSpendDescription, IronfishError> {
         let value_commitment_point = self.value_commitment_point();
@@ -154,7 +154,7 @@ impl SpendBuilder {
 pub struct UnsignedSpendDescription {
     /// Used to add randomness to signature generation without leaking the
     /// key. Referred to as `ar` in the literature.
-    public_key_randomness: ironfish_jubjub::Fr,
+    public_key_randomness: Fr,
 
     /// Proof and public parameters for a user action to spend tokens.
     pub(crate) description: SpendDescription,
@@ -254,7 +254,7 @@ pub struct SpendDescription {
     /// key that incorporates calculations from all the spends and outputs
     /// in that transaction. It's optional because it is calculated after
     /// construction.
-    pub(crate) authorizing_signature: redjubjub::Signature,
+    pub(crate) authorizing_signature: Signature,
 }
 
 impl SpendDescription {
@@ -419,9 +419,10 @@ mod test {
     };
     use ff::Field;
     use group::Curve;
+    use ironfish_jubjub::Fr;
     use ironfish_zkp::{
         constants::SPENDING_KEY_GENERATOR,
-        redjubjub::{self, PrivateKey, PublicKey},
+        redjubjub::{PrivateKey, PublicKey},
     };
     use rand::{random, thread_rng, Rng};
 
@@ -431,14 +432,13 @@ mod test {
         let public_address = key.public_address();
         let sender_key = SaplingKey::generate_key();
 
-        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
-        let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
+        let public_key_randomness = Fr::random(thread_rng());
+        let randomized_public_key = PublicKey(key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
-        let other_public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
-        let other_randomized_public_key =
-            redjubjub::PublicKey(sender_key.view_key.authorizing_key.into())
-                .randomize(other_public_key_randomness, *SPENDING_KEY_GENERATOR);
+        let other_public_key_randomness = Fr::random(thread_rng());
+        let other_randomized_public_key = PublicKey(sender_key.view_key.authorizing_key.into())
+            .randomize(other_public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         let note_randomness = random();
 
@@ -532,8 +532,8 @@ mod test {
 
         let spend = SpendBuilder::new(note, &witness);
 
-        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
-        let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
+        let public_key_randomness = Fr::random(thread_rng());
+        let randomized_public_key = PublicKey(key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         // signature comes from transaction, normally
@@ -608,13 +608,13 @@ mod test {
             sender_key.public_address(),
         );
         let witness = make_fake_witness(&note);
-        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
-        let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
+        let public_key_randomness = Fr::random(thread_rng());
+        let randomized_public_key = PublicKey(key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         let builder = SpendBuilder::new(note, &witness);
         // create a random private key and sign random message as placeholder
-        let private_key = PrivateKey(ironfish_jubjub::Fr::random(thread_rng()));
+        let private_key = PrivateKey(Fr::random(thread_rng()));
         let public_key = PublicKey::from_private(&private_key, *SPENDING_KEY_GENERATOR);
         let msg = [0u8; 32];
         let signature = private_key.sign(&msg, &mut thread_rng(), *SPENDING_KEY_GENERATOR);

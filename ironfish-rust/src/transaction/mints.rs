@@ -207,7 +207,7 @@ pub struct MintDescription {
     /// Signature of the creator authorizing the mint action. This value is
     /// calculated after the transaction is signed since the value is dependent
     /// on the binding signature key
-    pub authorizing_signature: redjubjub::Signature,
+    pub authorizing_signature: Signature,
 }
 
 impl MintDescription {

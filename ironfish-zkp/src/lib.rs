@@ -1,3 +1,5 @@
+#![warn(unused_qualifications)]
+
 mod circuits;
 pub mod constants;
 pub mod hex;

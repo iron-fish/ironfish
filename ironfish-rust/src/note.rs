@@ -27,6 +27,7 @@ use ironfish_zkp::{
 };
 use rand::thread_rng;
 use std::{fmt, io, io::Read};
+
 pub const ENCRYPTED_NOTE_SIZE: usize =
     SCALAR_SIZE + MEMO_SIZE + AMOUNT_VALUE_SIZE + ASSET_ID_LENGTH + PUBLIC_ADDRESS_SIZE;
 //   8  value
@@ -136,7 +137,7 @@ impl Note {
     ///
     /// You probably don't want to use this unless you are transmitting
     /// across nodejs threads in memory.
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+    pub fn read<R: Read>(mut reader: R) -> Result<Self, IronfishError> {
         let owner = PublicAddress::read(&mut reader)?;
 
         let asset_id = AssetIdentifier::read(&mut reader)?;
@@ -286,7 +287,7 @@ impl Note {
     }
 
     /// Computes the note commitment, returning the full point.
-    fn commitment_full_point(&self) -> ironfish_jubjub::SubgroupPoint {
+    fn commitment_full_point(&self) -> SubgroupPoint {
         commitment_full_point(
             self.asset_generator(),
             self.value,

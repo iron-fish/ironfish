@@ -5,14 +5,14 @@
 use blstrs::Scalar;
 
 use super::MerkleNoteHash;
-use std::fmt::{self, Debug};
+use std::fmt;
 
 /// Witness to a specific node in an authentication path.
 ///
 /// The Left/Right is the Hash of THIS node, but the MerkleHash at node.0 is
 /// the hash of the SIBLING node.
 #[derive(PartialEq, Eq, Debug, Clone)]
-pub enum WitnessNode<H: Clone + PartialEq + Debug> {
+pub enum WitnessNode<H: Clone + PartialEq + fmt::Debug> {
     Left(H),
     Right(H),
 }

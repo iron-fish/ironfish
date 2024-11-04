@@ -153,7 +153,7 @@ impl Transaction {
 
     /// Store the bytes of this transaction in the given writer. This is used
     /// to serialize transactions to file or network
-    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+    pub fn write<W: Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         self.version.write(&mut writer)?;
         writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.outputs.len() as u64)?;
