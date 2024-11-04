@@ -8,12 +8,12 @@ use crate::{
     errors::{IronfishError, IronfishErrorKind},
 };
 
-pub struct ValueBalances {
+pub(super) struct ValueBalances {
     values: HashMap<AssetIdentifier, i64>,
 }
 
 impl ValueBalances {
-    pub fn new() -> Self {
+    pub(super) fn new() -> Self {
         let mut hash_map = HashMap::default();
 
         hash_map.insert(NATIVE_ASSET, 0);
@@ -21,7 +21,11 @@ impl ValueBalances {
         ValueBalances { values: hash_map }
     }
 
-    pub fn add(&mut self, asset_id: &AssetIdentifier, value: i64) -> Result<(), IronfishError> {
+    pub(super) fn add(
+        &mut self,
+        asset_id: &AssetIdentifier,
+        value: i64,
+    ) -> Result<(), IronfishError> {
         let current_value = self.values.entry(*asset_id).or_insert(0);
         let new_value = current_value
             .checked_add(value)
@@ -32,7 +36,7 @@ impl ValueBalances {
         Ok(())
     }
 
-    pub fn subtract(
+    pub(super) fn subtract(
         &mut self,
         asset_id: &AssetIdentifier,
         value: i64,
@@ -47,11 +51,11 @@ impl ValueBalances {
         Ok(())
     }
 
-    pub fn iter(&self) -> hash_map::Iter<AssetIdentifier, i64> {
+    pub(super) fn iter(&self) -> hash_map::Iter<AssetIdentifier, i64> {
         self.values.iter()
     }
 
-    pub fn fee(&self) -> &i64 {
+    pub(super) fn fee(&self) -> &i64 {
         self.values.get(&NATIVE_ASSET).unwrap()
     }
 }
