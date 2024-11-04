@@ -17,7 +17,7 @@ use crate::{
     primitives::ValueCommitment,
 };
 
-pub fn slice_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
+fn slice_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
     mut cs: CS,
     value: Option<&[u8]>,
     byte_length: u32,
@@ -52,7 +52,7 @@ pub fn slice_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar
 
 /// Exposes a Pedersen commitment to the value as an
 /// input to the circuit
-pub fn expose_value_commitment<CS>(
+pub(crate) fn expose_value_commitment<CS>(
     mut cs: CS,
     asset_generator: EdwardsPoint,
     value_commitment: Option<ValueCommitment>,
@@ -110,7 +110,7 @@ where
     Ok(value_bits)
 }
 
-pub fn assert_valid_asset_generator<CS: ConstraintSystem<blstrs::Scalar>>(
+pub(crate) fn assert_valid_asset_generator<CS: ConstraintSystem<blstrs::Scalar>>(
     mut cs: CS,
     asset_id: &[u8; ASSET_ID_LENGTH],
     asset_generator_repr: &[Boolean],

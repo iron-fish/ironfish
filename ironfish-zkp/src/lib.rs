@@ -1,3 +1,4 @@
+#![warn(unreachable_pub)]
 #![warn(unused_qualifications)]
 
 mod circuits;
