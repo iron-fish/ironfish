@@ -21,7 +21,10 @@ import { AssertHasRpcContext } from '../rpcContext'
 export type CreateAccountRequest = {
   name: string
   default?: boolean
-  createdAt?: number | null
+  createdAt?: {
+    hash: string
+    sequence: number
+  }
 }
 
 export type CreateAccountResponse = {
@@ -34,7 +37,13 @@ export const CreateAccountRequestSchema: yup.ObjectSchema<CreateAccountRequest> 
   .object({
     name: yup.string().defined(),
     default: yup.boolean().optional(),
-    createdAt: yup.number().optional().nullable(),
+    createdAt: yup
+      .object({
+        hash: yup.string().defined(),
+        sequence: yup.number().defined(),
+      })
+      .optional()
+      .default(undefined),
   })
   .defined()
 
@@ -52,13 +61,10 @@ routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
   async (request, context): Promise<void> => {
     AssertHasRpcContext(request, context, 'wallet')
 
-    const createdAt =
-      typeof request.data.createdAt === 'number'
-        ? {
-            hash: Buffer.alloc(32, 0),
-            sequence: request.data.createdAt,
-          }
-        : request.data.createdAt
+    const createdAt = request.data.createdAt && {
+      hash: Buffer.from(request.data.createdAt.hash, 'hex'),
+      sequence: request.data.createdAt.sequence,
+    }
 
     let account
     try {

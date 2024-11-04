@@ -95,7 +95,10 @@ describe('Route wallet/createAccount', () => {
 
   it('should set account createdAt if passed', async () => {
     const name = uuid()
-    const createdAt = 10
+    const createdAt = {
+      sequence: 10,
+      hash: '000000000001743343a9e9514bfeed210af3576f4b867d17c95c23007c282930',
+    }
 
     const response = await routeTest.client.wallet.createAccount({
       name,
@@ -109,37 +112,22 @@ describe('Route wallet/createAccount', () => {
       isDefaultAccount: true,
     })
 
+    const expectedHeadValue = {
+      hash: Buffer.from(
+        '000000000001743343a9e9514bfeed210af3576f4b867d17c95c23007c282930',
+        'hex',
+      ),
+      sequence: 10,
+    }
     const account = routeTest.node.wallet.getAccountByName(name)
+
     expect(account).toMatchObject({
       name: name,
       publicAddress: response.content.publicAddress,
-      createdAt: {
-        hash: Buffer.alloc(32, 0),
-        sequence: 10,
-      },
-    })
-  })
-
-  it('should set account createdAt to null', async () => {
-    const name = uuid()
-
-    const response = await routeTest.client.wallet.createAccount({
-      name,
-      createdAt: null,
+      createdAt: expectedHeadValue,
     })
 
-    expect(response.status).toBe(200)
-    expect(response.content).toMatchObject({
-      name: name,
-      publicAddress: expect.any(String),
-      isDefaultAccount: true,
-    })
-
-    const account = routeTest.node.wallet.getAccountByName(name)
-    expect(account).toMatchObject({
-      name: name,
-      publicAddress: response.content.publicAddress,
-      createdAt: null,
-    })
+    const head = await account?.getHead()
+    expect(head).toMatchObject(expectedHeadValue)
   })
 })
