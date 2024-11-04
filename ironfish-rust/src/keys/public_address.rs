@@ -94,7 +94,7 @@ impl std::fmt::Debug for PublicAddress {
     }
 }
 
-impl std::cmp::PartialEq for PublicAddress {
+impl PartialEq for PublicAddress {
     fn eq(&self, other: &Self) -> bool {
         self.hex_public_address() == other.hex_public_address()
     }

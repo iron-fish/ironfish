@@ -56,7 +56,7 @@ pub fn expose_value_commitment<CS>(
     mut cs: CS,
     asset_generator: EdwardsPoint,
     value_commitment: Option<ValueCommitment>,
-) -> Result<Vec<boolean::Boolean>, SynthesisError>
+) -> Result<Vec<Boolean>, SynthesisError>
 where
     CS: ConstraintSystem<blstrs::Scalar>,
 {
@@ -110,7 +110,7 @@ where
     Ok(value_bits)
 }
 
-pub fn assert_valid_asset_generator<CS: ironfish_bellperson::ConstraintSystem<blstrs::Scalar>>(
+pub fn assert_valid_asset_generator<CS: ConstraintSystem<blstrs::Scalar>>(
     mut cs: CS,
     asset_id: &[u8; ASSET_ID_LENGTH],
     asset_generator_repr: &[Boolean],

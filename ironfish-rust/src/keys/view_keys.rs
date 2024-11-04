@@ -110,11 +110,11 @@ pub struct ViewKey {
     /// Part of the full viewing key. Generally referred to as
     /// `ak` in the literature. Derived from spend_authorizing_key using scalar
     /// multiplication in Sapling. Used to construct incoming viewing key.
-    pub authorizing_key: ironfish_jubjub::SubgroupPoint,
+    pub authorizing_key: SubgroupPoint,
     /// Part of the full viewing key. Generally referred to as
     /// `nk` in the literature. Derived from proof_authorizing_key using scalar
     /// multiplication. Used to construct incoming viewing key.
-    pub nullifier_deriving_key: ironfish_jubjub::SubgroupPoint,
+    pub nullifier_deriving_key: SubgroupPoint,
 }
 
 impl ViewKey {

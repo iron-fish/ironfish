@@ -2,7 +2,7 @@ use byteorder::{LittleEndian, ReadBytesExt};
 use ff::Field;
 use group::{cofactor::CofactorGroup, GroupEncoding};
 
-use ironfish_jubjub::ExtendedPoint;
+use ironfish_jubjub::{ExtendedPoint, Fr};
 use rand::thread_rng;
 
 use crate::constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR;
@@ -12,21 +12,21 @@ use crate::constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR;
 #[derive(Clone)]
 pub struct ValueCommitment {
     pub value: u64,
-    pub randomness: ironfish_jubjub::Fr,
-    pub asset_generator: ironfish_jubjub::ExtendedPoint,
+    pub randomness: Fr,
+    pub asset_generator: ExtendedPoint,
 }
 
 impl ValueCommitment {
-    pub fn new(value: u64, asset_generator: ironfish_jubjub::ExtendedPoint) -> Self {
+    pub fn new(value: u64, asset_generator: ExtendedPoint) -> Self {
         Self {
             value,
-            randomness: ironfish_jubjub::Fr::random(thread_rng()),
+            randomness: Fr::random(thread_rng()),
             asset_generator,
         }
     }
 
     pub fn commitment(&self) -> ironfish_jubjub::SubgroupPoint {
-        (self.asset_generator.clear_cofactor() * ironfish_jubjub::Fr::from(self.value))
+        (self.asset_generator.clear_cofactor() * Fr::from(self.value))
             + (*VALUE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness)
     }
 
@@ -47,7 +47,7 @@ impl ValueCommitment {
         let value = reader.read_u64::<LittleEndian>()?;
         let mut randomness_bytes = [0u8; 32];
         reader.read_exact(&mut randomness_bytes)?;
-        let randomness = ironfish_jubjub::Fr::from_bytes(&randomness_bytes).unwrap();
+        let randomness = Fr::from_bytes(&randomness_bytes).unwrap();
         let mut asset_generator = [0u8; 32];
         reader.read_exact(&mut asset_generator)?;
         let asset_generator = ExtendedPoint::from_bytes(&asset_generator).unwrap();
@@ -61,11 +61,11 @@ impl ValueCommitment {
 
 #[cfg(test)]
 mod test {
+    use crate::primitives::ValueCommitment;
     use ff::Field;
     use group::{Group, GroupEncoding};
+    use ironfish_jubjub::{ExtendedPoint, Fr};
     use rand::{rngs::StdRng, thread_rng, SeedableRng};
-
-    use crate::primitives::ValueCommitment;
 
     #[test]
     fn test_value_commitment() {
@@ -74,8 +74,8 @@ mod test {
 
         let value_commitment = ValueCommitment {
             value: 5,
-            randomness: ironfish_jubjub::Fr::random(&mut rng),
-            asset_generator: ironfish_jubjub::ExtendedPoint::random(&mut rng),
+            randomness: Fr::random(&mut rng),
+            asset_generator: ExtendedPoint::random(&mut rng),
         };
 
         let commitment = value_commitment.commitment();
@@ -91,7 +91,7 @@ mod test {
 
     #[test]
     fn test_value_commitment_new() {
-        let generator = ironfish_jubjub::ExtendedPoint::random(thread_rng());
+        let generator = ExtendedPoint::random(thread_rng());
         let value = 5;
 
         let value_commitment = ValueCommitment::new(value, generator);
@@ -105,9 +105,9 @@ mod test {
         // Seed a fixed rng for determinism in the test
         let mut rng = StdRng::seed_from_u64(0);
 
-        let randomness = ironfish_jubjub::Fr::random(&mut rng);
+        let randomness = Fr::random(&mut rng);
 
-        let asset_generator_one = ironfish_jubjub::ExtendedPoint::random(&mut rng);
+        let asset_generator_one = ExtendedPoint::random(&mut rng);
 
         let value_commitment_one = ValueCommitment {
             value: 5,
@@ -117,7 +117,7 @@ mod test {
 
         let commitment_one = value_commitment_one.commitment();
 
-        let asset_generator_two = ironfish_jubjub::ExtendedPoint::random(&mut rng);
+        let asset_generator_two = ExtendedPoint::random(&mut rng);
 
         let value_commitment_two = ValueCommitment {
             value: 5,
@@ -145,9 +145,9 @@ mod test {
         // Seed a fixed rng for determinism in the test
         let mut rng = StdRng::seed_from_u64(0);
 
-        let randomness_one = ironfish_jubjub::Fr::random(&mut rng);
+        let randomness_one = Fr::random(&mut rng);
 
-        let asset_generator = ironfish_jubjub::ExtendedPoint::random(&mut rng);
+        let asset_generator = ExtendedPoint::random(&mut rng);
 
         let value_commitment_one = ValueCommitment {
             value: 5,
@@ -157,7 +157,7 @@ mod test {
 
         let commitment_one = value_commitment_one.commitment();
 
-        let randomness_two = ironfish_jubjub::Fr::random(&mut rng);
+        let randomness_two = Fr::random(&mut rng);
 
         let value_commitment_two = ValueCommitment {
             value: 5,
@@ -184,8 +184,8 @@ mod test {
 
         let value_one = 5;
 
-        let randomness = ironfish_jubjub::Fr::random(&mut rng);
-        let asset_generator = ironfish_jubjub::ExtendedPoint::random(&mut rng);
+        let randomness = Fr::random(&mut rng);
+        let asset_generator = ExtendedPoint::random(&mut rng);
 
         let value_commitment_one = ValueCommitment {
             value: value_one,
@@ -226,8 +226,8 @@ mod test {
 
         let value_commitment = ValueCommitment {
             value: 5,
-            randomness: ironfish_jubjub::Fr::random(&mut rng),
-            asset_generator: ironfish_jubjub::ExtendedPoint::random(&mut rng),
+            randomness: Fr::random(&mut rng),
+            asset_generator: ExtendedPoint::random(&mut rng),
         };
 
         // Serialize to bytes
