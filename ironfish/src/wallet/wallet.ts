@@ -1370,10 +1370,13 @@ export class Wallet {
     const key = generateKey()
 
     const createdAt = await this.createdAtWithDefault(options.createdAt)
-    const accountHead =
-      options.head === undefined
-        ? await this.getAccountHeadFromCreatedAt(createdAt && createdAt.sequence)
-        : options.head
+    let accountHead: HeadValue | null
+    if (options.head === undefined) {
+      accountHead =
+        createdAt == null ? null : await this.accountHeadAtSequence(createdAt.sequence)
+    } else {
+      accountHead = options.head
+    }
 
     const account = new Account({
       accountValue: {
@@ -1451,15 +1454,9 @@ export class Wallet {
    * Try to get the block hash from the chain with createdAt sequence
    * Otherwise, return null
    */
-  private async getAccountHeadFromCreatedAt(
-    createdAt: number | null,
-  ): Promise<HeadValue | null> {
-    if (createdAt === null) {
-      return null
-    }
-
+  private async accountHeadAtSequence(sequence: number): Promise<HeadValue | null> {
     try {
-      const previousBlock = await this.chainGetBlock({ sequence: createdAt - 1 })
+      const previousBlock = await this.chainGetBlock({ sequence })
       return previousBlock
         ? {
             hash: Buffer.from(previousBlock.block.hash, 'hex'),
@@ -1467,7 +1464,7 @@ export class Wallet {
           }
         : null
     } catch {
-      this.logger.warn(`Failed to fetch block ${createdAt - 1} from node client`)
+      this.logger.warn(`Failed to fetch block ${sequence} from node client`)
       return null
     }
   }
@@ -1591,9 +1588,8 @@ export class Wallet {
         }
       }
 
-      const accountHead = await this.getAccountHeadFromCreatedAt(
-        createdAt && createdAt.sequence,
-      )
+      const accountHead =
+        createdAt == null ? null : await this.accountHeadAtSequence(createdAt.sequence - 1)
 
       await account.updateHead(accountHead, tx)
     })
