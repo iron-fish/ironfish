@@ -1372,8 +1372,7 @@ export class Wallet {
     const createdAt = await this.createdAtWithDefault(options.createdAt)
     let accountHead: HeadValue | null
     if (options.head === undefined) {
-      accountHead =
-        createdAt == null ? null : await this.accountHeadAtSequence(createdAt.sequence)
+      accountHead = createdAt && (await this.accountHeadAtSequence(createdAt.sequence))
     } else {
       accountHead = options.head
     }
@@ -1589,7 +1588,7 @@ export class Wallet {
       }
 
       const accountHead =
-        createdAt == null ? null : await this.accountHeadAtSequence(createdAt.sequence - 1)
+        createdAt && (await this.accountHeadAtSequence(createdAt.sequence - 1))
 
       await account.updateHead(accountHead, tx)
     })
