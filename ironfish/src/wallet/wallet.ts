@@ -1510,15 +1510,20 @@ export class Wallet {
         }
 
         multisigKeys = {
-          keyPackage: accountValue.multisigKeys.keyPackage,
-          publicKeyPackage: accountValue.multisigKeys.publicKeyPackage,
+          ...accountValue.multisigKeys,
           secret: multisigIdentity.secret.toString('hex'),
         }
         secret = multisigIdentity.secret
         identity = Buffer.from(accountValue.multisigKeys.identity, 'hex')
       } else if (isMultisigSignerImport(accountValue.multisigKeys)) {
         secret = Buffer.from(accountValue.multisigKeys.secret, 'hex')
+        // Derive identity from secret for backwards compatibility: legacy
+        // MultisigKeysImport may not include identity
         identity = new multisig.ParticipantSecret(secret).toIdentity().serialize()
+        multisigKeys = {
+          ...accountValue.multisigKeys,
+          identity: identity.toString('hex'),
+        }
       } else if (isMultisigHardwareSignerImport(accountValue.multisigKeys)) {
         identity = Buffer.from(accountValue.multisigKeys.identity, 'hex')
       }
