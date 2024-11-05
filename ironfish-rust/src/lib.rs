@@ -19,7 +19,6 @@ pub mod nacl;
 pub mod note;
 pub mod rolling_filter;
 pub mod serializing;
-pub mod signal_catcher;
 pub mod transaction;
 pub mod util;
 pub mod witness;
