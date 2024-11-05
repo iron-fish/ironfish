@@ -16,8 +16,8 @@ export class LockCommand extends IronfishCommand {
     const client = await this.connectRpc()
 
     const response = await client.wallet.getAccountsStatus()
-    if (!response.content.encrypted) {
-      this.log('Wallet is decrypted')
+    if (response.content.encrypted) {
+      this.log('Wallet is already encrypted')
       this.exit(1)
     }
 
