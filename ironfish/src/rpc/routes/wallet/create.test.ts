@@ -21,7 +21,7 @@ describe('Route wallet/create', () => {
   it('should create an account', async () => {
     await routeTest.node.wallet.createAccount('existingAccount', { setDefault: true })
     const createdAtHead = {
-      hash: routeTest.node.chain.head.hash,
+      hash: Buffer.alloc(32, 0),
       sequence: routeTest.node.chain.head.sequence,
     }
 
