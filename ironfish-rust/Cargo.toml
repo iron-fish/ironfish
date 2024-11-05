@@ -51,7 +51,6 @@ fish_hash = "0.3.0"
 ironfish_zkp = { version = "0.2.0", path = "../ironfish-zkp" }
 ironfish-jubjub = { version = "0.1.0", features = ["multiply-many"] }
 lazy_static = "1.4.0"
-libc = "0.2.126" # sub-dependency that needs a pinned version until a new release of cpufeatures: https://github.com/RustCrypto/utils/pull/789
 rand = "0.8.5"
 tiny-bip39 = "1.0"
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
