@@ -89,7 +89,7 @@ routes.register<typeof SetAccountHeadRequestSchema, SetAccountHeadResponse>(
     }
 
     // Validate account state
-    const account = getAccount(context.wallet, request.data.account)
+    let account = getAccount(context.wallet, request.data.account)
 
     if (account.scanningEnabled) {
       throw new RpcResponseError(
@@ -99,9 +99,13 @@ routes.register<typeof SetAccountHeadRequestSchema, SetAccountHeadResponse>(
       )
     }
 
+    // If startHeader is the genesis block, we can safely reset the account before adding
+    if (startHeader.sequence === 1) {
+      await context.wallet.resetAccount(account)
+      account = getAccount(context.wallet, request.data.account)
+    }
     // Validate account head is compatible with start and end blocks
     let accountHead = await account.getHead()
-
     if (accountHead !== null) {
       const accountHeader = await context.chain.getHeader(accountHead.hash)
       if (!accountHeader) {
