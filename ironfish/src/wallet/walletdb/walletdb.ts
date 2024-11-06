@@ -45,7 +45,7 @@ import { MultisigIdentityValue, MultisigIdentityValueEncoder } from './multisigI
 import { ParticipantIdentity, ParticipantIdentityEncoding } from './participantIdentity'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-const VERSION_DATABASE_ACCOUNTS = 32
+const VERSION_DATABASE_ACCOUNTS = 33
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
