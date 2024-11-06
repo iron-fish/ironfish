@@ -185,7 +185,7 @@ impl UnsignedMintDescription {
 
 /// This description represents an action to increase the supply of an existing
 /// asset on Iron Fish
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MintDescription {
     /// Proof that the mint was valid for the provided creator and asset
     pub proof: groth16::Proof<Bls12>,

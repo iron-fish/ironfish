@@ -63,7 +63,7 @@ pub const TRANSACTION_FEE_SIZE: usize = 8;
 /// any of the working data or private keys used in creating the proofs.
 ///
 /// This is the serializable form of a transaction.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Transaction {
     /// The transaction serialization version. This can be incremented when
     /// changes need to be made to the transaction format
