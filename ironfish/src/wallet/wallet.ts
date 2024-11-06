@@ -1371,10 +1371,10 @@ export class Wallet {
 
     const createdAt = await this.createdAtWithDefault(options.createdAt)
     let accountHead: HeadValue | null
-    if (options.head === undefined) {
-      accountHead = createdAt && (await this.accountHeadAtSequence(createdAt.sequence))
-    } else {
+    if (options.head !== undefined) {
       accountHead = options.head
+    } else {
+      accountHead = createdAt && (await this.accountHeadAtSequence(createdAt.sequence))
     }
 
     const account = new Account({
@@ -1587,13 +1587,13 @@ export class Wallet {
         }
       }
 
-      if (options?.head) {
-        await account.updateHead(options.head, tx)
+      let accountHead: HeadValue | null
+      if (options?.head !== undefined) {
+        accountHead = options.head
       } else {
-        const accountHead =
-          createdAt && (await this.accountHeadAtSequence(createdAt.sequence - 1))
-        await account.updateHead(accountHead, tx)
+        accountHead = createdAt && (await this.accountHeadAtSequence(createdAt.sequence - 1))
       }
+      await account.updateHead(accountHead, tx)
     })
 
     this.accountById.set(account.id, account)

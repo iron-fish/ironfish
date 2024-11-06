@@ -438,6 +438,39 @@ describe('Route wallet/importAccount', () => {
     expect(accountHead?.sequence).toEqual(createdAtSequence - 1)
   })
 
+  it('should set the account head when head is passed in', async () => {
+    const name = 'headTest'
+    const spendingKey = generateKey().spendingKey
+
+    // add block to chain that will serve as the account head
+    const block2 = await useMinerBlockFixture(routeTest.node.chain)
+    await expect(routeTest.node.chain).toAddBlock(block2)
+
+    const createdAtSequence = 3
+
+    const response = await routeTest.client.wallet.importAccount({
+      account: spendingKey,
+      name: name,
+      rescan: false,
+      createdAt: createdAtSequence,
+      head: {
+        hash: block2.header.hash.toString('hex'),
+        sequence: block2.header.sequence,
+      },
+    })
+
+    expect(response.status).toBe(200)
+    const account = routeTest.node.wallet.getAccountByName(name)
+    expect(account).toBeDefined()
+    expect(account?.createdAt?.sequence).toEqual(createdAtSequence)
+
+    const accountHead = await account?.getHead()
+    expect(accountHead).toMatchObject({
+      hash: block2.header.hash,
+      sequence: block2.header.sequence,
+    })
+  })
+
   it('should not import account with duplicate name', async () => {
     const name = 'duplicateNameTest'
     const spendingKey = generateKey().spendingKey

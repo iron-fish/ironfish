@@ -26,5 +26,33 @@
         }
       ]
     }
+  ],
+  "Route wallet/importAccount should set the account head when head is passed in": [
+    {
+      "header": {
+        "sequence": 3,
+        "previousBlockHash": "EBF8252D3B74649A6BFB8A432AB6D8820EA7341DD3A566D09CD5B3F22CD22732",
+        "noteCommitment": {
+          "type": "Buffer",
+          "data": "base64:gdc71QE9tc2zyxaoJb6or4KVAs2BNArO4LDkLJtOEQo="
+        },
+        "transactionCommitment": {
+          "type": "Buffer",
+          "data": "base64:C1jfw8vmiEoqRQ70FIWaDT35xTG6xi1S+OXPFpShSys="
+        },
+        "target": "9754453130973531902827130100161650911048134915968706455939594413459801",
+        "randomness": "0",
+        "timestamp": 1730923382510,
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
+        "noteSize": 5,
+        "work": "0"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAlzb6SFSbz07uTsA/TsxXQntXoAuXw2UQTIMPYyyvWES2qbuXMjASRiobbgzxFPukuYuyxPmqAg5EmXmpE6QzwOkH0s09pVkPSwYqH+vjdBK36QewFrgoA97cfPuRDuA8bcDB9Aul9tUBEdRJSkb0TkfqQ69PgQqCNP/JsHdxtmoORTLMUjwt6Rhpb8BgCsJ7YDu6Djm9xnPsXUcctd3CHkFdcAk7rBYOplAwCC7AwIOVsaaGgkOGl9UMvKiD2leG9gElAeQh9PqvvLt2iexZh5rTVB2RM965gqHmTW8vOwVvrKn1m+3TeaBVxkGE/Jj8855garonyTT5FcxiFGUfOMnZ7aWydxEtuuXhXhCV4ajPrN2P0RE159auxnX+55YfBdfzcZnIKdZnimG6bNY1Z+Hy/gGiXjUdSjnqQvv8oqvDswxC9Ub2Hnxeb1xrM3iDaS/I+DueRwJ9jVltfcnoWl3n20XPYRvuVuy2eQXXpudgBVe/nIgDdLdq/P7XkZ80xbgsOfg3aQOvl5wE+Iwiroyqe59AUZidUwtBstfDE856JjSYZ+mD0Yo4Jys9w6R7yNLsFyEyAuJDIuL5SnzC3U/ndPS48CeaxDRBIEOcDwfZqFT1hZdprElyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwx0GJNdSykNTjMJhGY1t6ojwzHUvC8llNFBPKEGi+805r0KNb0B3VAIeqf5dj+uVF1J2pwdoDkpmbu3WO3W2iDQ=="
+        }
+      ]
+    }
   ]
 }
