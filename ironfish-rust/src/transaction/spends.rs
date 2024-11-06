@@ -225,7 +225,7 @@ impl UnsignedSpendDescription {
 /// The publicly visible value of a spent note. These get serialized to prove
 /// that the owner once had access to these values. It also publishes the
 /// nullifier so that they can't pretend they still have access to them.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SpendDescription {
     /// Proof that the spend was valid and successful for the provided owner
     /// and note.
