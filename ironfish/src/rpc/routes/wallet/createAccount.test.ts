@@ -5,6 +5,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { blake3 } from '@napi-rs/blake-hash'
 import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { RPC_ERROR_CODES } from '../../adapters'
@@ -20,7 +21,7 @@ describe('Route wallet/createAccount', () => {
   it('should create an account', async () => {
     await routeTest.node.wallet.createAccount('existingAccount', { setDefault: true })
     const createdAtHead = {
-      hash: routeTest.node.chain.head.hash,
+      hash: Buffer.alloc(32, 0),
       sequence: routeTest.node.chain.head.sequence,
     }
 
@@ -118,6 +119,9 @@ describe('Route wallet/createAccount', () => {
         sequence: 10,
       },
     })
+
+    const head = await account?.getHead()
+    expect(head).toBeNull()
   })
 
   it('should set account createdAt to null', async () => {
@@ -140,6 +144,39 @@ describe('Route wallet/createAccount', () => {
       name: name,
       publicAddress: response.content.publicAddress,
       createdAt: null,
+    })
+  })
+
+  it('should set account head if passed', async () => {
+    const name = uuid()
+
+    const response = await routeTest.client.wallet.createAccount({
+      name,
+      createdAt: null,
+      head: {
+        hash: blake3('test').toString('hex'),
+        sequence: 10,
+      },
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.content).toMatchObject({
+      name: name,
+      publicAddress: expect.any(String),
+      isDefaultAccount: true,
+    })
+
+    const account = routeTest.node.wallet.getAccountByName(name)
+    expect(account).toMatchObject({
+      name: name,
+      publicAddress: response.content.publicAddress,
+      createdAt: null,
+    })
+
+    const head = await account?.getHead()
+    expect(head).toMatchObject({
+      hash: blake3('test'),
+      sequence: 10,
     })
   })
 })
