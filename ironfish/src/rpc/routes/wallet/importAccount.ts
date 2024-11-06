@@ -18,6 +18,10 @@ export type ImportAccountRequest = {
   name?: string
   rescan?: boolean
   createdAt?: number
+  head?: {
+    hash: string
+    sequence: number
+  }
 }
 
 export type ImportResponse = {
@@ -31,6 +35,13 @@ export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> 
     name: yup.string().optional(),
     account: yup.string().defined(),
     createdAt: yup.number().optional(),
+    head: yup
+      .object({
+        hash: yup.string().defined(),
+        sequence: yup.number().defined(),
+      })
+      .optional()
+      .default(undefined),
   })
   .defined()
 
@@ -50,9 +61,15 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
 
       request.data.account = await decryptEncodedAccount(request.data.account, context.wallet)
 
+      const head = request.data.head && {
+        hash: Buffer.from(request.data.head.hash, 'hex'),
+        sequence: request.data.head.sequence,
+      }
+
       const decoded = decodeAccountImport(request.data.account, { name: request.data.name })
       const account = await context.wallet.importAccount(decoded, {
         createdAt: request.data.createdAt,
+        head,
       })
 
       if (!context.wallet.hasDefaultAccount) {

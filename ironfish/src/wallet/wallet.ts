@@ -1475,7 +1475,7 @@ export class Wallet {
 
   async importAccount(
     accountValue: AccountImport,
-    options?: { createdAt?: number },
+    options?: { createdAt?: number; head?: HeadValue },
   ): Promise<Account> {
     let multisigKeys = accountValue.multisigKeys
     let secret: Buffer | undefined
@@ -1587,10 +1587,13 @@ export class Wallet {
         }
       }
 
-      const accountHead =
-        createdAt && (await this.accountHeadAtSequence(createdAt.sequence - 1))
-
-      await account.updateHead(accountHead, tx)
+      if (options?.head) {
+        await account.updateHead(options.head, tx)
+      } else {
+        const accountHead =
+          createdAt && (await this.accountHeadAtSequence(createdAt.sequence - 1))
+        await account.updateHead(accountHead, tx)
+      }
     })
 
     this.accountById.set(account.id, account)
