@@ -9,16 +9,12 @@ import { PromiseUtils } from './promise'
 /**
  * Try to open the node DB's and wait until they can be opened
  */
-async function waitForOpen(
-  node: FullNode,
-  abort?: null | (() => boolean),
-  walletPassphrase?: string,
-): Promise<void> {
+async function waitForOpen(node: FullNode, abort?: null | (() => boolean)): Promise<void> {
   let logged = false
 
   while (!abort || !abort()) {
     try {
-      await node.openDB(walletPassphrase)
+      await node.openDB()
       return
     } catch (e) {
       if (e instanceof DatabaseIsLockedError) {
