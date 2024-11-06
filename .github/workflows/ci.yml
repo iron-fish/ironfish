@@ -39,6 +39,16 @@ jobs:
       - name: Lint
         run: yarn lint
 
+      - name: Build Rust bindings
+        run: yarn build
+
+      - name: Check for Rust binding changes
+        run: |
+          if [[ $(git status | grep index.) ]]; then
+            echo "Rust bindings have outstanding updates, please run 'yarn build' and check them in."
+            exit 1
+          fi
+
   test:
     name: Test
     runs-on: ubuntu-latest
