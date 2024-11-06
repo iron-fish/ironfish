@@ -111,6 +111,12 @@ impl fmt::Display for IronfishError {
     }
 }
 
+impl From<IronfishErrorKind> for IronfishError {
+    fn from(kind: IronfishErrorKind) -> Self {
+        Self::new(kind)
+    }
+}
+
 impl From<io::Error> for IronfishError {
     fn from(e: io::Error) -> IronfishError {
         IronfishError::new_with_source(IronfishErrorKind::Io, e)
