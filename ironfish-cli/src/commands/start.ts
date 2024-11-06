@@ -247,8 +247,9 @@ export default class Start extends IronfishCommand {
               password: true,
             },
           )
+        } else {
+          throw e
         }
-        throw e
       }
     }
 
