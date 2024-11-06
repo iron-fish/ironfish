@@ -101,8 +101,7 @@ routes.register<typeof SetAccountHeadRequestSchema, SetAccountHeadResponse>(
 
     // Validate account head is compatible with start and end blocks
     let accountHead = await account.getHead()
-
-    if (accountHead !== null) {
+    if (accountHead !== null && !startHeader.equals(context.chain.genesis)) {
       const accountHeader = await context.chain.getHeader(accountHead.hash)
       if (!accountHeader) {
         throw new Error(`accountHead ${accountHead.hash.toString('hex')} not found in chain`)
