@@ -4,9 +4,6 @@
 import { IDatabase, IDatabaseStore, StringEncoding } from '../../../../storage'
 import { AccountValue, AccountValueEncoding } from './accountValue'
 
-/* GetNewStores must be defined for each migration. It should return a reference
- * to each datastore that the migration modifies.
- */
 export function GetNewStores(db: IDatabase): {
   accounts: IDatabaseStore<{ key: string; value: AccountValue }>
 } {
