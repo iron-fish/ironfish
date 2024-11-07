@@ -1,5 +1,5 @@
-use bellperson::{groth16, Circuit};
 use blstrs::Bls12;
+use ironfish_bellperson::{groth16, Circuit};
 use ironfish_zkp::{
     constants::ASSET_ID_LENGTH,
     proofs::{MintAsset, Output, Spend},

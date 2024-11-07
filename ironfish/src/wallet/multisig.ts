@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export * from './adapter'
-export * from './tcpAdapter'
-export * from './tlsAdapter'
+import { multisig } from '@ironfish/rust-nodejs'
+
+const Multisig = multisig
+
+export default Multisig

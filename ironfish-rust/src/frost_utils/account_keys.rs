@@ -8,12 +8,12 @@ use crate::{
 };
 use group::GroupEncoding;
 use ironfish_frost::frost::VerifyingKey;
+use ironfish_jubjub::SubgroupPoint;
 use ironfish_zkp::constants::PROOF_GENERATION_KEY_GENERATOR;
-use jubjub::SubgroupPoint;
 
 pub struct MultisigAccountKeys {
     /// Equivalent to [`crate::keys::SaplingKey::proof_authorizing_key`]
-    pub proof_authorizing_key: jubjub::Fr,
+    pub proof_authorizing_key: ironfish_jubjub::Fr,
     /// Equivalent to [`crate::keys::SaplingKey::outgoing_viewing_key`]
     pub outgoing_viewing_key: OutgoingViewKey,
     /// Equivalent to [`crate::keys::SaplingKey::view_key`]
@@ -26,7 +26,7 @@ pub struct MultisigAccountKeys {
 
 /// Derives the account keys for a multisig account, realizing the following key hierarchy:
 ///
-/// ```ignore
+/// ```text
 ///                 ak ─┐
 ///                     ├─ ivk ── pk
 ///   gsk ── nsk ── nk ─┘

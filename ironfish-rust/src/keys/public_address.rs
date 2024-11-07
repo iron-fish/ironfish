@@ -7,8 +7,8 @@ use crate::{
     serializing::{bytes_to_hex, hex_to_bytes},
 };
 use group::GroupEncoding;
+use ironfish_jubjub::SubgroupPoint;
 use ironfish_zkp::constants::PUBLIC_KEY_GENERATOR;
-use jubjub::SubgroupPoint;
 
 use std::io;
 
@@ -94,7 +94,7 @@ impl std::fmt::Debug for PublicAddress {
     }
 }
 
-impl std::cmp::PartialEq for PublicAddress {
+impl PartialEq for PublicAddress {
     fn eq(&self, other: &Self) -> bool {
         self.hex_public_address() == other.hex_public_address()
     }

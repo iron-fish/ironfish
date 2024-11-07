@@ -1,42 +1,21 @@
 
 # cargo-vet audits file
 
-[audits]
-reddsa = []
-
 [[audits.arrayvec]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
 delta = "0.7.2 -> 0.7.4"
 
-[[audits.bellman]]
-who = "Andrea <andrea@iflabs.network>"
+[[audits.bip0039]]
+who = "andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
-delta = "0.13.1 -> 0.13.1@git:1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec"
-notes = "Fork of the official bellperson owned by Iron Fish"
-
-[[audits.bellperson]]
-who = "Andrea <andrea@iflabs.network>"
-criteria = "safe-to-deploy"
-delta = "0.24.1 -> 0.24.1@git:37b9976bcd96986cbdc71ae09fc455015e3dfac0"
-notes = "Fork of the official bellperson owned by Iron Fish"
+delta = "0.10.1 -> 0.11.0"
+notes = "Main change is how langauges are handled (previous version: through an enum, new version: through a marker type)"
 
 [[audits.crypto_box]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
 version = "0.9.1"
-
-[[audits.equihash]]
-who = "Andrea <andrea@iflabs.network>"
-criteria = "safe-to-deploy"
-delta = "0.2.0 -> 0.2.0@git:d551820030cb596eafe82226667f32b47164f91b"
-notes = "Fork of the official equihash owned by Iron Fish"
-
-[[audits.f4jumble]]
-who = "Andrea <andrea@iflabs.network>"
-criteria = "safe-to-deploy"
-delta = "0.1.0 -> 0.1.0@git:d551820030cb596eafe82226667f32b47164f91b"
-notes = "Fork of the official f4jumble owned by Iron Fish"
 
 [[audits.frost-core]]
 who = "Andrea <andrea@iflabs.network>"
@@ -63,12 +42,41 @@ who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
 delta = "1.9.3 -> 2.2.6"
 
-[[audits.jubjub]]
-who = "Andrea <andrea@iflabs.network>"
+[[audits.ironfish-bellperson]]
+who = "andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
-delta = "0.9.0 -> 0.9.0@git:531157cfa7b81ade207e819ef50c563843b10e30"
-importable = false
+version = "0.1.0"
+notes = "Fork of the official bellperson owned by Iron Fish"
+
+[[audits.ironfish-frost]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "0.1.0"
+notes = "Crate owned by the Iron Fish organization"
+
+[[audits.ironfish-jubjub]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "0.1.0"
 notes = "Fork of the official jubjub owned by Iron Fish"
+
+[[audits.ironfish-primitives]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "0.1.0"
+notes = "Fork of the official zcash_primitives owned by Iron Fish"
+
+[[audits.ironfish-proofs]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "0.1.0"
+notes = "Fork of the official zcash_proofs owned by Iron Fish"
+
+[[audits.ironfish-reddsa]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "0.1.0"
+notes = "Crate owned by the Iron Fish organization"
 
 [[audits.mio]]
 who = "Andrea <andrea@iflabs.network>"
@@ -100,38 +108,8 @@ who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
 version = "1.0.0"
 
-[[audits.zcash_address]]
-who = "Andrea <andrea@iflabs.network>"
-criteria = "safe-to-deploy"
-delta = "0.1.0 -> 0.1.0@git:d551820030cb596eafe82226667f32b47164f91b"
-notes = "Fork of the official zcash_address owned by Iron Fish"
-
-[[audits.zcash_encoding]]
-who = "Andrea <andrea@iflabs.network>"
-criteria = "safe-to-deploy"
-delta = "0.1.0 -> 0.1.0@git:d551820030cb596eafe82226667f32b47164f91b"
-notes = "Fork of the official zcash_encoding owned by Iron Fish"
-
-[[audits.zcash_note_encryption]]
-who = "Andrea <andrea@iflabs.network>"
-criteria = "safe-to-deploy"
-delta = "0.1.0 -> 0.1.0@git:d551820030cb596eafe82226667f32b47164f91b"
-notes = "Fork of the official zcash_note_encryption owned by Iron Fish"
-
-[[audits.zcash_primitives]]
-who = "Andrea <andrea@iflabs.network>"
-criteria = "safe-to-deploy"
-delta = "0.7.0 -> 0.7.0@git:d551820030cb596eafe82226667f32b47164f91b"
-notes = "Fork of the official zcash_primitives owned by Iron Fish"
-
-[[audits.zcash_proofs]]
-who = "Andrea <andrea@iflabs.network>"
-criteria = "safe-to-deploy"
-delta = "0.7.1 -> 0.7.1@git:d551820030cb596eafe82226667f32b47164f91b"
-notes = "Fork of the official zcash_proofs owned by Iron Fish"
-
 [[trusted.reddsa]]
 criteria = "safe-to-deploy"
-user-id = 6289 # str4d
+user-id = 6289 # Jack Grigg (str4d)
 start = "2021-01-08"
 end = "2025-09-12"

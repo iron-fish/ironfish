@@ -24,18 +24,19 @@ workspace = true
 crate-type = ["cdylib"]
 
 [features]
-stats = ["ironfish/note-encryption-stats", "jubjub/stats", "dep:signal-hook"]
+stats = ["ironfish/note-encryption-stats", "ironfish-jubjub/stats", "dep:signal-hook"]
 
 [dependencies]
 base64 = "0.13.0"
 fish_hash = "0.3.0"
 ironfish = { path = "../ironfish-rust" }
-ironfish-frost = { git = "https://github.com/iron-fish/ironfish-frost.git", branch = "main" }
+ironfish-frost = { version = "0.1.0" }
+ironfish-jubjub = { version = "0.1.0", features = ["multiply-many"] }
+libc = "0.2.150"
 napi = { version = "2.14.4", features = ["napi6"] }
 napi-derive = "2.14.6"
-jubjub = { git = "https://github.com/iron-fish/jubjub.git", branch = "blstrs", features = ["multiply-many"] }
-rand = "0.8.5"
 num_cpus = "1.16.0"
+rand = "0.8.5"
 signal-hook = { version = "0.3.17", optional = true, default-features = false, features = ["iterator"] }
 
 [build-dependencies]

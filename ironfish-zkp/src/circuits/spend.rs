@@ -1,18 +1,22 @@
-use bellperson::{Circuit, ConstraintSystem, SynthesisError};
+use std::io::{Read, Write};
+
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
-use jubjub::SubgroupPoint;
+use group::GroupEncoding;
+use ironfish_bellperson::{Circuit, ConstraintSystem, SynthesisError};
+use ironfish_jubjub::SubgroupPoint;
 
 use crate::constants::{CRH_IVK_PERSONALIZATION, PRF_NF_PERSONALIZATION};
+use crate::ProofGenerationKey;
 use crate::{constants::proof::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment};
 
-use super::util::expose_value_commitment;
-use bellperson::gadgets::blake2s;
-use bellperson::gadgets::boolean;
-use bellperson::gadgets::multipack;
-use bellperson::gadgets::num;
-use bellperson::gadgets::Assignment;
-use zcash_primitives::sapling::ProofGenerationKey;
-use zcash_proofs::{
+use super::util::{expose_value_commitment, FromBytes};
+use ironfish_bellperson::gadgets::blake2s;
+use ironfish_bellperson::gadgets::boolean;
+use ironfish_bellperson::gadgets::multipack;
+use ironfish_bellperson::gadgets::num;
+use ironfish_bellperson::gadgets::Assignment;
+use ironfish_proofs::{
     circuit::{ecc, pedersen_hash},
     constants::{
         NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR,
@@ -34,10 +38,10 @@ pub struct Spend {
     pub payment_address: Option<SubgroupPoint>,
 
     /// The randomness of the note commitment
-    pub commitment_randomness: Option<jubjub::Fr>,
+    pub commitment_randomness: Option<ironfish_jubjub::Fr>,
 
     /// Re-randomization of the public key
-    pub ar: Option<jubjub::Fr>,
+    pub ar: Option<ironfish_jubjub::Fr>,
 
     /// The authentication path of the commitment in the tree
     pub auth_path: Vec<Option<(blstrs::Scalar, bool)>>,
@@ -48,6 +52,117 @@ pub struct Spend {
 
     /// The sender address associated with the note
     pub sender_address: Option<SubgroupPoint>,
+}
+
+impl Spend {
+    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
+        if let Some(ref value_commitment) = self.value_commitment {
+            writer.write_u8(1)?;
+            writer.write_all(&value_commitment.to_bytes())?;
+        } else {
+            writer.write_u8(0)?;
+        }
+        if let Some(ref proof_generation_key) = self.proof_generation_key {
+            writer.write_u8(1)?;
+            writer.write_all(proof_generation_key.to_bytes().as_ref())?;
+        } else {
+            writer.write_u8(0)?;
+        }
+        if let Some(ref payment_address) = self.payment_address {
+            writer.write_u8(1)?;
+            writer.write_all(payment_address.to_bytes().as_ref())?;
+        } else {
+            writer.write_u8(0)?;
+        }
+        if let Some(ref commitment_randomness) = self.commitment_randomness {
+            writer.write_u8(1)?;
+            writer.write_all(commitment_randomness.to_bytes().as_ref())?;
+        } else {
+            writer.write_u8(0)?;
+        }
+        if let Some(ref ar) = self.ar {
+            writer.write_u8(1)?;
+            writer.write_all(ar.to_bytes().as_ref())?;
+        } else {
+            writer.write_u8(0)?;
+        }
+        writer.write_all((self.auth_path.len() as u64).to_le_bytes().as_ref())?;
+        for auth_path in &self.auth_path {
+            match auth_path {
+                Some((val, flag)) => {
+                    writer.write_u8(1)?;
+                    writer.write_all(&val.to_bytes_le())?;
+                    writer.write_u8(*flag as u8)?;
+                }
+                None => writer.write_u8(0)?,
+            }
+        }
+        if let Some(anchor) = &self.anchor {
+            writer.write_u8(1)?;
+            writer.write_all(anchor.to_bytes_le().as_ref())?;
+        } else {
+            writer.write_u8(0)?;
+        }
+        if let Some(ref sender_address) = self.sender_address {
+            writer.write_u8(1)?;
+            writer.write_all(sender_address.to_bytes().as_ref())?;
+        } else {
+            writer.write_u8(0)?;
+        }
+        Ok(())
+    }
+
+    pub fn read<R: Read>(mut reader: R) -> std::io::Result<Spend> {
+        let mut value_commitment = None;
+        if reader.read_u8()? == 1 {
+            value_commitment = Some(ValueCommitment::read(&mut reader)?);
+        }
+        let mut proof_generation_key = None;
+        if reader.read_u8()? == 1 {
+            proof_generation_key = Some(ProofGenerationKey::read(&mut reader)?);
+        }
+        let mut payment_address = None;
+        if reader.read_u8()? == 1 {
+            payment_address = Some(SubgroupPoint::read(&mut reader)?);
+        }
+        let mut commitment_randomness = None;
+        if reader.read_u8()? == 1 {
+            commitment_randomness = Some(ironfish_jubjub::Fr::read(&mut reader)?);
+        }
+        let mut ar = None;
+        if reader.read_u8()? == 1 {
+            ar = Some(ironfish_jubjub::Fr::read(&mut reader)?);
+        }
+        let len = reader.read_u64::<LittleEndian>().unwrap();
+        let mut auth_path = vec![];
+        for _ in 0..len {
+            if reader.read_u8()? == 1 {
+                let val = blstrs::Scalar::read(&mut reader)?;
+                let flag = reader.read_u8()? == 1;
+                auth_path.push(Some((val, flag)));
+            } else {
+                auth_path.push(None);
+            }
+        }
+        let mut anchor = None;
+        if reader.read_u8()? == 1 {
+            anchor = Some(blstrs::Scalar::read(&mut reader)?);
+        }
+        let mut sender_address = None;
+        if reader.read_u8()? == 1 {
+            sender_address = Some(SubgroupPoint::read(&mut reader)?);
+        }
+        Ok(Spend {
+            value_commitment,
+            proof_generation_key,
+            payment_address,
+            commitment_randomness,
+            ar,
+            auth_path,
+            anchor,
+            sender_address,
+        })
+    }
 }
 
 impl Circuit<blstrs::Scalar> for Spend {
@@ -133,7 +248,7 @@ impl Circuit<blstrs::Scalar> for Spend {
         )?;
 
         // drop_5 to ensure it's in the field
-        ivk.truncate(jubjub::Fr::CAPACITY as usize);
+        ivk.truncate(ironfish_jubjub::Fr::CAPACITY as usize);
 
         // Compute pk_d
         let pk_d = ecc::fixed_base_multiplication(
@@ -183,7 +298,8 @@ impl Circuit<blstrs::Scalar> for Spend {
         // add sender address to note contents so correct note commitment can be calculated
         let sender_address = ecc::EdwardsPoint::witness(
             cs.namespace(|| "sender_address"),
-            self.sender_address.map(jubjub::ExtendedPoint::from),
+            self.sender_address
+                .map(ironfish_jubjub::ExtendedPoint::from),
         )?;
 
         // Place sender_address (pk_d) in the note
@@ -334,23 +450,25 @@ impl Circuit<blstrs::Scalar> for Spend {
 
 #[cfg(test)]
 mod test {
-    use bellperson::{
-        gadgets::{multipack, test::*},
-        Circuit, ConstraintSystem,
-    };
     use blake2s_simd::Params as Blake2sParams;
     use ff::{Field, PrimeField, PrimeFieldBits};
     use group::{Curve, Group, GroupEncoding};
+    use ironfish_bellperson::{
+        gadgets::{multipack, test::*},
+        Circuit, ConstraintSystem,
+    };
+    use ironfish_primitives::sapling::{pedersen_hash, Note, Rseed};
+    use ironfish_primitives::{constants::NULLIFIER_POSITION_GENERATOR, sapling::Nullifier};
     use rand::{rngs::StdRng, RngCore, SeedableRng};
-    use zcash_primitives::sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed};
-    use zcash_primitives::{constants::NULLIFIER_POSITION_GENERATOR, sapling::Nullifier};
 
     use crate::{
         circuits::spend::Spend,
-        constants::PUBLIC_KEY_GENERATOR,
-        constants::{PRF_NF_PERSONALIZATION, VALUE_COMMITMENT_VALUE_GENERATOR},
+        constants::{
+            PRF_NF_PERSONALIZATION, PUBLIC_KEY_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR,
+        },
         primitives::ValueCommitment,
         util::commitment_full_point,
+        ProofGenerationKey,
     };
 
     #[test]
@@ -363,28 +481,28 @@ mod test {
         for _ in 0..5 {
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
-                randomness: jubjub::Fr::random(&mut rng),
+                randomness: ironfish_jubjub::Fr::random(&mut rng),
                 asset_generator: (*VALUE_COMMITMENT_VALUE_GENERATOR).into(),
             };
 
-            let proof_generation_key = ProofGenerationKey {
-                ak: jubjub::SubgroupPoint::random(&mut rng),
-                nsk: jubjub::Fr::random(&mut rng),
-            };
+            let proof_generation_key = ProofGenerationKey::new(
+                ironfish_jubjub::SubgroupPoint::random(&mut rng),
+                ironfish_jubjub::Fr::random(&mut rng),
+            );
 
             let viewing_key = proof_generation_key.to_viewing_key();
 
             let payment_address = *PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
 
-            let commitment_randomness = jubjub::Fr::random(&mut rng);
+            let commitment_randomness = ironfish_jubjub::Fr::random(&mut rng);
             let auth_path =
                 vec![Some((blstrs::Scalar::random(&mut rng), rng.next_u32() % 2 != 0)); tree_depth];
-            let ar = jubjub::Fr::random(&mut rng);
+            let ar = ironfish_jubjub::Fr::random(&mut rng);
 
             {
-                let rk = jubjub::ExtendedPoint::from(viewing_key.rk(ar)).to_affine();
+                let rk = ironfish_jubjub::ExtendedPoint::from(viewing_key.rk(ar)).to_affine();
                 let expected_value_commitment =
-                    jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
+                    ironfish_jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
                 let note = Note {
                     value: value_commitment.value,
                     g_d: *PUBLIC_KEY_GENERATOR,
@@ -400,7 +518,9 @@ mod test {
                     note.rcm(),
                     payment_address,
                 );
-                let cmu = jubjub::ExtendedPoint::from(commitment).to_affine().get_u();
+                let cmu = ironfish_jubjub::ExtendedPoint::from(commitment)
+                    .to_affine()
+                    .get_u();
 
                 let mut cur = cmu;
 
@@ -417,7 +537,7 @@ mod test {
                     let lhs = lhs.to_le_bits();
                     let rhs = rhs.to_le_bits();
 
-                    cur = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
+                    cur = ironfish_jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
                         pedersen_hash::Personalization::MerkleTree(i),
                         lhs.iter()
                             .by_vals()
@@ -432,7 +552,8 @@ mod test {
                     }
                 }
 
-                let rho = commitment + (*NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+                let rho = commitment
+                    + (*NULLIFIER_POSITION_GENERATOR * ironfish_jubjub::Fr::from(position));
 
                 // Compute nf = BLAKE2s(nk | rho)
                 let expected_nf = Nullifier::from_slice(
@@ -520,28 +641,28 @@ mod test {
         for i in 0..5 {
             let value_commitment = ValueCommitment {
                 value: i,
-                randomness: jubjub::Fr::from(1000 * (i + 1)),
+                randomness: ironfish_jubjub::Fr::from(1000 * (i + 1)),
                 asset_generator: (*VALUE_COMMITMENT_VALUE_GENERATOR).into(),
             };
 
-            let proof_generation_key = ProofGenerationKey {
-                ak: jubjub::SubgroupPoint::random(&mut rng),
-                nsk: jubjub::Fr::random(&mut rng),
-            };
+            let proof_generation_key = ProofGenerationKey::new(
+                ironfish_jubjub::SubgroupPoint::random(&mut rng),
+                ironfish_jubjub::Fr::random(&mut rng),
+            );
 
             let viewing_key = proof_generation_key.to_viewing_key();
 
             let payment_address = *PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
 
-            let commitment_randomness = jubjub::Fr::random(&mut rng);
+            let commitment_randomness = ironfish_jubjub::Fr::random(&mut rng);
             let auth_path =
                 vec![Some((blstrs::Scalar::random(&mut rng), rng.next_u32() % 2 != 0)); tree_depth];
-            let ar = jubjub::Fr::random(&mut rng);
+            let ar = ironfish_jubjub::Fr::random(&mut rng);
 
             {
-                let rk = jubjub::ExtendedPoint::from(viewing_key.rk(ar)).to_affine();
+                let rk = ironfish_jubjub::ExtendedPoint::from(viewing_key.rk(ar)).to_affine();
                 let expected_value_commitment =
-                    jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
+                    ironfish_jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
                 assert_eq!(
                     expected_value_commitment.get_u(),
                     blstrs::Scalar::from_str_vartime(expected_commitment_us[i as usize]).unwrap()
@@ -560,7 +681,9 @@ mod test {
                     commitment_randomness,
                     payment_address,
                 );
-                let cmu = jubjub::ExtendedPoint::from(commitment).to_affine().get_u();
+                let cmu = ironfish_jubjub::ExtendedPoint::from(commitment)
+                    .to_affine()
+                    .get_u();
 
                 let mut cur = cmu;
 
@@ -577,7 +700,7 @@ mod test {
                     let lhs = lhs.to_le_bits();
                     let rhs = rhs.to_le_bits();
 
-                    cur = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
+                    cur = ironfish_jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
                         pedersen_hash::Personalization::MerkleTree(i),
                         lhs.iter()
                             .by_vals()
@@ -592,7 +715,8 @@ mod test {
                     }
                 }
 
-                let rho = commitment + (*NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+                let rho = commitment
+                    + (*NULLIFIER_POSITION_GENERATOR * ironfish_jubjub::Fr::from(position));
 
                 // Compute nf = BLAKE2s(nk | rho)
                 let expected_nf = Nullifier::from_slice(
@@ -652,5 +776,118 @@ mod test {
                 assert_eq!(cs.get_input(7, "pack nullifier/input 1"), expected_nf[1]);
             }
         }
+    }
+
+    #[test]
+    fn test_spend_read_write() {
+        let mut rng = StdRng::seed_from_u64(0);
+
+        let value_commitment = ValueCommitment {
+            value: rng.next_u64(),
+            randomness: ironfish_jubjub::Fr::random(&mut rng),
+            asset_generator: (*VALUE_COMMITMENT_VALUE_GENERATOR).into(),
+        };
+
+        let proof_generation_key = ProofGenerationKey::new(
+            ironfish_jubjub::SubgroupPoint::random(&mut rng),
+            ironfish_jubjub::Fr::random(&mut rng),
+        );
+
+        let viewing_key = proof_generation_key.to_viewing_key();
+
+        let payment_address = *PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
+
+        let commitment_randomness = ironfish_jubjub::Fr::random(&mut rng);
+        let auth_path = vec![Some((blstrs::Scalar::random(&mut rng), rng.next_u32() % 2 != 0)); 32];
+        let ar = ironfish_jubjub::Fr::random(&mut rng);
+
+        let sender_address = ironfish_jubjub::SubgroupPoint::random(&mut rng);
+
+        let anchor = blstrs::Scalar::random(&mut rng);
+
+        let spend = Spend {
+            value_commitment: Some(value_commitment.clone()),
+            proof_generation_key: Some(proof_generation_key.clone()),
+            payment_address: Some(payment_address),
+            commitment_randomness: Some(commitment_randomness),
+            ar: Some(ar),
+            auth_path: auth_path.clone(),
+            anchor: Some(anchor),
+            sender_address: Some(sender_address),
+        };
+
+        let mut buffer = vec![];
+        spend.write(&mut buffer).unwrap();
+
+        let deserialized_spend = Spend::read(&buffer[..]).unwrap();
+        assert_eq!(
+            spend.value_commitment.clone().unwrap().value,
+            deserialized_spend.value_commitment.clone().unwrap().value
+        );
+        assert_eq!(
+            spend.value_commitment.clone().unwrap().randomness,
+            deserialized_spend
+                .value_commitment
+                .clone()
+                .unwrap()
+                .randomness
+        );
+        assert_eq!(
+            spend
+                .value_commitment
+                .clone()
+                .unwrap()
+                .asset_generator
+                .to_bytes(),
+            deserialized_spend
+                .value_commitment
+                .clone()
+                .unwrap()
+                .asset_generator
+                .to_bytes()
+        );
+
+        assert_eq!(
+            spend.proof_generation_key.clone().unwrap().ak.to_bytes(),
+            deserialized_spend
+                .proof_generation_key
+                .clone()
+                .unwrap()
+                .ak
+                .to_bytes()
+        );
+        assert_eq!(
+            spend.proof_generation_key.clone().unwrap().nsk,
+            deserialized_spend.proof_generation_key.clone().unwrap().nsk
+        );
+
+        assert_eq!(
+            spend.payment_address.unwrap().to_bytes(),
+            deserialized_spend.payment_address.unwrap().to_bytes()
+        );
+
+        assert_eq!(
+            spend.commitment_randomness,
+            deserialized_spend.commitment_randomness
+        );
+
+        assert_eq!(spend.ar, deserialized_spend.ar);
+
+        assert_eq!(spend.auth_path.len(), deserialized_spend.auth_path.len());
+        for (ap1, ap2) in spend
+            .auth_path
+            .iter()
+            .zip(deserialized_spend.auth_path.iter())
+        {
+            assert_eq!((*ap1).unwrap().0, (*ap2).unwrap().0);
+            assert_eq!((*ap1).unwrap().1, (*ap2).unwrap().1);
+        }
+
+        assert_eq!(spend.anchor, deserialized_spend.anchor);
+
+        assert_eq!(
+            spend.sender_address.unwrap().to_bytes(),
+            deserialized_spend.sender_address.unwrap().to_bytes()
+        );
     }
 }

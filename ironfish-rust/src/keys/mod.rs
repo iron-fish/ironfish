@@ -10,10 +10,11 @@ use bip39::Mnemonic;
 use blake2b_simd::Params as Blake2b;
 use blake2s_simd::Params as Blake2s;
 use group::GroupEncoding;
+use ironfish_jubjub::SubgroupPoint;
 use ironfish_zkp::constants::{
     CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
 };
-use jubjub::SubgroupPoint;
+pub use ironfish_zkp::ProofGenerationKey;
 use rand::prelude::*;
 
 use std::io;
@@ -26,8 +27,6 @@ mod view_keys;
 pub use view_keys::*;
 mod util;
 pub use util::*;
-pub mod proof_generation_key;
-pub use proof_generation_key::*;
 
 #[cfg(test)]
 mod test;
@@ -51,12 +50,12 @@ pub struct SaplingKey {
     /// Part of the expanded form of the spending key, generally referred to as
     /// `ask` in the literature. Derived from spending key using a seeded
     /// pseudorandom hash function. Used to construct authorizing_key.
-    pub(crate) spend_authorizing_key: jubjub::Fr,
+    pub(crate) spend_authorizing_key: ironfish_jubjub::Fr,
 
     /// Part of the expanded form of the spending key, generally referred to as
     /// `nsk` in the literature. Derived from spending key using a seeded
     /// pseudorandom hash function. Used to construct nullifier_deriving_key
-    pub(crate) proof_authorizing_key: jubjub::Fr,
+    pub(crate) proof_authorizing_key: ironfish_jubjub::Fr,
 
     /// Part of the expanded form of the spending key, as well as being used
     /// directly in the full viewing key. Generally referred to as
@@ -81,14 +80,14 @@ impl SaplingKey {
     /// Construct a new key from an array of bytes
     pub fn new(spending_key: [u8; SPEND_KEY_SIZE]) -> Result<Self, IronfishError> {
         let spend_authorizing_key =
-            jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 0));
+            ironfish_jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 0));
 
-        if spend_authorizing_key == jubjub::Fr::zero() {
+        if spend_authorizing_key == ironfish_jubjub::Fr::zero() {
             return Err(IronfishError::new(IronfishErrorKind::IllegalValue));
         }
 
         let proof_authorizing_key =
-            jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 1));
+            ironfish_jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 1));
 
         let mut outgoing_viewing_key = [0; SPEND_KEY_SIZE];
         outgoing_viewing_key[0..SPEND_KEY_SIZE]
@@ -210,10 +209,7 @@ impl SaplingKey {
     /// Adapter to convert this key to a proof generation key for use in
     /// sapling functions
     pub fn sapling_proof_generation_key(&self) -> ProofGenerationKey {
-        ProofGenerationKey {
-            ak: self.view_key.authorizing_key,
-            nsk: self.proof_authorizing_key,
-        }
+        ProofGenerationKey::new(self.view_key.authorizing_key, self.proof_authorizing_key)
     }
 
     /// Convert the spending key to another value using a pseudorandom hash
@@ -247,7 +243,7 @@ impl SaplingKey {
     pub fn hash_viewing_key(
         authorizing_key: &SubgroupPoint,
         nullifier_deriving_key: &SubgroupPoint,
-    ) -> Result<jubjub::Fr, IronfishError> {
+    ) -> Result<ironfish_jubjub::Fr, IronfishError> {
         let mut view_key_contents = [0; 64];
         view_key_contents[0..32].copy_from_slice(&authorizing_key.to_bytes());
         view_key_contents[32..64].copy_from_slice(&nullifier_deriving_key.to_bytes());

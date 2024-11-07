@@ -9,9 +9,9 @@ import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { RPC_ERROR_CODES } from '../../adapters'
 import { RpcRequestError } from '../../clients/errors'
+import { CreateAccountResponse } from './createAccount'
 
 describe('Route wallet/create', () => {
-  jest.setTimeout(15000)
   const routeTest = createRouteTest()
 
   beforeEach(() => {
@@ -20,10 +20,15 @@ describe('Route wallet/create', () => {
 
   it('should create an account', async () => {
     await routeTest.node.wallet.createAccount('existingAccount', { setDefault: true })
+    const createdAtHead = {
+      hash: Buffer.alloc(32, 0),
+      sequence: routeTest.node.chain.head.sequence,
+    }
 
     const name = uuid()
 
-    const response = await routeTest.client.wallet.createAccount({ name })
+    const response = await routeTest.client.request(`wallet/create`, { name }).waitForEnd()
+
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
       name: name,
@@ -34,7 +39,8 @@ describe('Route wallet/create', () => {
     const account = routeTest.node.wallet.getAccountByName(name)
     expect(account).toMatchObject({
       name: name,
-      publicAddress: response.content.publicAddress,
+      publicAddress: (response.content as CreateAccountResponse).publicAddress,
+      createdAt: createdAtHead,
     })
   })
 
@@ -43,7 +49,8 @@ describe('Route wallet/create', () => {
 
     const name = uuid()
 
-    const response = await routeTest.client.wallet.createAccount({ name })
+    const response = await routeTest.client.request(`wallet/create`, { name }).waitForEnd()
+
     expect(response.content).toMatchObject({
       name: name,
       publicAddress: expect.any(String),
@@ -59,13 +66,13 @@ describe('Route wallet/create', () => {
 
     try {
       expect.assertions(2)
-      await routeTest.client.wallet.createAccount({ name: name })
+      await routeTest.client.request(`wallet/create`, { name }).waitForEnd()
     } catch (e: unknown) {
       if (!(e instanceof RpcRequestError)) {
         throw e
       }
       expect(e.status).toBe(400)
-      expect(e.code).toBe(RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME)
+      expect(e.code).toBe(RPC_ERROR_CODES.ACCOUNT_EXISTS)
     }
   })
 
@@ -78,7 +85,8 @@ describe('Route wallet/create', () => {
 
     const name = uuid()
 
-    const response = await routeTest.client.wallet.createAccount({ name })
+    const response = await routeTest.client.request(`wallet/create`, { name }).waitForEnd()
+
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
       name: name,

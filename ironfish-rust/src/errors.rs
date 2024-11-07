@@ -33,6 +33,7 @@ pub enum IronfishErrorKind {
     FailedXChaCha20Poly1305Decryption,
     FailedXChaCha20Poly1305Encryption,
     FailedHkdfExpansion,
+    HexError,
     IllegalValue,
     InconsistentWitness,
     InvalidAssetIdentifier,
@@ -110,6 +111,12 @@ impl fmt::Display for IronfishError {
     }
 }
 
+impl From<IronfishErrorKind> for IronfishError {
+    fn from(kind: IronfishErrorKind) -> Self {
+        Self::new(kind)
+    }
+}
+
 impl From<io::Error> for IronfishError {
     fn from(e: io::Error) -> IronfishError {
         IronfishError::new_with_source(IronfishErrorKind::Io, e)
@@ -128,8 +135,8 @@ impl From<string::FromUtf8Error> for IronfishError {
     }
 }
 
-impl From<bellperson::SynthesisError> for IronfishError {
-    fn from(e: bellperson::SynthesisError) -> IronfishError {
+impl From<ironfish_bellperson::SynthesisError> for IronfishError {
+    fn from(e: ironfish_bellperson::SynthesisError) -> IronfishError {
         IronfishError::new_with_source(IronfishErrorKind::BellpersonSynthesis, e)
     }
 }
@@ -143,5 +150,11 @@ impl From<num::TryFromIntError> for IronfishError {
 impl From<ironfish_frost::frost::Error> for IronfishError {
     fn from(e: ironfish_frost::frost::Error) -> IronfishError {
         IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e)
+    }
+}
+
+impl From<ironfish_zkp::hex::HexError> for IronfishError {
+    fn from(e: ironfish_zkp::hex::HexError) -> IronfishError {
+        IronfishError::new_with_source(IronfishErrorKind::HexError, e)
     }
 }

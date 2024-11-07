@@ -2,30 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! Implement a merkle note to store all the values that need to go into a merkle tree.
+//! A tree containing these values can serve as a snapshot of the entire chain.
+
 use crate::{
     errors::IronfishError,
     keys::EphemeralKeyPair,
-    serializing::{read_point, read_point_unchecked},
-};
-
-/// Implement a merkle note to store all the values that need to go into a merkle tree.
-/// A tree containing these values can serve as a snapshot of the entire chain.
-use super::{
     keys::{shared_secret, IncomingViewKey, OutgoingViewKey, PublicAddress},
     note::{Note, ENCRYPTED_NOTE_SIZE},
     serializing::{aead, read_scalar},
-    witness::{WitnessNode, WitnessTrait},
+    serializing::{read_point, read_point_unchecked},
     MerkleNoteHash,
 };
-
 use blake2b_simd::Params as Blake2b;
 use blstrs::Scalar;
 use ff::PrimeField;
 use group::GroupEncoding;
+use ironfish_jubjub::{ExtendedPoint, SubgroupPoint};
 use ironfish_zkp::primitives::ValueCommitment;
-use jubjub::{ExtendedPoint, SubgroupPoint};
-
 use std::{convert::TryInto, io};
+
+#[cfg(feature = "transaction-proofs")]
+use crate::witness::{WitnessNode, WitnessTrait};
 
 pub const ENCRYPTED_SHARED_KEY_SIZE: usize = 64;
 
@@ -108,6 +106,7 @@ impl MerkleNote {
 
     /// Helper function to instantiate a MerkleNote with pre-set
     /// note_encryption_keys. Should only be used for miners fee transactions.
+    #[cfg(feature = "transaction-proofs")]
     pub(crate) fn new_for_miners_fee(
         note: &Note,
         value_commitment: &ValueCommitment,
@@ -283,6 +282,7 @@ impl MerkleNote {
     }
 }
 
+#[cfg(feature = "transaction-proofs")]
 pub(crate) fn sapling_auth_path(witness: &dyn WitnessTrait) -> Vec<Option<(Scalar, bool)>> {
     let mut auth_path = vec![];
     for element in &witness.get_auth_path() {
@@ -302,6 +302,7 @@ pub(crate) fn sapling_auth_path(witness: &dyn WitnessTrait) -> Vec<Option<(Scala
 /// on an assumption that the tree is complete and binary. And I didn't feel
 /// like making Witness a trait since it's otherwise very simple.
 /// So this hacky function gets to live here.
+#[cfg(feature = "transaction-proofs")]
 pub(crate) fn position(witness: &dyn WitnessTrait) -> u64 {
     let mut pos = 0;
     for (i, element) in witness.get_auth_path().iter().enumerate() {
@@ -460,9 +461,10 @@ mod test {
         );
     }
 
-    #[test]
     /// Test to confirm that creating a [`MerkleNote`] via new_for_miners_note()
     /// does use the hard-coded miners fee note encryption keys
+    #[test]
+    #[cfg(feature = "transaction-proofs")]
     fn test_new_miners_fee_key() {
         let receiver_key = SaplingKey::generate_key();
         let sender_key: SaplingKey = SaplingKey::generate_key();

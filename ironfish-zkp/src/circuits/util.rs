@@ -1,12 +1,13 @@
-use bellperson::{
+use ff::PrimeField;
+use group::GroupEncoding;
+use ironfish_bellperson::{
     gadgets::{
         blake2s,
         boolean::{self, AllocatedBit, Boolean},
     },
     ConstraintSystem, SynthesisError,
 };
-use ff::PrimeField;
-use zcash_proofs::{
+use ironfish_proofs::{
     circuit::ecc::{self, EdwardsPoint},
     constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
@@ -16,7 +17,7 @@ use crate::{
     primitives::ValueCommitment,
 };
 
-pub fn slice_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
+fn slice_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
     mut cs: CS,
     value: Option<&[u8]>,
     byte_length: u32,
@@ -51,11 +52,11 @@ pub fn slice_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar
 
 /// Exposes a Pedersen commitment to the value as an
 /// input to the circuit
-pub fn expose_value_commitment<CS>(
+pub(crate) fn expose_value_commitment<CS>(
     mut cs: CS,
     asset_generator: EdwardsPoint,
     value_commitment: Option<ValueCommitment>,
-) -> Result<Vec<boolean::Boolean>, SynthesisError>
+) -> Result<Vec<Boolean>, SynthesisError>
 where
     CS: ConstraintSystem<blstrs::Scalar>,
 {
@@ -109,7 +110,7 @@ where
     Ok(value_bits)
 }
 
-pub fn assert_valid_asset_generator<CS: bellperson::ConstraintSystem<blstrs::Scalar>>(
+pub(crate) fn assert_valid_asset_generator<CS: ConstraintSystem<blstrs::Scalar>>(
     mut cs: CS,
     asset_id: &[u8; ASSET_ID_LENGTH],
     asset_generator_repr: &[Boolean],
@@ -142,4 +143,36 @@ pub fn assert_valid_asset_generator<CS: bellperson::ConstraintSystem<blstrs::Sca
     }
 
     Ok(())
+}
+
+pub(crate) trait FromBytes: Sized {
+    fn read<R: std::io::Read>(reader: R) -> Result<Self, std::io::Error>;
+}
+
+impl FromBytes for ironfish_jubjub::SubgroupPoint {
+    fn read<R: std::io::Read>(mut reader: R) -> Result<Self, std::io::Error> {
+        let mut bytes = [0u8; 32];
+        reader.read_exact(&mut bytes)?;
+        Option::from(ironfish_jubjub::SubgroupPoint::from_bytes(&bytes))
+            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid point"))
+    }
+}
+
+impl FromBytes for ironfish_jubjub::Fr {
+    fn read<R: std::io::Read>(mut reader: R) -> Result<Self, std::io::Error> {
+        let mut bytes = [0u8; 32];
+        reader.read_exact(&mut bytes)?;
+        Option::from(ironfish_jubjub::Fr::from_bytes(&bytes)).ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid field element")
+        })
+    }
+}
+
+impl FromBytes for blstrs::Scalar {
+    fn read<R: std::io::Read>(mut reader: R) -> Result<Self, std::io::Error> {
+        let mut bytes = [0u8; 32];
+        reader.read_exact(&mut bytes)?;
+        Option::from(blstrs::Scalar::from_bytes_le(&bytes))
+            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid scalar"))
+    }
 }

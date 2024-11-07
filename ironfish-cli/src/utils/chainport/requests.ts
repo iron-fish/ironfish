@@ -7,6 +7,7 @@ import {
   ChainportBridgeTransaction,
   ChainportNetwork,
   ChainportToken,
+  ChainportTokenWithNetwork,
   ChainportTransactionStatus,
 } from './types'
 
@@ -42,10 +43,12 @@ export const fetchChainportTokens = async (networkId: number): Promise<Chainport
 export const fetchChainportTokenPaths = async (
   networkId: number,
   tokenId: number,
-): Promise<ChainportNetwork[]> => {
+): Promise<ChainportTokenWithNetwork[]> => {
   const config = getConfig(networkId)
-  const url = new URL(`/bridges/tokens/${tokenId}/networks`, config.endpoint).toString()
-  return (await makeChainportRequest<{ data: ChainportNetwork[] }>(url)).data
+  const url = new URL(`/bridges/tokens/${tokenId}/networks`, config.endpoint)
+  url.searchParams.append('with_tokens', true.toString())
+  return (await makeChainportRequest<{ data: ChainportTokenWithNetwork[] }>(url.toString()))
+    .data
 }
 
 export const fetchChainportBridgeTransaction = async (

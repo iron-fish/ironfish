@@ -2,35 +2,34 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::io;
-
-use bellperson::groth16;
-use blstrs::{Bls12, Scalar};
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use ff::Field;
-use group::{Curve, GroupEncoding};
-use ironfish_zkp::{
-    constants::SPENDING_KEY_GENERATOR,
-    proofs::MintAsset,
-    redjubjub::{self, Signature},
-    ProofGenerationKey,
-};
-use jubjub::ExtendedPoint;
-use rand::thread_rng;
-
 use crate::{
     assets::asset::Asset,
     errors::{IronfishError, IronfishErrorKind},
-    sapling_bls12::SAPLING,
     serializing::read_scalar,
     transaction::TransactionVersion,
     PublicAddress, SaplingKey,
 };
+use blstrs::{Bls12, Scalar};
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use ff::Field;
+use group::{Curve, GroupEncoding};
+use ironfish_bellperson::groth16;
+use ironfish_jubjub::ExtendedPoint;
+use ironfish_zkp::{
+    constants::SPENDING_KEY_GENERATOR,
+    redjubjub::{self, Signature},
+};
+use rand::thread_rng;
+use std::io;
 
-use super::utils::verify_mint_proof;
+#[cfg(feature = "transaction-proofs")]
+use crate::{sapling_bls12::SAPLING, transaction::verify::verify_mint_proof};
+#[cfg(feature = "transaction-proofs")]
+use ironfish_zkp::{proofs::MintAsset, ProofGenerationKey};
 
 /// Parameters used to build a circuit that verifies an asset can be minted with
 /// a given key
+#[cfg(feature = "transaction-proofs")]
 pub struct MintBuilder {
     /// Asset to be minted
     pub asset: Asset,
@@ -43,6 +42,7 @@ pub struct MintBuilder {
     pub transfer_ownership_to: Option<PublicAddress>,
 }
 
+#[cfg(feature = "transaction-proofs")]
 impl MintBuilder {
     pub fn new(asset: Asset, value: u64) -> Self {
         Self {
@@ -61,7 +61,7 @@ impl MintBuilder {
         &self,
         proof_generation_key: &ProofGenerationKey,
         public_address: &PublicAddress,
-        public_key_randomness: &jubjub::Fr,
+        public_key_randomness: &ironfish_jubjub::Fr,
         randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<UnsignedMintDescription, IronfishError> {
         let circuit = MintAsset {
@@ -105,7 +105,7 @@ impl MintBuilder {
 pub struct UnsignedMintDescription {
     /// Used to add randomness to signature generation. Referred to as `ar` in
     /// the literature.
-    public_key_randomness: jubjub::Fr,
+    public_key_randomness: ironfish_jubjub::Fr,
 
     /// Proof and public parameters for a user action to issue supply for an
     /// asset.
@@ -185,7 +185,7 @@ impl UnsignedMintDescription {
 
 /// This description represents an action to increase the supply of an existing
 /// asset on Iron Fish
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MintDescription {
     /// Proof that the mint was valid for the provided creator and asset
     pub proof: groth16::Proof<Bls12>,
@@ -207,7 +207,7 @@ pub struct MintDescription {
     /// Signature of the creator authorizing the mint action. This value is
     /// calculated after the transaction is signed since the value is dependent
     /// on the binding signature key
-    pub authorizing_signature: redjubjub::Signature,
+    pub authorizing_signature: Signature,
 }
 
 impl MintDescription {
@@ -362,25 +362,25 @@ impl MintDescription {
 }
 
 #[cfg(test)]
+#[cfg(feature = "transaction-proofs")]
 mod test {
-    use ff::Field;
-    use ironfish_zkp::{constants::SPENDING_KEY_GENERATOR, redjubjub};
-    use rand::{random, thread_rng};
-
     use crate::{
         assets::asset::Asset,
         errors::IronfishErrorKind,
         transaction::{
             mints::{MintBuilder, MintDescription},
-            utils::verify_mint_proof,
+            verify::verify_mint_proof,
             TransactionVersion,
         },
         PublicAddress, SaplingKey,
     };
+    use ff::Field;
+    use ironfish_zkp::{constants::SPENDING_KEY_GENERATOR, redjubjub};
+    use rand::{random, thread_rng};
 
-    #[test]
     /// Test that we can create a builder with a valid asset and proof
     /// generation key
+    #[test]
     fn test_mint_builder() {
         let key = SaplingKey::generate_key();
         let creator = key.public_address();
@@ -391,7 +391,7 @@ mod test {
 
         let value = 5;
 
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
@@ -428,7 +428,10 @@ mod test {
             .is_err());
 
         let other_randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
-            .randomize(jubjub::Fr::random(thread_rng()), *SPENDING_KEY_GENERATOR);
+            .randomize(
+                ironfish_jubjub::Fr::random(thread_rng()),
+                *SPENDING_KEY_GENERATOR,
+            );
 
         assert!(verify_mint_proof(
             &description.proof,
@@ -451,7 +454,7 @@ mod test {
 
         let asset = Asset::new(creator, name, metadata).unwrap();
 
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
@@ -560,7 +563,7 @@ mod test {
         key: &SaplingKey,
         mint: &MintBuilder,
     ) -> MintDescription {
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
@@ -656,7 +659,7 @@ mod test {
 
         let value = 5;
 
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
@@ -686,13 +689,13 @@ mod test {
         let public_address = key.public_address();
 
         let asset = Asset::new(public_address, "name", "").expect("should be able to create asset");
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
         let value = random();
         let builder = MintBuilder::new(asset, value);
         // create a random private key and sign random message as placeholder
-        let private_key = redjubjub::PrivateKey(jubjub::Fr::random(thread_rng()));
+        let private_key = redjubjub::PrivateKey(ironfish_jubjub::Fr::random(thread_rng()));
         let public_key = redjubjub::PublicKey::from_private(&private_key, *SPENDING_KEY_GENERATOR);
         let msg = [0u8; 32];
         let signature = private_key.sign(&msg, &mut thread_rng(), *SPENDING_KEY_GENERATOR);

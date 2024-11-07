@@ -29,16 +29,7 @@ export interface BoxedMessage {
 }
 export declare function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recipientPublicKey: string): BoxedMessage
 export declare function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
-/**
- * # Safety
- * This is unsafe, it calls libc functions
- */
 export declare function initSignalHandler(): void
-/**
- * # Safety
- * This is unsafe, it intentionally crashes
- */
-export declare function triggerSegfault(): void
 export const ASSET_ID_LENGTH: number
 export const ASSET_METADATA_LENGTH: number
 export const ASSET_NAME_LENGTH: number

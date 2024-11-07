@@ -20,7 +20,7 @@ pub struct TrustedDealerKeyPackages {
     pub view_key: ViewKey,
     pub incoming_view_key: IncomingViewKey,
     pub outgoing_view_key: OutgoingViewKey,
-    pub proof_authorizing_key: jubjub::Fr,
+    pub proof_authorizing_key: ironfish_jubjub::Fr,
     pub key_packages: HashMap<Identity, KeyPackage>,
 }
 

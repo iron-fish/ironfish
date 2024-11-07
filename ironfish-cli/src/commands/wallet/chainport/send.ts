@@ -20,8 +20,8 @@ import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../../flags'
 import * as ui from '../../../ui'
 import {
   ChainportBridgeTransaction,
-  ChainportNetwork,
   ChainportToken,
+  ChainportTokenWithNetwork,
   fetchChainportBridgeTransaction,
   fetchChainportTokenPaths,
   fetchChainportTokens,
@@ -107,13 +107,13 @@ export class BridgeCommand extends IronfishCommand {
       }
     }
 
-    const { targetNetwork, from, to, amount, asset, assetData, expiration } =
+    const { targetToken, from, to, amount, asset, assetData, expiration } =
       await this.getAndValidateInputs(client, networkId)
 
     const rawTransaction = await this.constructBridgeTransaction(
       client,
       networkId,
-      targetNetwork,
+      targetToken,
       from,
       to,
       amount,
@@ -275,7 +275,7 @@ export class BridgeCommand extends IronfishCommand {
       assetData.verification.status = 'verified'
     }
 
-    const targetNetwork = await this.selectNetwork(networkId, asset)
+    const targetToken = await this.selectTokenWithNetwork(networkId, asset)
 
     let amount
     if (flags.amount) {
@@ -296,23 +296,22 @@ export class BridgeCommand extends IronfishCommand {
       amount = await promptCurrency({
         client: client,
         required: true,
-        text: 'Enter the amount in the major denomination',
+        text: 'Enter the amount',
         minimum: 1n,
         logger: this.logger,
-        assetId: assetId,
-        assetVerification: assetData.verification,
+        assetData,
         balance: {
           account: from,
         },
       })
     }
-    return { targetNetwork, from, to, amount, asset, assetData, expiration }
+    return { targetToken, from, to, amount, asset, assetData, expiration }
   }
 
   private async constructBridgeTransaction(
     client: RpcClient,
     networkId: number,
-    network: ChainportNetwork,
+    tokenWithNetwork: ChainportTokenWithNetwork,
     from: string,
     to: string,
     amount: bigint,
@@ -327,7 +326,7 @@ export class BridgeCommand extends IronfishCommand {
       networkId,
       amount,
       asset.web3_address,
-      network.chainport_network_id,
+      tokenWithNetwork.network.chainport_network_id,
       to,
     )
     ux.action.stop()
@@ -366,7 +365,15 @@ export class BridgeCommand extends IronfishCommand {
       rawTransaction = RawTransactionSerde.deserialize(bytes)
     }
 
-    this.displayTransactionSummary(txn, rawTransaction, from, to, assetData, network)
+    this.displayTransactionSummary(
+      txn,
+      rawTransaction,
+      from,
+      to,
+      asset,
+      assetData,
+      tokenWithNetwork,
+    )
 
     return rawTransaction
   }
@@ -376,14 +383,24 @@ export class BridgeCommand extends IronfishCommand {
     raw: RawTransaction,
     from: string,
     to: string,
-    assetData: RpcAsset,
-    network: ChainportNetwork,
+    sourceToken: ChainportToken,
+    sourceAsset: RpcAsset,
+    targetTokenWithNetwork: ChainportTokenWithNetwork,
   ) {
     const bridgeAmount = CurrencyUtils.render(
       BigInt(txn.bridge_output.amount) - BigInt(txn.bridge_fee.source_token_fee_amount ?? 0),
       true,
-      assetData.id,
-      assetData.verification,
+      'bridge amount id',
+      {
+        // Note we're using Chainport's token decimals here in case the verified asset decimals
+        // don't match. We enforce through the API that the verified asset decimals are the same
+        // as chainport's decimals, so it's unlikely this will happen.
+        decimals: sourceToken.decimals,
+        // The outputs are given in source tokens, so we use the source token's decimals, but display
+        // using the target token's symbol. There could be rounding involved if the decimals don't match
+        // on either end, hence why this is an estimate.
+        symbol: targetTokenWithNetwork.token.symbol,
+      },
     )
     const ironfishNetworkFee = CurrencyUtils.render(raw.fee, true)
 
@@ -407,8 +424,11 @@ export class BridgeCommand extends IronfishCommand {
       chainportFee = CurrencyUtils.render(
         BigInt(txn.bridge_fee.source_token_fee_amount ?? 0),
         true,
-        assetData.id,
-        assetData.verification,
+        'chainport fee id',
+        {
+          decimals: sourceToken.decimals,
+          symbol: sourceAsset.verification.symbol,
+        },
       )
     }
 
@@ -417,13 +437,13 @@ export class BridgeCommand extends IronfishCommand {
 
  From                           ${from}
  To                             ${to}
- Target Network                 ${network.label}
+ Target Network                 ${targetTokenWithNetwork.network.label}
  Estimated Amount Received      ${bridgeAmount}
 
  Fees:
  Chainport Fee                  ${chainportFee}
  Target Network Fee             ${targetNetworkFee}
- Ironfish Network Fee           ${ironfishNetworkFee}
+ Iron Fish Network Fee          ${ironfishNetworkFee}
 
  Outputs                        ${raw.outputs.length}
  Spends                         ${raw.spends.length}
@@ -432,10 +452,10 @@ export class BridgeCommand extends IronfishCommand {
     this.logger.log(summary)
   }
 
-  private async selectNetwork(
+  private async selectTokenWithNetwork(
     networkId: number,
     asset: ChainportToken,
-  ): Promise<ChainportNetwork> {
+  ): Promise<ChainportTokenWithNetwork> {
     ux.action.start('Fetching available networks')
     const networks = await fetchChainportTokenPaths(networkId, asset.id)
     ux.action.stop()
@@ -445,14 +465,14 @@ export class BridgeCommand extends IronfishCommand {
     }
 
     const result = await inquirer.prompt<{
-      selection: ChainportNetwork
+      selection: ChainportTokenWithNetwork
     }>([
       {
         name: 'selection',
         message: `Select the network you would like to bridge ${asset.symbol} to`,
         type: 'list',
         choices: networks.map((network) => ({
-          name: network.label,
+          name: network.network.label,
           value: network,
         })),
       },

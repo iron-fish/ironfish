@@ -1,15 +1,21 @@
-use bellperson::{
+use ff::PrimeField;
+use ironfish_bellperson::{
     gadgets::{blake2s, boolean},
     Circuit,
 };
-use ff::PrimeField;
-use zcash_primitives::sapling::ProofGenerationKey;
-use zcash_proofs::{
+use ironfish_proofs::{
     circuit::ecc,
     constants::{PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR},
 };
+use std::io::{Read, Write};
 
-use crate::constants::{proof::PUBLIC_KEY_GENERATOR, CRH_IVK_PERSONALIZATION};
+use crate::{
+    constants::{proof::PUBLIC_KEY_GENERATOR, CRH_IVK_PERSONALIZATION},
+    ProofGenerationKey,
+};
+use byteorder::{ReadBytesExt, WriteBytesExt};
+
+use super::util::FromBytes;
 
 pub struct MintAsset {
     /// Key required to construct proofs for a particular spending key
@@ -17,14 +23,47 @@ pub struct MintAsset {
 
     /// Used to add randomness to signature generation without leaking the
     /// key. Referred to as `ar` in the literature.
-    pub public_key_randomness: Option<jubjub::Fr>,
+    pub public_key_randomness: Option<ironfish_jubjub::Fr>,
+}
+
+impl MintAsset {
+    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
+        if let Some(ref proof_generation_key) = self.proof_generation_key {
+            writer.write_u8(1)?;
+            writer.write_all(proof_generation_key.to_bytes().as_ref())?;
+        } else {
+            writer.write_u8(0)?;
+        }
+        if let Some(ref public_key_randomness) = self.public_key_randomness {
+            writer.write_u8(1)?;
+            writer.write_all(public_key_randomness.to_bytes().as_ref())?;
+        } else {
+            writer.write_u8(0)?;
+        }
+        Ok(())
+    }
+
+    pub fn read<R: Read>(mut reader: R) -> std::io::Result<MintAsset> {
+        let mut proof_generation_key = None;
+        if reader.read_u8()? == 1 {
+            proof_generation_key = Some(ProofGenerationKey::read(&mut reader)?);
+        }
+        let mut public_key_randomness = None;
+        if reader.read_u8()? == 1 {
+            public_key_randomness = Some(ironfish_jubjub::Fr::read(&mut reader)?);
+        }
+        Ok(MintAsset {
+            proof_generation_key,
+            public_key_randomness,
+        })
+    }
 }
 
 impl Circuit<blstrs::Scalar> for MintAsset {
-    fn synthesize<CS: bellperson::ConstraintSystem<blstrs::Scalar>>(
+    fn synthesize<CS: ironfish_bellperson::ConstraintSystem<blstrs::Scalar>>(
         self,
         cs: &mut CS,
-    ) -> Result<(), bellperson::SynthesisError> {
+    ) -> Result<(), ironfish_bellperson::SynthesisError> {
         // Prover witnesses ak (ensures that it's on the curve)
         let ak = ecc::EdwardsPoint::witness(
             cs.namespace(|| "ak"),
@@ -100,7 +139,7 @@ impl Circuit<blstrs::Scalar> for MintAsset {
         )?;
 
         // drop_5 to ensure it's in the field
-        ivk.truncate(jubjub::Fr::CAPACITY as usize);
+        ivk.truncate(ironfish_jubjub::Fr::CAPACITY as usize);
 
         // Compute owner public address
         let owner_public_address = ecc::fixed_base_multiplication(
@@ -117,14 +156,13 @@ impl Circuit<blstrs::Scalar> for MintAsset {
 
 #[cfg(test)]
 mod test {
-    use bellperson::{gadgets::test::TestConstraintSystem, Circuit, ConstraintSystem};
     use ff::Field;
     use group::{Curve, Group};
-    use jubjub::ExtendedPoint;
+    use ironfish_bellperson::{gadgets::test::TestConstraintSystem, Circuit, ConstraintSystem};
+    use ironfish_jubjub::ExtendedPoint;
     use rand::{rngs::StdRng, SeedableRng};
-    use zcash_primitives::sapling::ProofGenerationKey;
 
-    use crate::constants::PUBLIC_KEY_GENERATOR;
+    use crate::{constants::PUBLIC_KEY_GENERATOR, ProofGenerationKey};
 
     use super::MintAsset;
 
@@ -135,15 +173,15 @@ mod test {
 
         let mut cs = TestConstraintSystem::new();
 
-        let proof_generation_key = ProofGenerationKey {
-            ak: jubjub::SubgroupPoint::random(&mut rng),
-            nsk: jubjub::Fr::random(&mut rng),
-        };
+        let proof_generation_key = ProofGenerationKey::new(
+            ironfish_jubjub::SubgroupPoint::random(&mut rng),
+            ironfish_jubjub::Fr::random(&mut rng),
+        );
         let incoming_view_key = proof_generation_key.to_viewing_key();
         let public_address = *PUBLIC_KEY_GENERATOR * incoming_view_key.ivk().0;
         let public_address_point = ExtendedPoint::from(public_address).to_affine();
 
-        let public_key_randomness = jubjub::Fr::random(&mut rng);
+        let public_key_randomness = ironfish_jubjub::Fr::random(&mut rng);
         let randomized_public_key =
             ExtendedPoint::from(incoming_view_key.rk(public_key_randomness)).to_affine();
 
@@ -179,5 +217,49 @@ mod test {
 
         // Sanity check
         assert!(cs.verify(&public_inputs));
+    }
+
+    #[test]
+    fn test_mint_asset_read_write() {
+        // Seed a fixed RNG for determinism in the test
+        let mut rng = StdRng::seed_from_u64(0);
+
+        // Create a MintAsset instance with random data
+        let proof_generation_key = ProofGenerationKey::new(
+            ironfish_jubjub::SubgroupPoint::random(&mut rng),
+            ironfish_jubjub::Fr::random(&mut rng),
+        );
+        let public_key_randomness = ironfish_jubjub::Fr::random(&mut rng);
+
+        let mint_asset = MintAsset {
+            proof_generation_key: Some(proof_generation_key.clone()),
+            public_key_randomness: Some(public_key_randomness),
+        };
+
+        let mut buffer = vec![];
+        mint_asset.write(&mut buffer).unwrap();
+
+        let deserialized_mint_asset = MintAsset::read(&buffer[..]).unwrap();
+
+        assert_eq!(
+            mint_asset.proof_generation_key.clone().unwrap().ak,
+            deserialized_mint_asset
+                .proof_generation_key
+                .clone()
+                .unwrap()
+                .ak
+        );
+        assert_eq!(
+            mint_asset.proof_generation_key.clone().unwrap().nsk,
+            deserialized_mint_asset
+                .proof_generation_key
+                .clone()
+                .unwrap()
+                .nsk
+        );
+        assert_eq!(
+            mint_asset.public_key_randomness.unwrap(),
+            deserialized_mint_asset.public_key_randomness.unwrap()
+        );
     }
 }

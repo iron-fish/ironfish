@@ -2,44 +2,52 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{BTreeMap, HashMap};
+use crate::{
+    errors::{IronfishError, IronfishErrorKind},
+    transaction::Transaction,
+};
 
-#[cfg(test)]
-use super::internal_batch_verify_transactions;
-use super::{ProposedTransaction, Transaction, TRANSACTION_PUBLIC_KEY_SIZE};
-use crate::frost_utils::account_keys::derive_account_keys;
-use crate::test_util::create_multisig_identities;
-use crate::transaction::tests::split_spender_key::split_spender_key;
+#[cfg(feature = "transaction-proofs")]
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
-    errors::{IronfishError, IronfishErrorKind},
-    frost_utils::split_spender_key,
+    frost_utils::{account_keys::derive_account_keys, split_spender_key::split_spender_key},
     keys::SaplingKey,
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,
     sapling_bls12::SAPLING,
-    test_util::make_fake_witness,
+    test_util::{create_multisig_identities, make_fake_witness},
     transaction::{
-        batch_verify_transactions, verify_transaction, TransactionVersion,
-        TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE, TRANSACTION_SIGNATURE_SIZE,
+        verify::batch_verify_transactions, verify::internal_batch_verify_transactions,
+        verify_transaction, ProposedTransaction, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
+        TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
     },
 };
+#[cfg(feature = "transaction-proofs")]
 use ff::Field;
+#[cfg(feature = "transaction-proofs")]
 use group::GroupEncoding;
-use ironfish_frost::dkg::{round1 as round1_dkg, round2 as round2_dkg, round3 as round3_dkg};
-use ironfish_frost::participant::Secret;
+#[cfg(feature = "transaction-proofs")]
 use ironfish_frost::{
+    dkg::{
+        round1::round1 as dkg_round1, round2::round2 as dkg_round2, round3::round3 as dkg_round3,
+    },
     frost::{round2, round2::SignatureShare, Identifier, Randomizer},
     nonces::deterministic_signing_nonces,
+    participant::Secret,
 };
+#[cfg(feature = "transaction-proofs")]
 use ironfish_zkp::{
     constants::{ASSET_ID_LENGTH, SPENDING_KEY_GENERATOR, TREE_DEPTH},
     proofs::{MintAsset, Output, Spend},
     redjubjub::{self, Signature},
 };
+#[cfg(feature = "transaction-proofs")]
 use rand::thread_rng;
+#[cfg(feature = "transaction-proofs")]
+use std::collections::{BTreeMap, HashMap};
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_transaction() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -163,6 +171,7 @@ fn test_transaction() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_transaction_simple() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -211,6 +220,7 @@ fn test_transaction_simple() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_proposed_transaction_build() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -266,6 +276,7 @@ fn test_proposed_transaction_build() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_miners_fee() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -294,6 +305,7 @@ fn test_miners_fee() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_transaction_signature() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -333,6 +345,7 @@ fn test_transaction_signature() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_transaction_created_with_version_1() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -406,6 +419,7 @@ fn test_transaction_version_is_checked() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_transaction_value_overflows() {
     let key = SaplingKey::generate_key();
 
@@ -438,11 +452,12 @@ fn test_transaction_value_overflows() {
 }
 
 #[test]
-fn test_batch_verify_wrong_params() {
+#[cfg(feature = "transaction-proofs")]
+fn test_batch_verify_wrong_spend_params() {
     let rng = &mut thread_rng();
 
     let wrong_spend_params =
-        bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
+        ironfish_bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
             Spend {
                 value_commitment: None,
                 proof_generation_key: None,
@@ -457,8 +472,71 @@ fn test_batch_verify_wrong_params() {
         )
         .unwrap();
 
+    let wrong_spend_vk =
+        ironfish_bellperson::groth16::prepare_verifying_key(&wrong_spend_params.vk);
+
+    //
+    // TRANSACTION GENERATION
+    //
+    let key = SaplingKey::generate_key();
+    let other_key = SaplingKey::generate_key();
+
+    // Native asset
+    let in_note = Note::new(
+        key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        key.public_address(),
+    );
+    let out_note = Note::new(
+        key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        key.public_address(),
+    );
+
+    let witness = make_fake_witness(&in_note);
+
+    // Custom asset
+    let asset = Asset::new(other_key.public_address(), "Othercoin", "").unwrap();
+
+    let mut proposed_transaction1 = ProposedTransaction::new(TransactionVersion::latest());
+
+    proposed_transaction1.add_spend(in_note, &witness).unwrap();
+    proposed_transaction1.add_output(out_note).unwrap();
+
+    let transaction1 = proposed_transaction1
+        .post(&key, None, 1)
+        .expect("should be able to post transaction");
+
+    let mut proposed_transaction2 = ProposedTransaction::new(TransactionVersion::latest());
+    proposed_transaction2.add_mint(asset, 5).unwrap();
+
+    let transaction2 = proposed_transaction2.post(&other_key, None, 0).unwrap();
+    //
+    // END TRANSACTION CREATION
+    //
+
+    batch_verify_transactions([&transaction1, &transaction2])
+        .expect("Should verify using Sapling params");
+    internal_batch_verify_transactions(
+        [&transaction1, &transaction2],
+        &wrong_spend_vk,
+        &SAPLING.output_verifying_key,
+        &SAPLING.mint_verifying_key,
+    )
+    .expect_err("Should not verify if spend verifying key is wrong");
+}
+
+#[test]
+#[cfg(feature = "transaction-proofs")]
+fn test_batch_verify_wrong_output_params() {
+    let rng = &mut thread_rng();
+
     let wrong_output_params =
-        bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
+        ironfish_bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
             Output {
                 value_commitment: None,
                 payment_address: None,
@@ -472,18 +550,80 @@ fn test_batch_verify_wrong_params() {
         )
         .unwrap();
 
-    let wrong_mint_params = bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
-        MintAsset {
-            proof_generation_key: None,
-            public_key_randomness: None,
-        },
-        rng,
-    )
-    .unwrap();
+    let wrong_output_vk =
+        ironfish_bellperson::groth16::prepare_verifying_key(&wrong_output_params.vk);
 
-    let wrong_spend_vk = bellperson::groth16::prepare_verifying_key(&wrong_spend_params.vk);
-    let wrong_output_vk = bellperson::groth16::prepare_verifying_key(&wrong_output_params.vk);
-    let wrong_mint_vk = bellperson::groth16::prepare_verifying_key(&wrong_mint_params.vk);
+    //
+    // TRANSACTION GENERATION
+    //
+    let key = SaplingKey::generate_key();
+    let other_key = SaplingKey::generate_key();
+
+    // Native asset
+    let in_note = Note::new(
+        key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        key.public_address(),
+    );
+    let out_note = Note::new(
+        key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        key.public_address(),
+    );
+
+    let witness = make_fake_witness(&in_note);
+
+    // Custom asset
+    let asset = Asset::new(other_key.public_address(), "Othercoin", "").unwrap();
+
+    let mut proposed_transaction1 = ProposedTransaction::new(TransactionVersion::latest());
+
+    proposed_transaction1.add_spend(in_note, &witness).unwrap();
+    proposed_transaction1.add_output(out_note).unwrap();
+
+    let transaction1 = proposed_transaction1
+        .post(&key, None, 1)
+        .expect("should be able to post transaction");
+
+    let mut proposed_transaction2 = ProposedTransaction::new(TransactionVersion::latest());
+    proposed_transaction2.add_mint(asset, 5).unwrap();
+
+    let transaction2 = proposed_transaction2.post(&other_key, None, 0).unwrap();
+    //
+    // END TRANSACTION CREATION
+    //
+
+    batch_verify_transactions([&transaction1, &transaction2])
+        .expect("Should verify using Sapling params");
+    internal_batch_verify_transactions(
+        [&transaction1, &transaction2],
+        &SAPLING.spend_verifying_key,
+        &wrong_output_vk,
+        &SAPLING.mint_verifying_key,
+    )
+    .expect_err("Should not verify if output verifying key is wrong");
+}
+
+#[test]
+#[cfg(feature = "transaction-proofs")]
+fn test_batch_verify_wrong_mint_params() {
+    let rng = &mut thread_rng();
+
+    let wrong_mint_params =
+        ironfish_bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
+            MintAsset {
+                proof_generation_key: None,
+                public_key_randomness: None,
+            },
+            rng,
+        )
+        .unwrap();
+
+    let wrong_mint_vk = ironfish_bellperson::groth16::prepare_verifying_key(&wrong_mint_params.vk);
 
     //
     // TRANSACTION GENERATION
@@ -554,20 +694,6 @@ fn test_batch_verify_wrong_params() {
         .expect("Should verify using Sapling params");
     internal_batch_verify_transactions(
         [&transaction1, &transaction2],
-        &wrong_spend_vk,
-        &SAPLING.output_verifying_key,
-        &SAPLING.mint_verifying_key,
-    )
-    .expect_err("Should not verify if spend verifying key is wrong");
-    internal_batch_verify_transactions(
-        [&transaction1, &transaction2],
-        &SAPLING.spend_verifying_key,
-        &wrong_output_vk,
-        &SAPLING.mint_verifying_key,
-    )
-    .expect_err("Should not verify if output verifying key is wrong");
-    internal_batch_verify_transactions(
-        [&transaction1, &transaction2],
         &SAPLING.spend_verifying_key,
         &SAPLING.output_verifying_key,
         &wrong_mint_vk,
@@ -576,11 +702,12 @@ fn test_batch_verify_wrong_params() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_batch_verify() {
     let key = SaplingKey::generate_key();
     let other_key = SaplingKey::generate_key();
 
-    let public_key_randomness = jubjub::Fr::random(thread_rng());
+    let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
     let other_randomized_public_key =
         redjubjub::PublicKey(other_key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
@@ -653,6 +780,7 @@ fn test_batch_verify() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_sign_simple() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -704,6 +832,60 @@ fn test_sign_simple() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
+fn test_sign_key_mismatch_failure() {
+    let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
+    let sender_key = SaplingKey::generate_key();
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        sender_key.public_address(),
+    );
+    let out_note = Note::new(
+        receiver_key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        spender_key.public_address(),
+    );
+    let witness = make_fake_witness(&in_note);
+
+    // create transaction, add spend and output
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
+    transaction
+        .add_spend(in_note, &witness)
+        .expect("should be able to add a spend");
+    transaction
+        .add_output(out_note)
+        .expect("should be able to add an output");
+
+    // build transaction, generate proofs
+    let unsigned_transaction = transaction
+        .build(
+            spender_key.proof_authorizing_key,
+            spender_key.view_key().clone(),
+            spender_key.outgoing_view_key().clone(),
+            1,
+            Some(spender_key.public_address()),
+        )
+        .expect("should be able to build unsigned transaction");
+
+    // sign with different, mismatched key
+    let signer_key = SaplingKey::generate_key();
+    let signed_transaction = unsigned_transaction
+        .sign(&signer_key)
+        .expect("should be able to sign transaction");
+
+    // verify transaction
+    verify_transaction(&signed_transaction).expect_err("should not be able to verify transaction");
+}
+
+#[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_aggregate_signature_shares() {
     let spender_key = SaplingKey::generate_key();
 
@@ -842,6 +1024,7 @@ fn test_aggregate_signature_shares() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_add_signature_by_building_transaction() {
     let spender_key = SaplingKey::generate_key();
 
@@ -918,6 +1101,7 @@ fn test_add_signature_by_building_transaction() {
 }
 
 #[test]
+#[cfg(feature = "transaction-proofs")]
 fn test_dkg_signing() {
     let secret1 = Secret::random(thread_rng());
     let secret2 = Secret::random(thread_rng());
@@ -927,7 +1111,7 @@ fn test_dkg_signing() {
     let identity3 = secret3.to_identity();
     let identities = &[identity1.clone(), identity2.clone(), identity3.clone()];
 
-    let (round1_secret_package_1, package1) = round1_dkg::round1(
+    let (round1_secret_package_1, package1) = dkg_round1(
         &identity1,
         2,
         [&identity1, &identity2, &identity3],
@@ -935,7 +1119,7 @@ fn test_dkg_signing() {
     )
     .expect("round 1 failed");
 
-    let (round1_secret_package_2, package2) = round1_dkg::round1(
+    let (round1_secret_package_2, package2) = dkg_round1(
         &identity2,
         2,
         [&identity1, &identity2, &identity3],
@@ -943,7 +1127,7 @@ fn test_dkg_signing() {
     )
     .expect("round 1 failed");
 
-    let (round1_secret_package_3, package3) = round1_dkg::round1(
+    let (round1_secret_package_3, package3) = dkg_round1(
         &identity3,
         2,
         [&identity1, &identity2, &identity3],
@@ -951,7 +1135,7 @@ fn test_dkg_signing() {
     )
     .expect("round 1 failed");
 
-    let (encrypted_secret_package_1, round2_public_packages_1) = round2_dkg::round2(
+    let (encrypted_secret_package_1, round2_public_packages_1) = dkg_round2(
         &secret1,
         &round1_secret_package_1,
         [&package1, &package2, &package3],
@@ -959,7 +1143,7 @@ fn test_dkg_signing() {
     )
     .expect("round 2 failed");
 
-    let (encrypted_secret_package_2, round2_public_packages_2) = round2_dkg::round2(
+    let (encrypted_secret_package_2, round2_public_packages_2) = dkg_round2(
         &secret2,
         &round1_secret_package_2,
         [&package1, &package2, &package3],
@@ -967,7 +1151,7 @@ fn test_dkg_signing() {
     )
     .expect("round 2 failed");
 
-    let (encrypted_secret_package_3, round2_public_packages_3) = round2_dkg::round2(
+    let (encrypted_secret_package_3, round2_public_packages_3) = dkg_round2(
         &secret3,
         &round1_secret_package_3,
         [&package1, &package2, &package3],
@@ -975,7 +1159,7 @@ fn test_dkg_signing() {
     )
     .expect("round 2 failed");
 
-    let (key_package_1, public_key_package, group_secret_key) = round3_dkg::round3(
+    let (key_package_1, public_key_package, group_secret_key) = dkg_round3(
         &secret1,
         &encrypted_secret_package_1,
         [&package1, &package2, &package3],
@@ -983,7 +1167,7 @@ fn test_dkg_signing() {
     )
     .expect("round 3 failed");
 
-    let (key_package_2, _, _) = round3_dkg::round3(
+    let (key_package_2, _, _) = dkg_round3(
         &secret2,
         &encrypted_secret_package_2,
         [&package1, &package2, &package3],
@@ -991,7 +1175,7 @@ fn test_dkg_signing() {
     )
     .expect("round 3 failed");
 
-    let (key_package_3, _, _) = round3_dkg::round3(
+    let (key_package_3, _, _) = dkg_round3(
         &secret3,
         &encrypted_secret_package_3,
         [&package1, &package2, &package3],

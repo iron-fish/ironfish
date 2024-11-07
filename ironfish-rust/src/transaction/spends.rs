@@ -5,37 +5,41 @@
 use crate::{
     errors::{IronfishError, IronfishErrorKind},
     keys::SaplingKey,
-    merkle_note::{position as witness_position, sapling_auth_path},
-    note::Note,
-    sapling_bls12::SAPLING,
     serializing::{read_point, read_scalar},
-    witness::WitnessTrait,
-    ViewKey,
+    transaction::TRANSACTION_PUBLIC_KEY_SIZE,
 };
-
-use bellperson::gadgets::multipack;
-use bellperson::groth16;
 use blstrs::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
+use ironfish_bellperson::{gadgets::multipack, groth16};
+use ironfish_jubjub::{ExtendedPoint, Fr};
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
-    primitives::ValueCommitment,
-    proofs::Spend,
     redjubjub::{self, Signature},
-    Nullifier, ProofGenerationKey,
+    Nullifier,
 };
-use jubjub::ExtendedPoint;
 use rand::thread_rng;
 use std::io;
 
-use super::{utils::verify_spend_proof, TRANSACTION_PUBLIC_KEY_SIZE};
+#[cfg(feature = "transaction-proofs")]
+use crate::transaction::verify::verify_spend_proof;
+#[cfg(feature = "transaction-proofs")]
+use crate::{
+    merkle_note::{position as witness_position, sapling_auth_path},
+    note::Note,
+    sapling_bls12::SAPLING,
+    witness::WitnessTrait,
+    ViewKey,
+};
+#[cfg(feature = "transaction-proofs")]
+use ironfish_zkp::{primitives::ValueCommitment, proofs::Spend, ProofGenerationKey};
 
 /// Parameters used when constructing proof that the spender owns a note with
 /// a given value.
 ///
 /// Contains all the working values needed to construct the proof.
+#[cfg(feature = "transaction-proofs")]
 pub struct SpendBuilder {
     pub(crate) note: Note,
 
@@ -56,6 +60,7 @@ pub struct SpendBuilder {
     pub(crate) auth_path: Vec<Option<(Scalar, bool)>>,
 }
 
+#[cfg(feature = "transaction-proofs")]
 impl SpendBuilder {
     /// Create a new [`SpendBuilder`] attempting to spend a note at a given
     /// location in the merkle tree.
@@ -93,7 +98,7 @@ impl SpendBuilder {
         &self,
         proof_generation_key: &ProofGenerationKey,
         view_key: &ViewKey,
-        public_key_randomness: &jubjub::Fr,
+        public_key_randomness: &Fr,
         randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<UnsignedSpendDescription, IronfishError> {
         let value_commitment_point = self.value_commitment_point();
@@ -149,7 +154,7 @@ impl SpendBuilder {
 pub struct UnsignedSpendDescription {
     /// Used to add randomness to signature generation without leaking the
     /// key. Referred to as `ar` in the literature.
-    public_key_randomness: jubjub::Fr,
+    public_key_randomness: Fr,
 
     /// Proof and public parameters for a user action to spend tokens.
     pub(crate) description: SpendDescription,
@@ -220,7 +225,7 @@ impl UnsignedSpendDescription {
 /// The publicly visible value of a spent note. These get serialized to prove
 /// that the owner once had access to these values. It also publishes the
 /// nullifier so that they can't pretend they still have access to them.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SpendDescription {
     /// Proof that the spend was valid and successful for the provided owner
     /// and note.
@@ -249,7 +254,7 @@ pub struct SpendDescription {
     /// key that incorporates calculations from all the spends and outputs
     /// in that transaction. It's optional because it is calculated after
     /// construction.
-    pub(crate) authorizing_signature: redjubjub::Signature,
+    pub(crate) authorizing_signature: Signature,
 }
 
 impl SpendDescription {
@@ -405,18 +410,21 @@ fn serialize_signature_fields<W: io::Write>(
 }
 
 #[cfg(test)]
+#[cfg(feature = "transaction-proofs")]
 mod test {
-
     use super::{SpendBuilder, SpendDescription};
-    use crate::assets::asset_identifier::NATIVE_ASSET;
-    use crate::transaction::utils::verify_spend_proof;
-    use crate::{keys::SaplingKey, note::Note, test_util::make_fake_witness};
+    use crate::{
+        assets::asset_identifier::NATIVE_ASSET, keys::SaplingKey, note::Note,
+        test_util::make_fake_witness, transaction::verify::verify_spend_proof,
+    };
     use ff::Field;
     use group::Curve;
-    use ironfish_zkp::constants::SPENDING_KEY_GENERATOR;
-    use ironfish_zkp::redjubjub::{self, PrivateKey, PublicKey};
-    use rand::prelude::*;
-    use rand::{thread_rng, Rng};
+    use ironfish_jubjub::Fr;
+    use ironfish_zkp::{
+        constants::SPENDING_KEY_GENERATOR,
+        redjubjub::{PrivateKey, PublicKey},
+    };
+    use rand::{random, thread_rng, Rng};
 
     #[test]
     fn test_spend_builder() {
@@ -424,14 +432,13 @@ mod test {
         let public_address = key.public_address();
         let sender_key = SaplingKey::generate_key();
 
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
-        let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
+        let public_key_randomness = Fr::random(thread_rng());
+        let randomized_public_key = PublicKey(key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
-        let other_public_key_randomness = jubjub::Fr::random(thread_rng());
-        let other_randomized_public_key =
-            redjubjub::PublicKey(sender_key.view_key.authorizing_key.into())
-                .randomize(other_public_key_randomness, *SPENDING_KEY_GENERATOR);
+        let other_public_key_randomness = Fr::random(thread_rng());
+        let other_randomized_public_key = PublicKey(sender_key.view_key.authorizing_key.into())
+            .randomize(other_public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         let note_randomness = random();
 
@@ -525,8 +532,8 @@ mod test {
 
         let spend = SpendBuilder::new(note, &witness);
 
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
-        let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
+        let public_key_randomness = Fr::random(thread_rng());
+        let randomized_public_key = PublicKey(key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         // signature comes from transaction, normally
@@ -601,13 +608,13 @@ mod test {
             sender_key.public_address(),
         );
         let witness = make_fake_witness(&note);
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
-        let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
+        let public_key_randomness = Fr::random(thread_rng());
+        let randomized_public_key = PublicKey(key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         let builder = SpendBuilder::new(note, &witness);
         // create a random private key and sign random message as placeholder
-        let private_key = PrivateKey(jubjub::Fr::random(thread_rng()));
+        let private_key = PrivateKey(Fr::random(thread_rng()));
         let public_key = PublicKey::from_private(&private_key, *SPENDING_KEY_GENERATOR);
         let msg = [0u8; 32];
         let signature = private_key.sign(&msg, &mut thread_rng(), *SPENDING_KEY_GENERATOR);

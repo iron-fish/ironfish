@@ -1,12 +1,12 @@
-use jubjub::SubgroupPoint;
-use lazy_static::lazy_static;
-pub use zcash_primitives::constants::{
+use ironfish_jubjub::SubgroupPoint;
+pub use ironfish_primitives::constants::{
     CRH_IVK_PERSONALIZATION, GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
     NULLIFIER_POSITION_GENERATOR, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
     VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR,
 };
+use lazy_static::lazy_static;
 
-pub use zcash_proofs::circuit::sapling::TREE_DEPTH;
+pub use ironfish_proofs::circuit::sapling::TREE_DEPTH;
 
 /// Length in bytes of the asset identifier
 pub const ASSET_ID_LENGTH: usize = 32;
@@ -57,8 +57,8 @@ lazy_static! {
 }
 
 pub mod proof {
+    use ironfish_proofs::constants::{generate_circuit_generator, FixedGeneratorOwned};
     use lazy_static::lazy_static;
-    use zcash_proofs::constants::{generate_circuit_generator, FixedGeneratorOwned};
 
     lazy_static! {
         pub static ref PUBLIC_KEY_GENERATOR: FixedGeneratorOwned =

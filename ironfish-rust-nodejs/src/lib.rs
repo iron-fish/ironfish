@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![warn(clippy::dbg_macro)]
+#![warn(clippy::print_stderr)]
+#![warn(clippy::print_stdout)]
+#![warn(unreachable_pub)]
+#![warn(unused_crate_dependencies)]
+#![warn(unused_macro_rules)]
+#![warn(unused_qualifications)]
+
 use std::fmt::Display;
 use std::num::NonZeroUsize;
 
@@ -31,7 +39,7 @@ pub mod xchacha20poly1305;
 #[cfg(feature = "stats")]
 pub mod stats;
 
-fn to_napi_err(err: impl Display) -> napi::Error {
+fn to_napi_err(err: impl Display) -> Error {
     Error::from_reason(err.to_string())
 }
 
@@ -268,7 +276,7 @@ pub fn randomize_pk(
     let view_key = ViewKey::from_hex(&view_key_string).map_err(to_napi_err)?;
 
     let public_key_randomness =
-        jubjub::Fr::from_hex(&public_key_randomness_string).map_err(to_napi_err)?;
+        ironfish_jubjub::Fr::from_hex(&public_key_randomness_string).map_err(to_napi_err)?;
 
     let public_key =
         generate_randomized_public_key(view_key, public_key_randomness).map_err(to_napi_err)?;

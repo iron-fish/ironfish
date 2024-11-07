@@ -21,7 +21,7 @@ use crate::{
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
 use group::GroupEncoding;
-use jubjub::SubgroupPoint;
+use ironfish_jubjub::SubgroupPoint;
 
 use std::io;
 
@@ -32,7 +32,7 @@ const DIFFIE_HELLMAN_PERSONALIZATION: &[u8; 16] = b"Iron Fish shared";
 /// Referred to as `ivk` in the literature.
 #[derive(Clone)]
 pub struct IncomingViewKey {
-    pub(crate) view_key: jubjub::Fr,
+    pub(crate) view_key: ironfish_jubjub::Fr,
 }
 
 impl IncomingViewKey {
@@ -110,11 +110,11 @@ pub struct ViewKey {
     /// Part of the full viewing key. Generally referred to as
     /// `ak` in the literature. Derived from spend_authorizing_key using scalar
     /// multiplication in Sapling. Used to construct incoming viewing key.
-    pub authorizing_key: jubjub::SubgroupPoint,
+    pub authorizing_key: SubgroupPoint,
     /// Part of the full viewing key. Generally referred to as
     /// `nk` in the literature. Derived from proof_authorizing_key using scalar
     /// multiplication. Used to construct incoming viewing key.
-    pub nullifier_deriving_key: jubjub::SubgroupPoint,
+    pub nullifier_deriving_key: SubgroupPoint,
 }
 
 impl ViewKey {
@@ -241,7 +241,7 @@ impl OutgoingViewKey {
 /// The resulting key can be used in any symmetric cipher
 #[must_use]
 pub(crate) fn shared_secret(
-    secret_key: &jubjub::Fr,
+    secret_key: &ironfish_jubjub::Fr,
     other_public_key: &SubgroupPoint,
     reference_public_key: &SubgroupPoint,
 ) -> [u8; 32] {

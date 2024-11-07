@@ -4,28 +4,29 @@
 
 use crate::{
     errors::{IronfishError, IronfishErrorKind},
-    keys::EphemeralKeyPair,
     merkle_note::MerkleNote,
-    note::Note,
-    sapling_bls12::SAPLING,
-    OutgoingViewKey,
 };
-
-use bellperson::groth16;
 use blstrs::{Bls12, Scalar};
 use ff::Field;
 use group::Curve;
-use ironfish_zkp::{primitives::ValueCommitment, proofs::Output, redjubjub, ProofGenerationKey};
-use jubjub::ExtendedPoint;
-use rand::thread_rng;
-
+use ironfish_bellperson::groth16;
+use ironfish_jubjub::ExtendedPoint;
+use ironfish_zkp::redjubjub;
 use std::io;
 
-use super::utils::verify_output_proof;
+#[cfg(feature = "transaction-proofs")]
+use super::verify::verify_output_proof;
+#[cfg(feature = "transaction-proofs")]
+use crate::{keys::EphemeralKeyPair, note::Note, sapling_bls12::SAPLING, OutgoingViewKey};
+#[cfg(feature = "transaction-proofs")]
+use ironfish_zkp::{primitives::ValueCommitment, proofs::Output, ProofGenerationKey};
+#[cfg(feature = "transaction-proofs")]
+use rand::thread_rng;
 
 /// Parameters used when constructing proof that a new note exists. The owner
 /// of this note is the recipient of funds in a transaction. The note is signed
 /// with the owners public key so only they can read it.
+#[cfg(feature = "transaction-proofs")]
 pub struct OutputBuilder {
     pub(crate) note: Note,
 
@@ -42,6 +43,7 @@ pub struct OutputBuilder {
 
 pub const PROOF_SIZE: u32 = 192;
 
+#[cfg(feature = "transaction-proofs")]
 impl OutputBuilder {
     /// Create a new [`OutputBuilder`] attempting to create a note.
     pub(crate) fn new(note: Note) -> Self {
@@ -83,7 +85,7 @@ impl OutputBuilder {
         &self,
         proof_generation_key: &ProofGenerationKey,
         outgoing_view_key: &OutgoingViewKey,
-        public_key_randomness: &jubjub::Fr,
+        public_key_randomness: &ironfish_jubjub::Fr,
         randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<OutputDescription, IronfishError> {
         let diffie_hellman_keys = EphemeralKeyPair::new();
@@ -129,7 +131,7 @@ impl OutputBuilder {
 ///
 /// This is the variation of an Output that gets serialized to bytes and can
 /// be loaded from bytes.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct OutputDescription {
     /// Proof that the output circuit was valid and successful
     pub(crate) proof: groth16::Proof<Bls12>,
@@ -223,17 +225,18 @@ impl OutputDescription {
 }
 
 #[cfg(test)]
+#[cfg(feature = "transaction-proofs")]
 mod test {
     use super::{OutputBuilder, OutputDescription};
     use crate::{
         assets::asset_identifier::NATIVE_ASSET, keys::SaplingKey,
         merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note,
-        transaction::utils::verify_output_proof,
+        transaction::verify::verify_output_proof,
     };
     use ff::{Field, PrimeField};
     use group::Curve;
+    use ironfish_jubjub::ExtendedPoint;
     use ironfish_zkp::{constants::SPENDING_KEY_GENERATOR, redjubjub};
-    use jubjub::ExtendedPoint;
     use rand::thread_rng;
 
     #[test]
@@ -241,7 +244,7 @@ mod test {
     /// set will use the hard-coded note encryption keys
     fn test_output_miners_fee() {
         let spender_key = SaplingKey::generate_key();
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let randomized_public_key =
             redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
                 .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
@@ -276,7 +279,7 @@ mod test {
     fn test_output_not_miners_fee() {
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let randomized_public_key =
             redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
                 .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
@@ -310,12 +313,12 @@ mod test {
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
 
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let randomized_public_key =
             redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
                 .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
-        let other_public_key_randomness = jubjub::Fr::random(thread_rng());
+        let other_public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let other_randomized_public_key =
             redjubjub::PublicKey(receiver_key.view_key.authorizing_key.into())
                 .randomize(other_public_key_randomness, *SPENDING_KEY_GENERATOR);
@@ -385,7 +388,7 @@ mod test {
     fn test_output_round_trip() {
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let public_key_randomness = ironfish_jubjub::Fr::random(thread_rng());
         let randomized_public_key =
             redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
                 .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);

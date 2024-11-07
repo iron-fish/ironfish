@@ -11,7 +11,7 @@ import { IRpcAdapter } from '../adapter'
 import { RpcHttpAdapter } from '../httpAdapter'
 import { createAdapterTest } from './adapterTest'
 
-describe('TlsAdapter', () => {
+describe('HttpAdapter', () => {
   let mitm: ReturnType<typeof Mitm>
   let client: RpcHttpClient
   let adapter: RpcHttpAdapter

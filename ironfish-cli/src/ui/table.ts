@@ -30,6 +30,7 @@ export interface TableOptions {
   output?: string
   printLine?(this: void, s: unknown): unknown
   sort?: string
+  limit?: number
 }
 
 export const TableFlags = {
@@ -50,6 +51,10 @@ export const TableFlags = {
   }),
   sort: Flags.string({
     description: "property to sort by (prepend '-' for descending)",
+  }),
+  limit: Flags.integer({
+    description: 'the number of rows to display, 0 will show all rows',
+    default: 50,
   }),
 }
 
@@ -82,6 +87,7 @@ class Table<T extends Record<string, unknown>> {
       output: options.csv ? 'csv' : options.output,
       printLine: options.printLine ?? ux.stdout.bind(ux),
       sort: options.sort,
+      limit: options.limit ?? 50,
     }
   }
 
@@ -146,7 +152,9 @@ class Table<T extends Record<string, unknown>> {
       }
       columnHeaders.push(sanitizeCsvValue(column.header))
     }
-    this.options.printLine(columnHeaders.join(','))
+    if (!this.options['no-header']) {
+      this.options.printLine(columnHeaders.join(','))
+    }
 
     for (const row of rows) {
       const rowValues = []
@@ -166,7 +174,6 @@ class Table<T extends Record<string, unknown>> {
     for (const column of this.columns) {
       column.width = maxColumnLength(column, rows)
     }
-
     if (!this.options['no-header']) {
       // Print headers
       const columnHeaders = []
@@ -197,7 +204,8 @@ class Table<T extends Record<string, unknown>> {
     }
 
     // Print rows
-    for (const row of rows) {
+    const slicedRows = this.options.limit ? rows.slice(0, this.options.limit) : rows
+    for (const row of slicedRows) {
       const rowValues = []
       for (const [key, value] of Object.entries(row)) {
         const column = this.columns.find((c) => c.key === key)
@@ -207,6 +215,9 @@ class Table<T extends Record<string, unknown>> {
         rowValues.push(`${value}${' '.repeat(spacerLength)}`)
       }
       this.options.printLine(` ${rowValues.join(' ')}`)
+    }
+    if (this.options.limit && this.options.limit <= 0 && rows.length >= this.options.limit) {
+      this.options.printLine(`...\n[see more rows by using --limit flag]`)
     }
   }
 }

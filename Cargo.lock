@@ -135,33 +135,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf9ff0bbfd639f15c74af777d81383cf53efb7c93613f6cab67c6c11e05bbf8b"
 
 [[package]]
-name = "bellperson"
-version = "0.24.1"
-source = "git+https://github.com/iron-fish/bellperson.git?branch=blstrs#37b9976bcd96986cbdc71ae09fc455015e3dfac0"
-dependencies = [
- "bincode",
- "blake2s_simd",
- "blstrs",
- "byteorder",
- "crossbeam-channel",
- "digest 0.10.6",
- "ec-gpu",
- "ec-gpu-gen",
- "ff 0.12.1",
- "group 0.12.1",
- "log",
- "memmap2",
- "pairing",
- "rand",
- "rand_core",
- "rayon",
- "rustversion",
- "serde",
- "sha2 0.10.6",
- "thiserror",
-]
-
-[[package]]
 name = "benchmarks"
 version = "0.1.0"
 dependencies = [
@@ -180,14 +153,14 @@ dependencies = [
 
 [[package]]
 name = "bip0039"
-version = "0.9.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0830ae4cc96b0617cc912970c2b17e89456fecbf55e8eed53a956f37ab50c41"
+checksum = "e68a5a99c65851e7be249f5cf510c0a136f18c9bca32139576d59bd3f577b043"
 dependencies = [
- "hmac 0.11.0",
- "pbkdf2 0.9.0",
+ "hmac",
+ "pbkdf2",
  "rand",
- "sha2 0.9.9",
+ "sha2 0.10.6",
  "unicode-normalization",
  "zeroize",
 ]
@@ -680,16 +653,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "crypto-mac"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1d1a86f49236c215f271d40892d5fc950490551400b02ef360692c29815c714"
-dependencies = [
- "generic-array",
- "subtle",
-]
-
-[[package]]
 name = "crypto_box"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -903,7 +866,8 @@ dependencies = [
 [[package]]
 name = "equihash"
 version = "0.2.0"
-source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d551820030cb596eafe82226667f32b47164f91b"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab579d7cf78477773b03e80bc2f89702ef02d7112c711d54ca93dcdce68533d5"
 dependencies = [
  "blake2b_simd",
  "byteorder",
@@ -976,7 +940,8 @@ checksum = "8ba569491c70ec8471e34aa7e9c0b9e82bb5d2464c0398442d17d3c4af814e5a"
 [[package]]
 name = "f4jumble"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d551820030cb596eafe82226667f32b47164f91b"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a83e8d7fd0c526af4aad893b7c9fe41e2699ed8a776a6c74aecdeafe05afc75"
 dependencies = [
  "blake2b_simd",
 ]
@@ -1343,17 +1308,7 @@ version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b5f8eb2ad728638ea2c7d47a21db23b7b58a72ed6a38256b8a1849f15fbbdf7"
 dependencies = [
- "hmac 0.12.1",
-]
-
-[[package]]
-name = "hmac"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a2a2320eb7ec0ebe8da8f744d7812d9fc4cb4d09344ac01898dbcb6a20ae69b"
-dependencies = [
- "crypto-mac",
- "digest 0.9.0",
+ "hmac",
 ]
 
 [[package]]
@@ -1495,7 +1450,6 @@ name = "ironfish"
 version = "0.3.0"
 dependencies = [
  "argon2",
- "bellperson",
  "blake2b_simd",
  "blake2s_simd",
  "blake3",
@@ -1509,11 +1463,11 @@ dependencies = [
  "hex",
  "hex-literal",
  "hkdf",
+ "ironfish-bellperson",
  "ironfish-frost",
+ "ironfish-jubjub",
  "ironfish_zkp",
- "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
  "lazy_static",
- "libc",
  "rand",
  "reqwest",
  "sha2 0.10.6",
@@ -1522,19 +1476,138 @@ dependencies = [
 ]
 
 [[package]]
+name = "ironfish-bellperson"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f2e19b8d7c61fdbdfde5ba86cec85b9facf60b2b5ef9968618c353f8f7f6815"
+dependencies = [
+ "bincode",
+ "blake2s_simd",
+ "blstrs",
+ "byteorder",
+ "crossbeam-channel",
+ "digest 0.10.6",
+ "ec-gpu",
+ "ec-gpu-gen",
+ "ff 0.12.1",
+ "group 0.12.1",
+ "log",
+ "memmap2",
+ "pairing",
+ "rand",
+ "rand_core",
+ "rayon",
+ "rustversion",
+ "serde",
+ "sha2 0.10.6",
+ "thiserror",
+]
+
+[[package]]
 name = "ironfish-frost"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#d4681df8a5a613fd9e716212aae3be8602acd227"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bee779ebf008aa92e1bb90993a47ab730065a8d39f5fa6630cde1ddfcf56a46"
 dependencies = [
  "blake3",
  "chacha20 0.9.1",
  "chacha20poly1305 0.10.1",
  "ed25519-dalek",
+ "ironfish-reddsa",
  "rand_chacha",
  "rand_core",
- "reddsa 0.5.1",
  "siphasher",
  "x25519-dalek",
+]
+
+[[package]]
+name = "ironfish-jubjub"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81ee437e98296799ebdff1f62c14c63bbfb65df3e4e19c3913e7c46b9827b148"
+dependencies = [
+ "bitvec",
+ "blst",
+ "blstrs",
+ "ff 0.12.1",
+ "group 0.12.1",
+ "lazy_static",
+ "rand_core",
+ "subtle",
+]
+
+[[package]]
+name = "ironfish-primitives"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7b213445520fb92462bd4a79274ad9b31c1ce49248f6eaa7ca3a50e8fe413d3"
+dependencies = [
+ "aes",
+ "bip0039",
+ "bitvec",
+ "blake2b_simd",
+ "blake2s_simd",
+ "blstrs",
+ "byteorder",
+ "chacha20poly1305 0.9.1",
+ "equihash",
+ "ff 0.12.1",
+ "fpe",
+ "group 0.12.1",
+ "hex",
+ "incrementalmerkletree",
+ "ironfish-jubjub",
+ "lazy_static",
+ "memuse",
+ "nonempty",
+ "orchard",
+ "rand",
+ "rand_core",
+ "sha2 0.9.9",
+ "subtle",
+ "zcash_address",
+ "zcash_encoding",
+ "zcash_note_encryption",
+]
+
+[[package]]
+name = "ironfish-proofs"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ea51eb3565333b8c67483a16499452215326df95f92160bd567f16c35f82e29"
+dependencies = [
+ "blake2b_simd",
+ "blstrs",
+ "byteorder",
+ "directories",
+ "ff 0.12.1",
+ "group 0.12.1",
+ "ironfish-bellperson",
+ "ironfish-jubjub",
+ "ironfish-primitives",
+ "lazy_static",
+ "rand_core",
+ "redjubjub",
+ "tracing",
+]
+
+[[package]]
+name = "ironfish-reddsa"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb4aecfd3334f0128215ce47f57360d91d68ff9d6fd890e1faca3c79b2bfa28d"
+dependencies = [
+ "blake2b_simd",
+ "byteorder",
+ "frost-rerandomized",
+ "group 0.13.0",
+ "hex",
+ "jubjub 0.10.0",
+ "pasta_curves 0.5.0",
+ "rand_core",
+ "serde",
+ "thiserror",
+ "zeroize",
 ]
 
 [[package]]
@@ -1545,7 +1618,8 @@ dependencies = [
  "fish_hash",
  "ironfish",
  "ironfish-frost",
- "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
+ "ironfish-jubjub",
+ "libc",
  "napi",
  "napi-build",
  "napi-derive",
@@ -1558,17 +1632,17 @@ dependencies = [
 name = "ironfish_zkp"
 version = "0.2.0"
 dependencies = [
- "bellperson",
  "blake2s_simd",
  "blstrs",
  "byteorder",
  "ff 0.12.1",
  "group 0.12.1",
- "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
+ "ironfish-bellperson",
+ "ironfish-jubjub",
+ "ironfish-primitives",
+ "ironfish-proofs",
  "lazy_static",
  "rand",
- "zcash_primitives",
- "zcash_proofs",
 ]
 
 [[package]]
@@ -1614,21 +1688,6 @@ dependencies = [
  "bls12_381 0.7.1",
  "ff 0.12.1",
  "group 0.12.1",
- "rand_core",
- "subtle",
-]
-
-[[package]]
-name = "jubjub"
-version = "0.9.0"
-source = "git+https://github.com/iron-fish/jubjub.git?branch=blstrs#531157cfa7b81ade207e819ef50c563843b10e30"
-dependencies = [
- "bitvec",
- "blst",
- "blstrs",
- "ff 0.12.1",
- "group 0.12.1",
- "lazy_static",
  "rand_core",
  "subtle",
 ]
@@ -1960,11 +2019,11 @@ dependencies = [
  "nonempty",
  "pasta_curves 0.4.1",
  "rand",
- "reddsa 0.3.0",
+ "reddsa",
  "serde",
  "subtle",
  "tracing",
- "zcash_note_encryption 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zcash_note_encryption",
 ]
 
 [[package]]
@@ -1984,9 +2043,9 @@ dependencies = [
 
 [[package]]
 name = "password-hash"
-version = "0.3.2"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d791538a6dcc1e7cb7fe6f6b58aca40e7f79403c45b2bc274008b5e647af1d8"
+checksum = "7676374caaee8a325c9e7a2ae557f216c5563a171d6997b0ef8a65af35147700"
 dependencies = [
  "base64ct",
  "rand_core",
@@ -2034,21 +2093,12 @@ dependencies = [
 
 [[package]]
 name = "pbkdf2"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f05894bce6a1ba4be299d0c5f29563e08af2bc18bb7d48313113bed71e904739"
-dependencies = [
- "crypto-mac",
- "password-hash 0.3.2",
-]
-
-[[package]]
-name = "pbkdf2"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "83a0692ec44e4cf1ef28ca317f14f8f07da2d95ec3fa01f86e4467b725e60917"
 dependencies = [
  "digest 0.10.6",
+ "password-hash 0.4.2",
 ]
 
 [[package]]
@@ -2252,26 +2302,8 @@ dependencies = [
  "blake2b_simd",
  "byteorder",
  "group 0.12.1",
- "jubjub 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "jubjub 0.9.0",
  "pasta_curves 0.4.1",
- "rand_core",
- "serde",
- "thiserror",
- "zeroize",
-]
-
-[[package]]
-name = "reddsa"
-version = "0.5.1"
-source = "git+https://github.com/ZcashFoundation/reddsa.git?rev=ed49e9ca0699a6450f6d4a9fe62ff168f5ea1ead#ed49e9ca0699a6450f6d4a9fe62ff168f5ea1ead"
-dependencies = [
- "blake2b_simd",
- "byteorder",
- "frost-rerandomized",
- "group 0.13.0",
- "hex",
- "jubjub 0.10.0",
- "pasta_curves 0.5.0",
  "rand_core",
  "serde",
  "thiserror",
@@ -2287,7 +2319,7 @@ dependencies = [
  "blake2b_simd",
  "byteorder",
  "digest 0.9.0",
- "jubjub 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "jubjub 0.9.0",
  "rand_core",
  "serde",
  "thiserror",
@@ -2758,9 +2790,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62cc94d358b5a1e84a5cb9109f559aa3c4d634d2b1b4de3d0fa4adc7c78e2861"
 dependencies = [
  "anyhow",
- "hmac 0.12.1",
+ "hmac",
  "once_cell",
- "pbkdf2 0.11.0",
+ "pbkdf2",
  "rand",
  "rustc-hash",
  "sha2 0.10.6",
@@ -3307,7 +3339,8 @@ dependencies = [
 [[package]]
 name = "zcash_address"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d551820030cb596eafe82226667f32b47164f91b"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1322a31b757f0087f110cc4a85dc5c6ccf83d0533bac04c4d3d1ce9112cc602"
 dependencies = [
  "bech32",
  "bs58",
@@ -3318,7 +3351,8 @@ dependencies = [
 [[package]]
 name = "zcash_encoding"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d551820030cb596eafe82226667f32b47164f91b"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fb61ea88eb539bc0ac2068e5da99411dd4978595b3d7ff6a4b1562ddc8e8710"
 dependencies = [
  "byteorder",
  "nonempty",
@@ -3334,70 +3368,6 @@ dependencies = [
  "chacha20poly1305 0.9.1",
  "rand_core",
  "subtle",
-]
-
-[[package]]
-name = "zcash_note_encryption"
-version = "0.1.0"
-source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d551820030cb596eafe82226667f32b47164f91b"
-dependencies = [
- "chacha20 0.8.2",
- "chacha20poly1305 0.9.1",
- "rand_core",
- "subtle",
-]
-
-[[package]]
-name = "zcash_primitives"
-version = "0.7.0"
-source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d551820030cb596eafe82226667f32b47164f91b"
-dependencies = [
- "aes",
- "bip0039",
- "bitvec",
- "blake2b_simd",
- "blake2s_simd",
- "blstrs",
- "byteorder",
- "chacha20poly1305 0.9.1",
- "equihash",
- "ff 0.12.1",
- "fpe",
- "group 0.12.1",
- "hex",
- "incrementalmerkletree",
- "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
- "lazy_static",
- "memuse",
- "nonempty",
- "orchard",
- "rand",
- "rand_core",
- "sha2 0.9.9",
- "subtle",
- "zcash_address",
- "zcash_encoding",
- "zcash_note_encryption 0.1.0 (git+https://github.com/iron-fish/librustzcash.git?branch=blstrs)",
-]
-
-[[package]]
-name = "zcash_proofs"
-version = "0.7.1"
-source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d551820030cb596eafe82226667f32b47164f91b"
-dependencies = [
- "bellperson",
- "blake2b_simd",
- "blstrs",
- "byteorder",
- "directories",
- "ff 0.12.1",
- "group 0.12.1",
- "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
- "lazy_static",
- "rand_core",
- "redjubjub",
- "tracing",
- "zcash_primitives",
 ]
 
 [[package]]

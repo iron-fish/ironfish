@@ -11,7 +11,7 @@ use super::mine;
 use fish_hash::Context;
 
 #[derive(Debug)]
-pub(crate) enum Command {
+pub(super) enum Command {
     NewWork(
         Vec<u8>, // header bytes
         Vec<u8>, // target
@@ -23,17 +23,17 @@ pub(crate) enum Command {
     Pause,
 }
 
-pub struct FishHashOptions {
-    pub enabled: bool,
-    pub full_context: bool,
+pub(super) struct FishHashOptions {
+    pub(super) enabled: bool,
+    pub(super) full_context: bool,
 }
 
-pub(crate) struct Thread {
+pub(super) struct Thread {
     command_channel: Sender<Command>,
 }
 
 impl Thread {
-    pub(crate) fn new(
+    pub(super) fn new(
         id: u64,
         block_found_channel: Sender<(u64, u32)>,
         hash_rate_channel: Sender<u32>,
@@ -76,7 +76,7 @@ impl Thread {
         }
     }
 
-    pub(crate) fn new_work(
+    pub(super) fn new_work(
         &self,
         header_bytes: Vec<u8>,
         target: Vec<u8>,
@@ -93,11 +93,11 @@ impl Thread {
         ))
     }
 
-    pub(crate) fn pause(&self) -> Result<(), SendError<Command>> {
+    pub(super) fn pause(&self) -> Result<(), SendError<Command>> {
         self.command_channel.send(Command::Pause)
     }
 
-    pub(crate) fn stop(&self) -> Result<(), SendError<Command>> {
+    pub(super) fn stop(&self) -> Result<(), SendError<Command>> {
         self.command_channel.send(Command::Stop)
     }
 }
@@ -192,8 +192,7 @@ fn process_commands(
                     }
 
                     if remaining_search_space < default_batch_size {
-                        // miner has exhausted it's search space, stop mining
-                        println!("Search space exhausted, no longer mining this block.");
+                        // miner has exhausted its search space, stop mining
                         break;
                     }
                     batch_start += batch_size + step_size as u64 - (batch_size % step_size as u64);

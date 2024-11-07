@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
-import { Assert, CurrencyUtils, Logger, RpcAssetVerification, RpcClient } from '@ironfish/sdk'
+import { Assert, CurrencyUtils, Logger, RpcAsset, RpcClient } from '@ironfish/sdk'
 import { inputPrompt } from '../ui'
+import { renderAssetWithVerificationStatus } from './asset'
 
 /**
  * This prompts the user to enter an amount of currency in the major
@@ -14,43 +15,34 @@ export async function promptCurrency(options: {
   client: Pick<RpcClient, 'wallet'>
   text: string
   logger: Logger
-  required: true
-  minimum?: bigint
-  assetId?: string
-  assetVerification?: RpcAssetVerification
-  balance?: {
-    account?: string
-    confirmations?: number
-  }
-}): Promise<bigint>
-
-export async function promptCurrency(options: {
-  client: Pick<RpcClient, 'wallet'>
-  text: string
-  logger: Logger
   required?: boolean
   minimum?: bigint
-  assetId?: string
-  assetVerification?: RpcAssetVerification
+  assetData?: RpcAsset
   balance?: {
     account?: string
     confirmations?: number
   }
-}): Promise<bigint | null> {
+}): Promise<bigint> {
   let text = options.text
+  if (options.assetData) {
+    const assetName = Buffer.from(options.assetData.name, 'hex').toString('utf-8')
+    text += ` in ${renderAssetWithVerificationStatus(assetName, {
+      verification: options.assetData.verification,
+    })}`
+  }
 
   if (options.balance) {
     const balance = await options.client.wallet.getAccountBalance({
       account: options.balance.account,
-      assetId: options.assetId ?? Asset.nativeId().toString('hex'),
+      assetId: options.assetData?.id ?? Asset.nativeId().toString('hex'),
       confirmations: options.balance.confirmations,
     })
 
     const renderedAvailable = CurrencyUtils.render(
       balance.content.available,
       false,
-      options.assetId,
-      options.assetVerification,
+      options.assetData?.id,
+      options.assetData?.verification,
     )
     text += ` (balance ${renderedAvailable})`
   }
@@ -59,14 +51,10 @@ export async function promptCurrency(options: {
   while (true) {
     const input = await inputPrompt(text, options.required)
 
-    if (!input) {
-      return null
-    }
-
     const [amount, error] = CurrencyUtils.tryMajorToMinor(
       input,
-      options.assetId,
-      options.assetVerification,
+      options.assetData?.id,
+      options.assetData?.verification,
     )
 
     if (error) {
@@ -80,8 +68,8 @@ export async function promptCurrency(options: {
       const renderedMinimum = CurrencyUtils.render(
         options.minimum,
         false,
-        options.assetId,
-        options.assetVerification,
+        options.assetData?.id,
+        options.assetData?.verification,
       )
       options.logger.error(`Error: Minimum is ${renderedMinimum}`)
       continue

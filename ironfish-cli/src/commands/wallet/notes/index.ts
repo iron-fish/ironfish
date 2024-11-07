@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, RpcAsset } from '@ironfish/sdk'
+import { CurrencyUtils, RpcAsset, RpcWalletNote } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
@@ -33,74 +33,74 @@ export class NotesCommand extends IronfishCommand {
     const account = await useAccount(client, flags.account)
 
     const response = client.wallet.getAccountNotesStream({ account })
-
-    let showHeader = !flags['no-header']
-
+    const notes: RpcWalletNote[] = []
     for await (const note of response.contentStream()) {
+      if (notes.length >= flags.limit) {
+        break
+      }
       if (!assetLookup.has(note.assetId)) {
         assetLookup.set(
           note.assetId,
           (await client.wallet.getAsset({ id: note.assetId, account })).content,
         )
       }
-
-      ui.table(
-        [note],
-        {
-          memo: {
-            header: 'Memo',
-            // Maximum memo length is 32 bytes
-            minWidth: 33,
-            get: (row) => row.memo,
-          },
-          sender: {
-            header: 'Sender',
-            get: (row) => row.sender,
-          },
-          transactionHash: {
-            header: 'From Transaction',
-            get: (row) => row.transactionHash,
-          },
-          isSpent: {
-            header: 'Spent',
-            get: (row) => {
-              if (row.spent === undefined) {
-                return '-'
-              } else {
-                return row.spent ? `✔` : `x`
-              }
-            },
-          },
-          ...TableCols.asset({ extended: flags.extended }),
-          value: {
-            header: 'Amount',
-            get: (row) =>
-              CurrencyUtils.render(
-                row.value,
-                false,
-                row.assetId,
-                assetLookup.get(row.assetId)?.verification,
-              ),
-            minWidth: 16,
-          },
-          noteHash: {
-            header: 'Note Hash',
-            get: (row) => row.noteHash,
-          },
-          nullifier: {
-            header: 'Nullifier',
-            get: (row) => {
-              if (row.nullifier === null) {
-                return '-'
-              } else {
-                return row.nullifier
-              }
-            },
+      notes.push(note)
+    }
+    ui.table(
+      notes,
+      {
+        memo: {
+          header: 'Memo',
+          // Maximum memo length is 32 bytes
+          minWidth: 33,
+          get: (row) => row.memo,
+        },
+        sender: {
+          header: 'Sender',
+          get: (row) => row.sender,
+        },
+        transactionHash: {
+          header: 'From Transaction',
+          get: (row) => row.transactionHash,
+        },
+        isSpent: {
+          header: 'Spent',
+          get: (row) => {
+            if (row.spent === undefined) {
+              return '-'
+            } else {
+              return row.spent ? `✔` : `x`
+            }
           },
         },
-        { ...flags, 'no-header': !showHeader },
-      )
-      showHeader = false
-    }
+        ...TableCols.asset({ extended: flags.extended }),
+        value: {
+          header: 'Amount',
+          get: (row) =>
+            CurrencyUtils.render(
+              row.value,
+              false,
+              row.assetId,
+              assetLookup.get(row.assetId)?.verification,
+            ),
+          minWidth: 16,
+        },
+        noteHash: {
+          header: 'Note Hash',
+          get: (row) => row.noteHash,
+        },
+        nullifier: {
+          header: 'Nullifier',
+          get: (row) => {
+            if (row.nullifier === null) {
+              return '-'
+            } else {
+              return row.nullifier
+            }
+          },
+        },
+      },
+      flags,
+    )
   }
 }

@@ -1355,7 +1355,7 @@ export class Wallet {
 
   async createAccount(
     name: string,
-    options: { createdAt?: HeadValue | null; setDefault?: boolean } = {
+    options: { setDefault?: boolean; createdAt?: number | null; head?: HeadValue | null } = {
       setDefault: false,
     },
   ): Promise<Account> {
@@ -1369,15 +1369,12 @@ export class Wallet {
 
     const key = generateKey()
 
-    let createdAt: HeadValue | null = null
-    if (options.createdAt !== undefined) {
-      createdAt = options.createdAt
-    } else if (this.nodeClient) {
-      try {
-        createdAt = await this.getChainHead()
-      } catch {
-        this.logger.warn('Failed to fetch chain head from node client')
-      }
+    const createdAt = await this.createdAtWithDefault(options.createdAt)
+    let accountHead: HeadValue | null
+    if (options.head === undefined) {
+      accountHead = createdAt && (await this.accountHeadAtSequence(createdAt.sequence))
+    } else {
+      accountHead = options.head
     }
 
     const account = new Account({
@@ -1413,7 +1410,7 @@ export class Wallet {
         await this.walletDb.setAccount(account, tx)
       }
 
-      await account.updateHead(createdAt, tx)
+      await account.updateHead(accountHead, tx)
     })
 
     this.accountById.set(account.id, account)
@@ -1423,6 +1420,52 @@ export class Wallet {
     }
 
     return account
+  }
+
+  /*
+   * Use createdAt if provided, otherwise use the current chain head
+   */
+  private async createdAtWithDefault(createdAt?: number | null): Promise<HeadValue | null> {
+    if (createdAt === null) {
+      return null
+    }
+
+    if (createdAt === undefined) {
+      try {
+        const sequence = (await this.getChainHead()).sequence
+        return {
+          sequence,
+          hash: Buffer.alloc(32, 0),
+        }
+      } catch {
+        this.logger.warn('Failed to fetch chain head from node client')
+        return null
+      }
+    }
+
+    return {
+      sequence: createdAt,
+      hash: Buffer.alloc(32, 0),
+    }
+  }
+
+  /*
+   * Try to get the block hash from the chain with createdAt sequence
+   * Otherwise, return null
+   */
+  private async accountHeadAtSequence(sequence: number): Promise<HeadValue | null> {
+    try {
+      const previousBlock = await this.chainGetBlock({ sequence })
+      return previousBlock
+        ? {
+            hash: Buffer.from(previousBlock.block.hash, 'hex'),
+            sequence: previousBlock.block.sequence,
+          }
+        : null
+    } catch {
+      this.logger.warn(`Failed to fetch block ${sequence} from node client`)
+      return null
+    }
   }
 
   async skipRescan(account: Account, tx?: IDatabaseTransaction): Promise<void> {
@@ -1544,20 +1587,10 @@ export class Wallet {
         }
       }
 
-      if (createdAt !== null) {
-        const previousBlock = await this.chainGetBlock({ sequence: createdAt.sequence - 1 })
+      const accountHead =
+        createdAt && (await this.accountHeadAtSequence(createdAt.sequence - 1))
 
-        const head = previousBlock
-          ? {
-              hash: Buffer.from(previousBlock.block.hash, 'hex'),
-              sequence: previousBlock.block.sequence,
-            }
-          : null
-
-        await account.updateHead(head, tx)
-      } else {
-        await account.updateHead(null, tx)
-      }
+      await account.updateHead(accountHead, tx)
     })
 
     this.accountById.set(account.id, account)

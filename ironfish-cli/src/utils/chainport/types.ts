@@ -46,6 +46,11 @@ export type ChainportToken = {
   is_lifi: boolean
 }
 
+export type ChainportTokenWithNetwork = {
+  network: ChainportNetwork
+  token: ChainportToken
+}
+
 export type ChainportTransactionStatus =
   | Record<string, never> // empty object
   | {

@@ -37,7 +37,7 @@ impl BoxKeyPair {
     }
 
     #[napi(factory)]
-    pub fn from_hex(secret_hex: String) -> napi::Result<BoxKeyPair> {
+    pub fn from_hex(secret_hex: String) -> Result<BoxKeyPair> {
         let bytes: [u8; nacl::KEY_LENGTH] =
             hex_to_bytes(&secret_hex).map_err(|_| to_napi_err("Unable to decode secret key"))?;
 

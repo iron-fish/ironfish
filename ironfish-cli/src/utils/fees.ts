@@ -75,7 +75,7 @@ export async function selectFee(options: {
     const fee = await promptCurrency({
       client: options.client,
       required: true,
-      text: 'Enter the fee amount in $IRON',
+      text: 'Enter the fee in $IRON',
       logger: options.logger,
       balance: {
         account: options.account,
