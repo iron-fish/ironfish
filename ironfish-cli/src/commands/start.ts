@@ -1,7 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, FullNode, NodeUtils, PromiseUtils } from '@ironfish/sdk'
+import {
+  Assert,
+  EncryptedWalletMigrationError,
+  FullNode,
+  NodeUtils,
+  PromiseUtils,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import inspector from 'node:inspector'
 import { v4 as uuid } from 'uuid'
@@ -27,6 +33,7 @@ import {
   RpcUseTcpFlagKey,
 } from '../flags'
 import { ONE_FISH_IMAGE } from '../images'
+import { inputPrompt } from '../ui'
 
 export const ENABLE_TELEMETRY_CONFIG_KEY = 'enableTelemetry'
 const DEFAULT_ACCOUNT_NAME = 'default'
@@ -223,7 +230,28 @@ export default class Start extends IronfishCommand {
     }
     this.log(` `)
 
-    await NodeUtils.waitForOpen(node, () => this.closing)
+    let walletPassphrase: string | undefined
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        await NodeUtils.waitForOpen(node, () => this.closing, walletPassphrase)
+        break
+      } catch (e) {
+        if (e instanceof EncryptedWalletMigrationError) {
+          this.logger.info(e.message)
+          walletPassphrase = await inputPrompt(
+            'Enter your passphrase to unlock the wallet',
+            true,
+            {
+              password: true,
+            },
+          )
+        } else {
+          throw e
+        }
+      }
+    }
 
     if (this.closing) {
       return startDoneResolve()
