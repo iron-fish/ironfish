@@ -10,3 +10,4 @@
 use getrandom as _;
 
 pub mod errors;
+pub mod primitives;
