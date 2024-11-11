@@ -1634,8 +1634,13 @@ dependencies = [
 name = "ironfish-wasm"
 version = "0.1.0"
 dependencies = [
+ "blstrs",
  "getrandom",
+ "group 0.12.1",
  "ironfish",
+ "ironfish-jubjub",
+ "ironfish_zkp",
+ "rand",
  "wasm-bindgen",
 ]
 
