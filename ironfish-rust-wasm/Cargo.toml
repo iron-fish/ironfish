@@ -1,0 +1,19 @@
+[package]
+name = "ironfish-wasm"
+version = "0.1.0"
+license = "MPL-2.0"
+
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+getrandom = { version = "0.2.8", features = ["js"] } # need to explicitly enable the `js` feature in order to run in a browser
+ironfish = { version = "0.3.0", path = "../ironfish-rust" }
+wasm-bindgen = "0.2.95"

@@ -5,6 +5,7 @@ members = [
     "benchmarks",
     "ironfish-rust",
     "ironfish-rust-nodejs",
+    "ironfish-rust-wasm",
     "ironfish-zkp",
 ]
 

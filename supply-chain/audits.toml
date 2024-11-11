@@ -108,6 +108,36 @@ who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
 version = "1.0.0"
 
+[[audits.wasm-bindgen]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.2.84 -> 0.2.95"
+notes = "New features and removed code; some new unsafe blocks and they all look benign"
+
+[[audits.wasm-bindgen-backend]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.2.84 -> 0.2.95"
+notes = "New features and bug fixes; there's are new/changed unsafe blocks and they all look benign"
+
+[[audits.wasm-bindgen-macro]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.2.84 -> 0.2.95"
+notes = "Minor changes and a lot of removed code"
+
+[[audits.wasm-bindgen-macro-support]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.2.92 -> 0.2.95"
+notes = "New features and bug fixes; no new unsafe code or system calls introduced"
+
+[[audits.wasm-bindgen-shared]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.2.92 -> 0.2.95"
+notes = "Only minor changes; no new unsafe code or system calls introduced"
+
 [[trusted.reddsa]]
 criteria = "safe-to-deploy"
 user-id = 6289 # Jack Grigg (str4d)
