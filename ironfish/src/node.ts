@@ -354,7 +354,7 @@ export class FullNode {
     return node
   }
 
-  async openDB(walletPassphrase?: string): Promise<void> {
+  async openDB(): Promise<void> {
     const migrate = this.config.get('databaseMigrate')
     const initial = await this.migrator.isInitial()
 
@@ -362,7 +362,6 @@ export class FullNode {
       await this.migrator.migrate({
         quiet: !migrate,
         quietNoop: true,
-        walletPassphrase: walletPassphrase,
       })
     }
 

@@ -33,7 +33,6 @@ import {
   RpcUseTcpFlagKey,
 } from '../flags'
 import { ONE_FISH_IMAGE } from '../images'
-import { inputPrompt } from '../ui'
 
 export const ENABLE_TELEMETRY_CONFIG_KEY = 'enableTelemetry'
 const DEFAULT_ACCOUNT_NAME = 'default'
@@ -230,26 +229,17 @@ export default class Start extends IronfishCommand {
     }
     this.log(` `)
 
-    let walletPassphrase: string | undefined
-
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      try {
-        await NodeUtils.waitForOpen(node, () => this.closing, walletPassphrase)
-        break
-      } catch (e) {
-        if (e instanceof EncryptedWalletMigrationError) {
-          this.logger.info(e.message)
-          walletPassphrase = await inputPrompt(
-            'Enter your passphrase to unlock the wallet',
-            true,
-            {
-              password: true,
-            },
-          )
-        } else {
-          throw e
-        }
+    try {
+      await NodeUtils.waitForOpen(node, () => this.closing)
+    } catch (e) {
+      if (e instanceof EncryptedWalletMigrationError) {
+        this.logger.error(e.message)
+        this.logger.error(
+          'Run `ironfish migrations:start` to enter wallet passphrase and migrate wallet databases',
+        )
+        this.exit(1)
+      } else {
+        throw e
       }
     }
 
