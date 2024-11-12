@@ -36,18 +36,22 @@ export interface TableOptions {
 export const TableFlags = {
   csv: Flags.boolean({
     description: 'output is csv format [alias: --output=csv]',
+    helpGroup: 'OUTPUT',
   }),
   extended: Flags.boolean({
     description: 'show extra columns',
+    helpGroup: 'OUTPUT',
   }),
   'no-header': Flags.boolean({
     description: 'hide table header from output',
     exclusive: ['csv'],
+    helpGroup: 'OUTPUT',
   }),
   output: Flags.string({
     description: 'output in a more machine friendly format',
     exclusive: ['csv'],
     options: ['csv', 'json'],
+    helpGroup: 'OUTPUT',
   }),
   sort: Flags.string({
     description: "property to sort by (prepend '-' for descending)",
