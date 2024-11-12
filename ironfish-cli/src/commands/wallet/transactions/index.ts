@@ -8,6 +8,8 @@ import {
   GetAccountTransactionsResponse,
   PartialRecursive,
   RpcAsset,
+  RpcClient,
+  RpcWalletTransaction,
   TransactionType,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
@@ -19,6 +21,7 @@ import { extractChainportDataFromTransaction } from '../../../utils/chainport'
 import { Format, TableCols } from '../../../utils/table'
 
 const { sort: _, ...tableFlags } = ui.TableFlags
+
 export class TransactionsCommand extends IronfishCommand {
   static description = `list the account's transactions`
 
@@ -27,7 +30,13 @@ export class TransactionsCommand extends IronfishCommand {
     ...tableFlags,
     account: Flags.string({
       char: 'a',
-      description: 'Name of the account to get transactions for',
+      multiple: true,
+      description: 'show transactions from this account',
+    }),
+    'no-account': Flags.boolean({
+      description: 'show transactions for all accounts',
+      exclusive: ['account'],
+      aliases: ['no-a'],
     }),
     transaction: Flags.string({
       char: 't',
@@ -63,26 +72,33 @@ export class TransactionsCommand extends IronfishCommand {
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
 
-    const account = await useAccount(client, flags.account)
+    let accounts = flags.account
+    if (flags['no-account']) {
+      const response = await client.wallet.getAccounts()
+      accounts = response.content.accounts
+    } else if (!accounts) {
+      const account = await useAccount(client, undefined)
+      accounts = [account]
+    }
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
-    const response = client.wallet.getAccountTransactionsStream({
-      account,
-      hash: flags.transaction,
-      sequence: flags.sequence,
-      limit: flags.limit,
-      offset: flags.offset,
-      confirmations: flags.confirmations,
-      notes: flags.notes,
-    })
+    const transactions = this.getTransactions(
+      client,
+      accounts,
+      flags.transaction,
+      flags.sequence,
+      flags.limit,
+      flags.offset,
+      flags.confirmations,
+    )
 
     const columns = this.getColumns(flags.extended, flags.notes, format)
 
     let hasTransactions = false
-
     let transactionRows: PartialRecursive<TransactionRow>[] = []
-    for await (const transaction of response.contentStream()) {
+
+    for await (const { account, transaction } of transactions) {
       if (transactionRows.length >= flags.limit) {
         break
       }
@@ -126,6 +142,33 @@ export class TransactionsCommand extends IronfishCommand {
 
     if (!hasTransactions) {
       this.log('No transactions found')
+    }
+  }
+
+  async *getTransactions(
+    client: RpcClient,
+    accounts: string[],
+    hash?: string,
+    sequence?: number,
+    limit?: number,
+    offset?: number,
+    confirmations?: number,
+    notes?: boolean,
+  ): AsyncGenerator<{ account: string; transaction: RpcWalletTransaction }, void> {
+    for (const account of accounts) {
+      const response = client.wallet.getAccountTransactionsStream({
+        account,
+        hash: hash,
+        sequence: sequence,
+        limit: limit,
+        offset: offset,
+        confirmations: confirmations,
+        notes: notes,
+      })
+
+      for await (const transaction of response.contentStream()) {
+        yield { account, transaction }
+      }
     }
   }
 
