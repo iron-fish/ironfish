@@ -8,6 +8,7 @@ import {
   useTxFixture,
 } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { AsyncUtils } from '../../../utils'
 
 describe('Route chain/broadcastTransaction', () => {
   const routeTest = createRouteTest()
@@ -121,5 +122,30 @@ describe('Route chain/broadcastTransaction', () => {
     expect(response.content?.hash).toEqual(transaction.hash().toString('hex'))
     expect(response.content?.accepted).toBe(true)
     expect(acceptSpy).toHaveBeenCalled()
+  })
+
+  it('should add pending transaction to account when using broadcastTransaction', async () => {
+    const { node } = routeTest
+    jest.spyOn(routeTest.peerNetwork, 'isReady', 'get').mockImplementationOnce(() => true)
+
+    const account = await useAccountFixture(node.wallet)
+    const block2 = await useMinerBlockFixture(node.chain, 2, account)
+
+    await node.chain.addBlock(block2)
+    await node.wallet.scan()
+
+    const transaction = await useTxFixture(node.wallet, account, account)
+    const response = await routeTest.client.chain.broadcastTransaction({
+      transaction: transaction.serialize().toString('hex'),
+    })
+
+    expect(response.status).toBe(200)
+
+    const responseTransactions = routeTest.client.wallet.getAccountTransactionsStream({
+      account: account.name,
+    })
+
+    const transactions = await AsyncUtils.materialize(responseTransactions.contentStream())
+    expect(transactions[0].hash).toEqual(transaction.hash().toString('hex'))
   })
 })

@@ -57,7 +57,7 @@ routes.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionRe
       context.peerNetwork.broadcastTransaction(transaction)
       broadcasted = true
     }
-
+    await context.wallet.addPendingTransaction(transaction)
     request.end({
       accepted,
       broadcasted,
