@@ -102,7 +102,9 @@ export class TransactionsCommand extends IronfishCommand {
               : ('Bridge (incoming)' as TransactionType)
         }
 
-        transactionRows = this.getTransactionRowsByNote(assetLookup, transaction, format)
+        transactionRows = transactionRows.concat(
+          this.getTransactionRowsByNote(assetLookup, transaction, format),
+        )
       } else {
         const assetLookup = await getAssetsByIDs(
           client,
@@ -110,7 +112,9 @@ export class TransactionsCommand extends IronfishCommand {
           account,
           flags.confirmations,
         )
-        transactionRows = this.getTransactionRows(assetLookup, transaction, format)
+        transactionRows = transactionRows.concat(
+          this.getTransactionRows(assetLookup, transaction, format),
+        )
       }
       hasTransactions = true
     }
