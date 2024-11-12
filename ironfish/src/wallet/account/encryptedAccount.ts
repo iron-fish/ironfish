@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { xchacha20poly1305 } from '@ironfish/rust-nodejs'
 import { AccountDecryptionFailedError } from '../errors'
+import { MasterKey } from '../masterKey'
 import { AccountValueEncoding, EncryptedAccountValue } from '../walletdb/accountValue'
 import { WalletDB } from '../walletdb/walletdb'
 import { Account } from './account'
@@ -26,11 +26,9 @@ export class EncryptedAccount {
     this.walletDb = walletDb
   }
 
-  decrypt(masterKey: xchacha20poly1305.XChaCha20Poly1305Key): Account {
+  decrypt(masterKey: MasterKey): Account {
     try {
-      const key = masterKey.deriveKey(this.salt, this.nonce)
-      const decryptedAccountValue = key.decrypt(this.data)
-      key.destroy()
+      const decryptedAccountValue = masterKey.decrypt(this.data, this.salt, this.nonce)
 
       const encoder = new AccountValueEncoding()
       const accountValue = encoder.deserializeDecrypted(decryptedAccountValue)

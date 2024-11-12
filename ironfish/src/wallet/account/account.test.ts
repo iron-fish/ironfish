@@ -232,8 +232,8 @@ describe('Accounts', () => {
 
       const masterKey = node.wallet['masterKey']
       Assert.isNotNull(masterKey)
-      const key = await masterKey.unlock(passphrase)
-      const decryptedAccount = encryptedAccount.decrypt(key)
+      await masterKey.unlock(passphrase)
+      const decryptedAccount = encryptedAccount.decrypt(masterKey)
 
       expect(decryptedAccount.name).toEqual(newName)
     })
@@ -2676,10 +2676,10 @@ describe('Accounts', () => {
       const passphrase = 'foo'
 
       const masterKey = MasterKey.generate(passphrase)
-      const key = await masterKey.unlock(passphrase)
+      await masterKey.unlock(passphrase)
       const encryptedAccount = account.encrypt(masterKey)
 
-      const decryptedAccount = encryptedAccount.decrypt(key)
+      const decryptedAccount = encryptedAccount.decrypt(masterKey)
 
       expect(account.serialize()).toMatchObject(decryptedAccount.serialize())
     })

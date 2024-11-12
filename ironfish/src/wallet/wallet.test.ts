@@ -1066,8 +1066,8 @@ describe('Wallet', () => {
 
       const masterKey = node.wallet['masterKey']
       Assert.isNotNull(masterKey)
-      const key = await masterKey.unlock(passphrase)
-      const decryptedAccount = encryptedAccount.decrypt(key)
+      await masterKey.unlock(passphrase)
+      const decryptedAccount = encryptedAccount.decrypt(masterKey)
       await node.wallet.lock()
 
       expect(decryptedAccount.spendingKey).toEqual(account.spendingKey)
@@ -2470,8 +2470,8 @@ describe('Wallet', () => {
 
       const masterKey = node.wallet['masterKey']
       Assert.isNotNull(masterKey)
-      const key = await masterKey.unlock(passphrase)
-      const decryptedAccount = encryptedAccount.decrypt(key)
+      await masterKey.unlock(passphrase)
+      const decryptedAccount = encryptedAccount.decrypt(masterKey)
       await node.wallet.lock()
 
       expect(decryptedAccount.name).toEqual(account.name)
@@ -2694,16 +2694,16 @@ describe('Wallet', () => {
 
       const masterKey = node.wallet['masterKey']
       Assert.isNotNull(masterKey)
-      const key = await masterKey.unlock(passphrase)
+      await masterKey.unlock(passphrase)
 
       const encryptedAccountA = node.wallet.encryptedAccountById.get(accountA.id)
       Assert.isNotUndefined(encryptedAccountA)
-      const decryptedAccountA = encryptedAccountA.decrypt(key)
+      const decryptedAccountA = encryptedAccountA.decrypt(masterKey)
       expect(accountA.serialize()).toMatchObject(decryptedAccountA.serialize())
 
       const encryptedAccountB = node.wallet.encryptedAccountById.get(accountB.id)
       Assert.isNotUndefined(encryptedAccountB)
-      const decryptedAccountB = encryptedAccountB.decrypt(key)
+      const decryptedAccountB = encryptedAccountB.decrypt(masterKey)
       expect(accountB.serialize()).toMatchObject(decryptedAccountB.serialize())
     })
   })
@@ -2840,12 +2840,12 @@ describe('Wallet', () => {
 
       const masterKey = node.wallet['masterKey']
       Assert.isNotNull(masterKey)
-      const key = await masterKey.unlock(passphrase)
+      await masterKey.unlock(passphrase)
 
       for (const [id, account] of node.wallet.accountById.entries()) {
         const encryptedAccount = node.wallet.encryptedAccountById.get(id)
         Assert.isNotUndefined(encryptedAccount)
-        const decryptedAccount = encryptedAccount.decrypt(key)
+        const decryptedAccount = encryptedAccount.decrypt(masterKey)
 
         expect(account.serialize()).toMatchObject(decryptedAccount.serialize())
       }

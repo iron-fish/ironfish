@@ -1334,15 +1334,14 @@ export class Account {
   encrypt(masterKey: MasterKey): EncryptedAccount {
     const encoder = new AccountValueEncoding()
     const serialized = encoder.serialize(this.serialize())
-    const derivedKey = masterKey.deriveNewKey()
-    const data = derivedKey.encrypt(serialized)
+    const { ciphertext, salt, nonce } = masterKey.encrypt(serialized)
 
     return new EncryptedAccount({
       accountValue: {
         encrypted: true,
-        data,
-        salt: derivedKey.salt(),
-        nonce: derivedKey.nonce(),
+        data: ciphertext,
+        salt,
+        nonce,
       },
       walletDb: this.walletDb,
     })
