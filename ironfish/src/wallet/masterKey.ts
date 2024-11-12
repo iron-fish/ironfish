@@ -52,7 +52,7 @@ export class MasterKey {
     }
   }
 
-  async unlock(passphrase: string): Promise<xchacha20poly1305.XChaCha20Poly1305Key> {
+  async unlock(passphrase: string): Promise<void> {
     const unlock = await this.mutex.lock()
 
     try {
@@ -63,7 +63,7 @@ export class MasterKey {
       )
       this.locked = false
 
-      return this.masterKey
+      return
     } catch (e) {
       if (this.masterKey) {
         this.masterKey.destroy()
@@ -77,21 +77,39 @@ export class MasterKey {
     }
   }
 
-  deriveNewKey(): xchacha20poly1305.XChaCha20Poly1305Key {
-    Assert.isFalse(this.locked)
-    Assert.isNotNull(this.masterKey)
-
-    return this.masterKey.deriveNewKey()
-  }
-
-  deriveKey(salt: Buffer, nonce: Buffer): xchacha20poly1305.XChaCha20Poly1305Key {
-    Assert.isFalse(this.locked)
-    Assert.isNotNull(this.masterKey)
-
-    return this.masterKey.deriveKey(salt, nonce)
-  }
-
   async destroy(): Promise<void> {
     await this.lock()
+  }
+
+  encrypt(plaintext: Buffer): {
+    ciphertext: Buffer
+    salt: Buffer
+    nonce: Buffer
+  } {
+    Assert.isFalse(this.locked)
+    Assert.isNotNull(this.masterKey)
+
+    const derivedKey = this.masterKey.deriveNewKey()
+
+    const ciphertext = derivedKey.encrypt(plaintext)
+
+    return {
+      ciphertext,
+      salt: derivedKey.salt(),
+      nonce: derivedKey.nonce(),
+    }
+  }
+
+  decrypt(ciphertext: Buffer, salt: Buffer, nonce: Buffer): Buffer {
+    Assert.isFalse(this.locked)
+    Assert.isNotNull(this.masterKey)
+
+    const derivedKey = this.masterKey.deriveKey(salt, nonce)
+
+    const plaintext = derivedKey.decrypt(ciphertext)
+
+    derivedKey.destroy()
+
+    return plaintext
   }
 }

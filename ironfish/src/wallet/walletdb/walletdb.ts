@@ -1283,7 +1283,7 @@ export class WalletDB {
       Assert.isNotNull(masterKeyValue)
 
       const masterKey = new MasterKey(masterKeyValue)
-      const key = await masterKey.unlock(passphrase)
+      await masterKey.unlock(passphrase)
 
       for await (const [id, accountValue] of this.accounts.getAllIter(tx)) {
         if (!accountValue.encrypted) {
@@ -1294,7 +1294,7 @@ export class WalletDB {
           accountValue,
           walletDb: this,
         })
-        const account = encryptedAccount.decrypt(key)
+        const account = encryptedAccount.decrypt(masterKey)
         await this.accounts.put(id, account.serialize(), tx)
       }
 
