@@ -217,12 +217,12 @@ describe('WalletScanner', () => {
 
   it('skips decryption for accounts with createdAt later than the block header', async () => {
     const accountA = await useAccountFixture(nodeTest.wallet, 'a')
-    expect(accountA.createdAt?.hash).toEqualHash(nodeTest.chain.genesis.hash)
+    expect(accountA.createdAt?.sequence).toEqual(nodeTest.chain.genesis.sequence)
 
     const firstBlocks = await createTestNotes(nodeTest.chain, nodeTest.wallet, [[accountA, 3]])
 
     const accountB = await useAccountFixture(nodeTest.wallet, 'b')
-    expect(accountB.createdAt?.hash).toEqualHash(firstBlocks[2].header.hash)
+    expect(accountB.createdAt?.sequence).toEqual(firstBlocks[2].header.sequence)
 
     const lastBlocks = await createTestNotes(nodeTest.chain, nodeTest.wallet, [[accountB, 3]])
 
