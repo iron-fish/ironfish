@@ -418,7 +418,7 @@ export class WalletDB {
   async removeAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       await this.accounts.del(account.id, tx)
-      await this.clearBalance(account, tx)
+      await this.balances.clear(tx, account.prefixRange)
       await this.accountIdsToCleanup.put(account.id, null, tx)
     })
   }
@@ -542,19 +542,6 @@ export class WalletDB {
     await this.transactions.del([account.prefix, transactionHash], tx)
   }
 
-  async clearTransactions(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.transactions.clear(tx, account.prefixRange)
-    await this.timestampToTransactionHash.clear(tx, account.prefixRange)
-  }
-
-  async clearSequenceToNoteHash(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.sequenceToNoteHash.clear(tx, account.prefixRange)
-  }
-
-  async clearNonChainNoteHashes(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.nonChainNoteHashes.clear(tx, account.prefixRange)
-  }
-
   async *getTransactionHashesBySequence(
     account: Account,
     tx?: IDatabaseTransaction,
@@ -656,20 +643,6 @@ export class WalletDB {
         await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
       }
     })
-  }
-
-  /*
-   * clears sequenceToNoteHash entries for all accounts for a given sequence
-   */
-  async clearSequenceNoteHashes(sequence: number, tx?: IDatabaseTransaction): Promise<void> {
-    const encoding = this.sequenceToNoteHash.keyEncoding
-
-    const keyRange = StorageUtils.getPrefixesKeyRange(
-      encoding.serialize([Buffer.alloc(4, 0), [sequence, Buffer.alloc(0)]]),
-      encoding.serialize([Buffer.alloc(4, 255), [sequence, Buffer.alloc(0)]]),
-    )
-
-    await this.sequenceToNoteHash.clear(tx, keyRange)
   }
 
   async addUnspentNoteHash(
@@ -1027,10 +1000,6 @@ export class WalletDB {
     await this.decryptedNotes.del([account.prefix, noteHash], tx)
   }
 
-  async clearDecryptedNotes(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.decryptedNotes.clear(tx, account.prefixRange)
-  }
-
   async *loadDecryptedNotes(
     account: Account,
     range?: DatabaseKeyRange,
@@ -1086,10 +1055,6 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.balances.put([account.prefix, assetId], balance, tx)
-  }
-
-  async clearBalance(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.balances.clear(tx, account.prefixRange)
   }
 
   async *loadExpiredTransactionHashes(
@@ -1219,13 +1184,6 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.pendingTransactionHashes.del([account.prefix, [expiration, transactionHash]], tx)
-  }
-
-  async clearPendingTransactionHashes(
-    account: Account,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.pendingTransactionHashes.clear(tx, account.prefixRange)
   }
 
   async forceCleanupDeletedAccounts(signal?: AbortSignal): Promise<void> {
