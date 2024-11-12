@@ -91,6 +91,7 @@ export class TransactionsCommand extends IronfishCommand {
       flags.limit,
       flags.offset,
       flags.confirmations,
+      flags.notes,
     )
 
     const columns = this.getColumns(flags.extended, flags.notes, format)
