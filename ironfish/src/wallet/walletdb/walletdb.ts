@@ -1155,26 +1155,24 @@ export class WalletDB {
     )
   }
 
-  async deleteSequenceToTransactionHash(
+  async disconnectTransactionHashSequence(
     account: Account,
     sequence: number,
+    expiration: number,
     transactionHash: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.sequenceToTransactionHash.del([account.prefix, [sequence, transactionHash]], tx)
-  }
-
-  async savePendingTransactionHash(
-    account: Account,
-    expiration: number,
-    transactionHash: TransactionHash,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.pendingTransactionHashes.put(
-      [account.prefix, [expiration, transactionHash]],
-      null,
-      tx,
-    )
+    await this.db.withTransaction(tx, async (tx) => {
+      await this.sequenceToTransactionHash.del(
+        [account.prefix, [sequence, transactionHash]],
+        tx,
+      )
+      await this.pendingTransactionHashes.put(
+        [account.prefix, [expiration, transactionHash]],
+        null,
+        tx,
+      )
+    })
   }
 
   async deletePendingTransactionHash(

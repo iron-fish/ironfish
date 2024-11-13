@@ -735,15 +735,9 @@ export class Account {
         receivedAssets,
         tx,
       )
-      await this.walletDb.deleteSequenceToTransactionHash(
+      await this.walletDb.disconnectTransactionHashSequence(
         this,
         blockHeader.sequence,
-        transaction.hash(),
-        tx,
-      )
-
-      await this.walletDb.savePendingTransactionHash(
-        this,
         transaction.expiration(),
         transaction.hash(),
         tx,
