@@ -665,22 +665,19 @@ describe('Route wallet/importAccount', () => {
       const name = 'mnemonic-format'
       const mnemonic = spendingKeyToWords(generateKey().spendingKey, LanguageCode.English)
 
-      try {
-        await routeTest.client.wallet.importAccount({
+      await expect(
+        routeTest.client.wallet.importAccount({
           account: mnemonic,
           name,
           rescan: false,
           format: AccountFormat.JSON,
-        })
-      } catch (e: unknown) {
-        if (!(e instanceof RpcRequestError)) {
-          throw e
-        }
-
-        expect(e.status).toBe(400)
-        expect(e.message).not.toContain('decoder errors:')
-        expect(e.message).toContain('Invalid JSON')
-      }
+        }),
+      ).rejects.toMatchObject({
+        status: 400,
+        message:
+          expect.not.stringContaining('decoder errors:') &&
+          expect.stringContaining('Invalid JSON'),
+      })
     })
   })
 })
