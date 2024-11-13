@@ -212,3 +212,17 @@ export const EnumLanguageKeyFlag = Flags.custom<LanguageKey, { choices: Array<La
     }
   },
 })
+
+export const DateFlag = Flags.custom<Date>({
+  parse: async (input, _ctx, opts) => {
+    const parsed = new Date(input)
+
+    if (Number.isNaN(parsed.valueOf())) {
+      throw new Error(
+        `The value provided for ${opts.name} is an invalid format. It must be a valid date.`,
+      )
+    }
+
+    return Promise.resolve(parsed)
+  },
+})
