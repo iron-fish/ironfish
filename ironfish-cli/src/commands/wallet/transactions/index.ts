@@ -14,7 +14,7 @@ import {
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
-import { RemoteFlags } from '../../../flags'
+import { DateFlag, RemoteFlags } from '../../../flags'
 import * as ui from '../../../ui'
 import { getAssetsByIDs, useAccount } from '../../../utils'
 import { extractChainportDataFromTransaction } from '../../../utils/chainport'
@@ -75,13 +75,11 @@ export class TransactionsCommand extends IronfishCommand {
       options: ['notes', 'transactions', 'transfers'],
       helpGroup: 'OUTPUT',
     }),
-    'filter.start': Flags.string({
+    'filter.start': DateFlag({
       description: 'include transactions after this date (inclusive). Example: 2023-04-01',
-      parse: (input) => Promise.resolve(new Date(input).toISOString()),
     }),
-    'filter.end': Flags.string({
+    'filter.end': DateFlag({
       description: 'include transactions before this date (exclusive). Example: 2023-05-01',
-      parse: (input) => Promise.resolve(new Date(input).toISOString()),
     }),
   }
 
@@ -142,19 +140,16 @@ export class TransactionsCommand extends IronfishCommand {
     let hasTransactions = false
     let transactionRows: PartialRecursive<TransactionRow>[] = []
 
-    const filterStart = flags['filter.start'] && new Date(flags['filter.start']).valueOf()
-    const filterEnd = flags['filter.end'] && new Date(flags['filter.end']).valueOf()
-
     for await (const { account, transaction } of transactions) {
       if (transactionRows.length >= flags.limit) {
         break
       }
 
-      if (filterStart && transaction.timestamp < filterStart.valueOf()) {
+      if (flags['filter.start'] && transaction.timestamp < flags['filter.start'].valueOf()) {
         continue
       }
 
-      if (filterEnd && transaction.timestamp >= filterEnd.valueOf()) {
+      if (flags['filter.end'] && transaction.timestamp >= flags['filter.end'].valueOf()) {
         continue
       }
 
