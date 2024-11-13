@@ -48,8 +48,10 @@ impl AsRef<ironfish::PublicAddress> for PublicAddress {
 mod tests {
     use crate::keys::public_address::PublicAddress;
     use hex_literal::hex;
+    use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
+    #[wasm_bindgen_test]
     fn valid_address() {
         let bytes = hex!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0");
         let addr = PublicAddress::deserialize(&bytes[..])
@@ -63,6 +65,7 @@ mod tests {
     }
 
     #[test]
+    #[wasm_bindgen_test]
     fn invalid_address() {
         let bytes = hex!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1");
         PublicAddress::deserialize(&bytes[..])
