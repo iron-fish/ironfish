@@ -72,14 +72,24 @@ export class TransactionsCommand extends IronfishCommand {
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
 
+    const allAccounts = (await client.wallet.getAccounts()).content.accounts
+
     let accounts = flags.account
     if (flags['no-account']) {
-      const response = await client.wallet.getAccounts()
-      accounts = response.content.accounts
+      accounts = allAccounts
     } else if (!accounts) {
       const account = await useAccount(client, undefined)
       accounts = [account]
     }
+
+    const accountsByAddress = new Map<string, string>(
+      await Promise.all(
+        allAccounts.map<Promise<[string, string]>>(async (account) => {
+          const response = await client.wallet.getAccountPublicKey({ account })
+          return [response.content.publicKey, response.content.account]
+        }),
+      ),
+    )
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
@@ -120,7 +130,7 @@ export class TransactionsCommand extends IronfishCommand {
         }
 
         transactionRows = transactionRows.concat(
-          this.getTransactionRowsByNote(assetLookup, transaction, format),
+          this.getTransactionRowsByNote(assetLookup, accountsByAddress, transaction, format),
         )
       } else {
         const assetLookup = await getAssetsByIDs(
@@ -235,6 +245,7 @@ export class TransactionsCommand extends IronfishCommand {
 
   getTransactionRowsByNote(
     assetLookup: { [key: string]: RpcAsset },
+    accountLookup: Map<string, string>,
     transaction: GetAccountTransactionsResponse,
     format: Format,
   ): PartialRecursive<TransactionRow>[] {
@@ -258,6 +269,8 @@ export class TransactionsCommand extends IronfishCommand {
       const sender = note.sender
       const recipient = note.owner
       const memo = note.memo
+      const senderName = accountLookup.get(note.sender)
+      const recipientName = accountLookup.get(note.owner)
 
       const group = this.getRowGroup(index, noteCount, transactionRows.length)
 
@@ -273,7 +286,9 @@ export class TransactionsCommand extends IronfishCommand {
           amount,
           feePaid,
           sender,
+          senderName,
           recipient,
+          recipientName,
           memo,
         })
       } else {
@@ -285,7 +300,9 @@ export class TransactionsCommand extends IronfishCommand {
           assetSymbol,
           amount,
           sender,
+          senderName,
           recipient,
+          recipientName,
           memo,
         })
       }
@@ -372,9 +389,17 @@ export class TransactionsCommand extends IronfishCommand {
     if (notes) {
       columns = {
         ...columns,
+        senderName: {
+          header: 'Sender',
+          get: (row) => row.senderName ?? '',
+        },
         sender: {
           header: 'Sender Address',
           get: (row) => row.sender ?? '',
+        },
+        recipientName: {
+          header: 'Recipient',
+          get: (row) => row.recipientName ?? '',
         },
         recipient: {
           header: 'Recipient Address',
@@ -435,6 +460,8 @@ type TransactionRow = {
   expiration: number
   submittedSequence: number
   sender: string
+  senderName?: string
   recipient: string
+  recipientName?: string
   memo?: string
 }
