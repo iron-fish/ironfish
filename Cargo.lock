@@ -1637,6 +1637,7 @@ dependencies = [
  "blstrs",
  "getrandom",
  "group 0.12.1",
+ "hex-literal",
  "ironfish",
  "ironfish-jubjub",
  "ironfish_zkp",
