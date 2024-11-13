@@ -642,4 +642,45 @@ describe('Route wallet/importAccount', () => {
     Assert.isNotUndefined(existingIdentity)
     expect(existingIdentity.name).toEqual('existingIdentity')
   })
+
+  describe('account format', () => {
+    it('should decode an account import with the requested format', async () => {
+      const name = 'mnemonic-format'
+      const mnemonic = spendingKeyToWords(generateKey().spendingKey, LanguageCode.English)
+
+      const response = await routeTest.client.wallet.importAccount({
+        account: mnemonic,
+        name: name,
+        rescan: false,
+        format: AccountFormat.Mnemonic,
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.content).toMatchObject({
+        name: name,
+      })
+    })
+
+    it('should fail to decode an account import with the incorrect format', async () => {
+      const name = 'mnemonic-format'
+      const mnemonic = spendingKeyToWords(generateKey().spendingKey, LanguageCode.English)
+
+      try {
+        await routeTest.client.wallet.importAccount({
+          account: mnemonic,
+          name,
+          rescan: false,
+          format: AccountFormat.JSON,
+        })
+      } catch (e: unknown) {
+        if (!(e instanceof RpcRequestError)) {
+          throw e
+        }
+
+        expect(e.status).toBe(400)
+        expect(e.message).not.toContain('decoder errors:')
+        expect(e.message).toContain('Invalid JSON')
+      }
+    })
+  })
 })

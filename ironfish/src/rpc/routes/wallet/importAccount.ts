@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { DecodeInvalidName } from '../../../wallet'
 import { DuplicateAccountNameError, DuplicateIdentityNameError } from '../../../wallet/errors'
-import { decodeAccountImport } from '../../../wallet/exporter/account'
+import { AccountFormat, decodeAccountImport } from '../../../wallet/exporter/account'
 import { decryptEncodedAccount } from '../../../wallet/exporter/encryption'
 import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
@@ -18,6 +18,7 @@ export type ImportAccountRequest = {
   name?: string
   rescan?: boolean
   createdAt?: number
+  format?: AccountFormat
 }
 
 export type ImportResponse = {
@@ -31,6 +32,7 @@ export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> 
     name: yup.string().optional(),
     account: yup.string().defined(),
     createdAt: yup.number().optional(),
+    format: yup.mixed<AccountFormat>().oneOf(Object.values(AccountFormat)).optional(),
   })
   .defined()
 
@@ -50,7 +52,10 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
 
       request.data.account = await decryptEncodedAccount(request.data.account, context.wallet)
 
-      const decoded = decodeAccountImport(request.data.account, { name: request.data.name })
+      const decoded = decodeAccountImport(request.data.account, {
+        name: request.data.name,
+        format: request.data.format,
+      })
       const account = await context.wallet.importAccount(decoded, {
         createdAt: request.data.createdAt,
       })
