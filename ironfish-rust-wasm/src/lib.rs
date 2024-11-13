@@ -16,3 +16,8 @@ use getrandom as _;
 pub mod errors;
 pub mod keys;
 pub mod primitives;
+
+#[cfg(test)]
+mod tests {
+    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
+}

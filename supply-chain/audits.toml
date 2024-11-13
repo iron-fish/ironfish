@@ -12,6 +12,11 @@ criteria = "safe-to-deploy"
 delta = "0.10.1 -> 0.11.0"
 notes = "Main change is how langauges are handled (previous version: through an enum, new version: through a marker type)"
 
+[[audits.console_error_panic_hook]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-run"
+version = "0.1.7"
+
 [[audits.crypto_box]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
@@ -78,6 +83,16 @@ criteria = "safe-to-deploy"
 version = "0.1.0"
 notes = "Crate owned by the Iron Fish organization"
 
+[[audits.js-sys]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.3.69 -> 0.3.72"
+
+[[audits.minicov]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-run"
+version = "0.3.7"
+
 [[audits.mio]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
@@ -120,6 +135,11 @@ criteria = "safe-to-deploy"
 delta = "0.2.84 -> 0.2.95"
 notes = "New features and bug fixes; there's are new/changed unsafe blocks and they all look benign"
 
+[[audits.wasm-bindgen-futures]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.4.34 -> 0.4.45"
+
 [[audits.wasm-bindgen-macro]]
 who = "andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
@@ -137,6 +157,16 @@ who = "andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
 delta = "0.2.92 -> 0.2.95"
 notes = "Only minor changes; no new unsafe code or system calls introduced"
+
+[[audits.wasm-bindgen-test]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-run"
+version = "0.3.45"
+
+[[audits.wasm-bindgen-test-macro]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-run"
+version = "0.3.45"
 
 [[trusted.reddsa]]
 criteria = "safe-to-deploy"
