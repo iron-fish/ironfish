@@ -25,6 +25,19 @@ const { sort: _, ...tableFlags } = ui.TableFlags
 export class TransactionsCommand extends IronfishCommand {
   static description = `list the account's transactions`
 
+  static examples = [
+    {
+      description: 'List all transactions in the current wallet:',
+      command: '$ <%= config.bin %> <%= command.id %>',
+    },
+    {
+      description:
+        'Export transactions in all wallets for the month of october in an accounting friendly format:',
+      command:
+        '$ <%= config.bin %> <%= command.id %> --no-account --filter.start 2024-10-01 --filter.end 2024-11-01 --output csv --format transfers',
+    },
+  ]
+
   static flags = {
     ...RemoteFlags,
     ...tableFlags,
