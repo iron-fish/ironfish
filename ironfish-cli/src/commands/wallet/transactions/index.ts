@@ -62,6 +62,14 @@ export class TransactionsCommand extends IronfishCommand {
       options: ['notes', 'transactions', 'transfers'],
       helpGroup: 'OUTPUT',
     }),
+    'filter.start': Flags.string({
+      description: 'include transactions after this date (inclusive). Example: 04/20/2023',
+      parse: (input) => Promise.resolve(new Date(input).toISOString()),
+    }),
+    'filter.end': Flags.string({
+      description: 'include transactions before this date (exclusive). Example: 05/20/2023',
+      parse: (input) => Promise.resolve(new Date(input).toISOString()),
+    }),
   }
 
   async start(): Promise<void> {
@@ -121,9 +129,20 @@ export class TransactionsCommand extends IronfishCommand {
     let hasTransactions = false
     let transactionRows: PartialRecursive<TransactionRow>[] = []
 
+    const filterStart = flags['filter.start'] && new Date(flags['filter.start']).valueOf()
+    const filterEnd = flags['filter.end'] && new Date(flags['filter.end']).valueOf()
+
     for await (const { account, transaction } of transactions) {
       if (transactionRows.length >= flags.limit) {
         break
+      }
+
+      if (filterStart && transaction.timestamp < filterStart.valueOf()) {
+        continue
+      }
+
+      if (filterEnd && transaction.timestamp >= filterEnd.valueOf()) {
+        continue
       }
 
       if (format === 'notes' || format === 'transfers') {
