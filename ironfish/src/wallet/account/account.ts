@@ -845,16 +845,6 @@ export class Account {
     }
   }
 
-  async *getTransactionsOrderedBySequence(
-    tx?: IDatabaseTransaction,
-  ): AsyncGenerator<Readonly<TransactionValue>> {
-    for await (const { hash } of this.walletDb.getTransactionHashesBySequence(this, tx)) {
-      const transaction = await this.getTransaction(hash, tx)
-      Assert.isNotUndefined(transaction)
-      yield transaction
-    }
-  }
-
   getPendingTransactions(
     headSequence: number,
     tx?: IDatabaseTransaction,

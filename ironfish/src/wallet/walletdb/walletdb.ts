@@ -542,19 +542,6 @@ export class WalletDB {
     await this.transactions.del([account.prefix, transactionHash], tx)
   }
 
-  async *getTransactionHashesBySequence(
-    account: Account,
-    tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{ sequence: number; hash: Buffer }> {
-    for await (const [, [sequence, hash]] of this.sequenceToTransactionHash.getAllKeysIter(
-      tx,
-      account.prefixRange,
-      { ordered: true },
-    )) {
-      yield { sequence, hash }
-    }
-  }
-
   async *loadTransactions(
     account: Account,
     range?: DatabaseKeyRange,
@@ -828,24 +815,6 @@ export class WalletDB {
     await this.nullifierToNoteHash.put([account.prefix, nullifier], noteHash, tx)
     if (this.nullifierBloomFilter) {
       this.nullifierBloomFilter.put(nullifier)
-    }
-  }
-
-  async *loadNullifierToNoteHash(
-    account: Account,
-    tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{
-    nullifier: Buffer
-    noteHash: Buffer
-  }> {
-    for await (const [[_, nullifier], noteHash] of this.nullifierToNoteHash.getAllIter(
-      tx,
-      account.prefixRange,
-    )) {
-      yield {
-        nullifier,
-        noteHash,
-      }
     }
   }
 
@@ -1142,19 +1111,6 @@ export class WalletDB {
     }
   }
 
-  async saveSequenceToTransactionHash(
-    account: Account,
-    sequence: number,
-    transactionHash: Buffer,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.sequenceToTransactionHash.put(
-      [account.prefix, [sequence, transactionHash]],
-      null,
-      tx,
-    )
-  }
-
   async deleteSequenceToTransactionHash(
     account: Account,
     sequence: number,
@@ -1404,10 +1360,6 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<MultisigIdentityValue | undefined> {
     return this.multisigIdentities.get(identity, tx)
-  }
-
-  async hasMultisigIdentity(identity: Buffer, tx?: IDatabaseTransaction): Promise<boolean> {
-    return (await this.getMultisigIdentity(identity, tx)) !== undefined
   }
 
   async deleteMultisigIdentity(identity: Buffer, tx?: IDatabaseTransaction): Promise<void> {
