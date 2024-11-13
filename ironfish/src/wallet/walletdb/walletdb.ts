@@ -482,6 +482,14 @@ export class WalletDB {
     await this.heads.del(account.id, tx)
   }
 
+  async *loadHeads(
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<{ accountId: string; head: HeadValue | null }, void, unknown> {
+    for await (const [accountId, head] of this.heads.getAllIter(tx)) {
+      yield { accountId, head }
+    }
+  }
+
   async saveTransaction(
     account: Account,
     transactionHash: Buffer,
