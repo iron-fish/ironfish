@@ -63,11 +63,11 @@ export class TransactionsCommand extends IronfishCommand {
       helpGroup: 'OUTPUT',
     }),
     'filter.start': Flags.string({
-      description: 'include transactions after this date (inclusive). Example: 04/20/2023',
+      description: 'include transactions after this date (inclusive). Example: 2023-04-01',
       parse: (input) => Promise.resolve(new Date(input).toISOString()),
     }),
     'filter.end': Flags.string({
-      description: 'include transactions before this date (exclusive). Example: 05/20/2023',
+      description: 'include transactions before this date (exclusive). Example: 2023-05-01',
       parse: (input) => Promise.resolve(new Date(input).toISOString()),
     }),
   }
