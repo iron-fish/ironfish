@@ -54,8 +54,13 @@ export class TransactionsCommand extends IronfishCommand {
       description: 'Number of block confirmations needed to confirm a transaction',
     }),
     notes: Flags.boolean({
-      default: false,
       description: 'Include data from transaction output notes',
+    }),
+    format: Flags.string({
+      description: 'output in a more machine friendly format',
+      exclusive: ['notes'],
+      options: ['notes', 'transactions', 'transfers'],
+      helpGroup: 'OUTPUT',
     }),
   }
 
@@ -68,6 +73,15 @@ export class TransactionsCommand extends IronfishCommand {
         : flags.output === 'json'
         ? Format.json
         : Format.cli
+
+    const output =
+      flags.notes || flags.format === 'notes'
+        ? 'notes'
+        : flags.format === 'transactions'
+        ? 'transactions'
+        : flags.format === 'transfers'
+        ? 'transfers'
+        : 'transfers'
 
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
@@ -101,10 +115,8 @@ export class TransactionsCommand extends IronfishCommand {
       flags.limit,
       flags.offset,
       flags.confirmations,
-      flags.notes,
+      output === 'notes' || output === 'transfers',
     )
-
-    const columns = this.getColumns(flags.extended, flags.notes, format)
 
     let hasTransactions = false
     let transactionRows: PartialRecursive<TransactionRow>[] = []
@@ -113,8 +125,10 @@ export class TransactionsCommand extends IronfishCommand {
       if (transactionRows.length >= flags.limit) {
         break
       }
-      if (flags.notes) {
+
+      if (output === 'notes' || output === 'transfers') {
         Assert.isNotUndefined(transaction.notes)
+
         const assetLookup = await getAssetsByIDs(
           client,
           transaction.notes.map((n) => n.assetId) || [],
@@ -130,7 +144,13 @@ export class TransactionsCommand extends IronfishCommand {
         }
 
         transactionRows = transactionRows.concat(
-          this.getTransactionRowsByNote(assetLookup, accountsByAddress, transaction, format),
+          this.getTransactionRowsByNote(
+            assetLookup,
+            accountsByAddress,
+            transaction,
+            format,
+            output,
+          ),
         )
       } else {
         const assetLookup = await getAssetsByIDs(
@@ -145,6 +165,8 @@ export class TransactionsCommand extends IronfishCommand {
       }
       hasTransactions = true
     }
+
+    const columns = this.getColumns(flags.extended, output, format)
 
     ui.table(transactionRows, columns, {
       printLine: this.log.bind(this),
@@ -248,6 +270,7 @@ export class TransactionsCommand extends IronfishCommand {
     accountLookup: Map<string, string>,
     transaction: GetAccountTransactionsResponse,
     format: Format,
+    output: 'notes' | 'transactions' | 'transfers',
   ): PartialRecursive<TransactionRow>[] {
     Assert.isNotUndefined(transaction.notes)
     const transactionRows = []
@@ -272,7 +295,15 @@ export class TransactionsCommand extends IronfishCommand {
       const senderName = accountLookup.get(note.sender)
       const recipientName = accountLookup.get(note.owner)
 
-      const group = this.getRowGroup(index, noteCount, transactionRows.length)
+      let group = this.getRowGroup(index, noteCount, transactionRows.length)
+
+      if (output === 'transfers') {
+        if (note.sender === note.owner && !transaction.mints.length) {
+          continue
+        } else {
+          group = ''
+        }
+      }
 
       // include full transaction details in first row or non-cli-formatted output
       if (transactionRows.length === 0 || format !== Format.cli) {
@@ -313,7 +344,7 @@ export class TransactionsCommand extends IronfishCommand {
 
   getColumns(
     extended: boolean,
-    notes: boolean,
+    output: 'notes' | 'transactions' | 'transfers',
     format: Format,
   ): ui.TableColumns<PartialRecursive<TransactionRow>> {
     let columns: ui.TableColumns<PartialRecursive<TransactionRow>> = {
@@ -327,7 +358,7 @@ export class TransactionsCommand extends IronfishCommand {
       },
       type: {
         header: 'Type',
-        minWidth: notes ? 18 : 8,
+        minWidth: output === 'notes' || output === 'transfers' ? 18 : 8,
         get: (row) => row.type ?? '',
       },
       hash: {
@@ -386,7 +417,7 @@ export class TransactionsCommand extends IronfishCommand {
       },
     }
 
-    if (notes) {
+    if (output === 'notes' || output === 'transfers') {
       columns = {
         ...columns,
         senderName: {
