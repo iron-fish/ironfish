@@ -6,6 +6,7 @@ on:
       - "ironfish-phase2/**"
       - "ironfish-rust/**"
       - "ironfish-rust-nodejs/**"
+      - "ironfish-rust-wasm/**"
       - "ironfish-zkp/**"
       - "rust-toolchain"
       - ".github/workflows/rust*"
@@ -20,6 +21,7 @@ on:
       - "ironfish-phase2/**"
       - "ironfish-rust/**"
       - "ironfish-rust-nodejs/**"
+      - "ironfish-rust-wasm/**"
       - "ironfish-zkp/**"
       - "rust-toolchain"
       - ".github/workflows/rust*"
@@ -48,11 +50,14 @@ jobs:
       - name: Check for license headers for ironfish-rust-nodejs
         run: ./ci/lintHeaders.sh ./ironfish-rust-nodejs/src *.rs
 
-      - name: "`cargo fmt` check on ironfish-rust"
+      - name: Check for license headers for ironfish-rust-wasm
+        run: ./ci/lintHeaders.sh ./ironfish-rust-wasm/src *.rs
+
+      - name: cargo fmt
         run: |
           cargo fmt --all -- --check
 
-      - name: "Clippy check on ironfish-rust"
+      - name: cargo clippy
         run: |
           cargo clippy --all-targets --all-features -- -D warnings
 
@@ -220,3 +225,29 @@ jobs:
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           flags: ironfish-zkp
+
+  ironfish_wasm:
+    name: Test ironfish-rust-wasm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: wasm
+
+      - name: Install wasm-pack
+        # use the installation method reccommended on
+        # https://rustwasm.github.io/docs/wasm-bindgen/wasm-bindgen-test/continuous-integration.html#github-actions
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Run tests in Firefox
+        run: |
+          cd ironfish-rust-wasm
+          wasm-pack test --headless --firefox
+
+      - name: Run tests in Chrome
+        run: |
+          cd ironfish-rust-wasm
+          wasm-pack test --headless --chrome
