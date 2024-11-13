@@ -48,7 +48,7 @@ export const TableFlags = {
     helpGroup: 'OUTPUT',
   }),
   output: Flags.string({
-    description: 'output in a more machine friendly format',
+    description: 'output in different file types',
     exclusive: ['csv'],
     options: ['csv', 'json'],
     helpGroup: 'OUTPUT',
