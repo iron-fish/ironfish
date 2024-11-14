@@ -21,6 +21,7 @@ ironfish = { version = "0.3.0", path = "../ironfish-rust" }
 ironfish-jubjub = "0.1.0"
 ironfish_zkp = { version = "0.2.0", path = "../ironfish-zkp" }
 rand = "0.8.5"
+rayon = { version = "1.8.1", features = ["web_spin_lock"] } # need to explicitly enable the `web_spin_lock` in order to run in a browser
 wasm-bindgen = "0.2.95"
 
 [dev-dependencies]
