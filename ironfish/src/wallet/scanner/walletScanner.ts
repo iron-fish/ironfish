@@ -9,8 +9,8 @@ import type { HeadValue } from '../walletdb/headValue'
 import { Config } from '../../fileStores'
 import { Logger } from '../../logger'
 import { Mutex } from '../../mutex'
-import { BlockHeader, Transaction } from '../../primitives'
-import { BufferUtils, HashUtils } from '../../utils'
+import { BlockHeader, GENESIS_BLOCK_SEQUENCE, Transaction } from '../../primitives'
+import { HashUtils } from '../../utils'
 import { WorkerPool } from '../../workerPool'
 import { ChainProcessorWithTransactions } from './chainProcessorWithTransactions'
 import { BackgroundNoteDecryptor } from './noteDecryptor'
@@ -32,8 +32,13 @@ export class WalletScanner {
   /**
    * A snapshot of the accounts that have `scanningEnabled` set to true. Used
    * to tell what accounts should be scanned, and from what block.
+   * If `scanFrom` is 'always-scan' then the account's head is the same as the
+   * WalletScanner's head, and blocks should always be added
    */
-  private scanningAccounts = new Array<{ account: Account; scanFrom: HeadValue | null }>()
+  private scanningAccounts = new Array<{
+    account: Account
+    scanFrom: { head: HeadValue | null } | 'always-scan'
+  }>()
 
   constructor(options: {
     logger: Logger
@@ -177,33 +182,31 @@ export class WalletScanner {
       )
     }
 
-    const connectOnlyAccounts = new Array<Account>()
-    const decryptAndConnectAccounts = new Array<Account>()
-
     for (const candidate of this.scanningAccounts) {
-      if (
-        !candidate.scanFrom ||
-        BufferUtils.equalsNullable(candidate.scanFrom.hash, blockHeader.previousBlockHash)
-      ) {
-        candidate.scanFrom = null
+      const { account, scanFrom } = candidate
 
-        if (
-          candidate.account.createdAt === null ||
-          blockHeader.sequence >= candidate.account.createdAt.sequence
-        ) {
-          decryptAndConnectAccounts.push(candidate.account)
-        } else {
-          connectOnlyAccounts.push(candidate.account)
+      if (scanFrom === 'always-scan') {
+        continue
+      }
+
+      if (scanFrom.head === null) {
+        if (account.createdAt === null && blockHeader.sequence === GENESIS_BLOCK_SEQUENCE) {
+          candidate.scanFrom = 'always-scan'
+        }
+
+        if (account.createdAt && blockHeader.sequence >= account.createdAt.sequence) {
+          candidate.scanFrom = 'always-scan'
         }
       }
+
+      if (scanFrom.head?.hash.equals(blockHeader.previousBlockHash)) {
+        candidate.scanFrom = 'always-scan'
+      }
     }
 
-    for (const account of connectOnlyAccounts) {
-      if (abort?.signal.aborted) {
-        return
-      }
-      await this.wallet.connectBlockForAccount(account, blockHeader, [], false)
-    }
+    const decryptAndConnectAccounts = this.scanningAccounts
+      .filter(({ scanFrom }) => scanFrom === 'always-scan')
+      .map(({ account }) => account)
 
     if (abort?.signal.aborted) {
       return
@@ -230,7 +233,7 @@ export class WalletScanner {
     this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)
 
     const accounts = (await this.getScanningAccountsWithHead()).filter(({ head }) =>
-      BufferUtils.equalsNullable(head?.hash, header.hash),
+      head?.hash.equals(header.hash),
     )
 
     for (const { account } of accounts) {
@@ -241,8 +244,12 @@ export class WalletScanner {
     }
 
     for (const account of this.scanningAccounts) {
-      if (account.scanFrom && BufferUtils.equalsNullable(account.scanFrom.hash, header.hash)) {
-        account.scanFrom = null
+      if (account.scanFrom === 'always-scan') {
+        continue
+      }
+
+      if (account.scanFrom?.head?.hash.equals(header.hash)) {
+        account.scanFrom = 'always-scan'
       }
     }
   }
@@ -308,13 +315,18 @@ export class WalletScanner {
    */
   private async refreshScanningAccounts(): Promise<void> {
     this.scanningAccounts = (await this.getScanningAccountsWithHead()).map(
-      ({ account, head }) => ({ account, scanFrom: head }),
+      ({ account, head }) => ({ account, scanFrom: { head } }),
     )
   }
 
   private getEarliestHead(): HeadValue | null {
     let earliestHead = null
-    for (const { scanFrom: head } of this.scanningAccounts) {
+    for (const { scanFrom } of this.scanningAccounts) {
+      if (scanFrom === 'always-scan') {
+        continue
+      }
+
+      const { head } = scanFrom
       if (!head) {
         return null
       }
@@ -322,6 +334,7 @@ export class WalletScanner {
         earliestHead = head
       }
     }
+
     return earliestHead
   }
 }
