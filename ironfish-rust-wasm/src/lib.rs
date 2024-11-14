@@ -10,8 +10,10 @@
 #![warn(unused_macro_rules)]
 #![warn(unused_qualifications)]
 
-// The getrandom dependency exists only to ensure that the `js` feature is enabled
+// These dependencies exist only to ensure that some browser-specific features are enabled, and are
+// not actually used in our code
 use getrandom as _;
+use rayon as _;
 
 pub mod assets;
 pub mod errors;
