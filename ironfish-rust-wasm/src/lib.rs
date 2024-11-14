@@ -13,6 +13,7 @@
 // The getrandom dependency exists only to ensure that the `js` feature is enabled
 use getrandom as _;
 
+pub mod assets;
 pub mod errors;
 pub mod keys;
 pub mod primitives;
