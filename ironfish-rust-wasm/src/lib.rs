@@ -18,6 +18,7 @@ pub mod errors;
 pub mod keys;
 pub mod merkle_note;
 pub mod primitives;
+pub mod transaction;
 
 #[cfg(test)]
 mod tests {
