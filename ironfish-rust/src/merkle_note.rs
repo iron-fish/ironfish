@@ -73,6 +73,8 @@ impl PartialEq for MerkleNote {
     }
 }
 
+impl Eq for MerkleNote {}
+
 impl MerkleNote {
     pub fn new(
         outgoing_view_key: &OutgoingViewKey,

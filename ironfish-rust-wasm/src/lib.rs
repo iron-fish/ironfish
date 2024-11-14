@@ -16,6 +16,7 @@ use getrandom as _;
 pub mod assets;
 pub mod errors;
 pub mod keys;
+pub mod merkle_note;
 pub mod primitives;
 
 #[cfg(test)]
