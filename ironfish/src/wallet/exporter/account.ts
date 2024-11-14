@@ -27,23 +27,22 @@ export enum AccountFormat {
   SpendingKey = 'SpendingKey',
 }
 
+const accountFormatToEncoder = new Map([
+  [AccountFormat.Base64Json, Base64JsonEncoder],
+  [AccountFormat.JSON, JsonEncoder],
+  [AccountFormat.Mnemonic, MnemonicEncoder],
+  [AccountFormat.SpendingKey, SpendingKeyEncoder],
+])
+
 export function encodeAccountImport(
   value: AccountImport,
   format: AccountFormat,
   options: AccountEncodingOptions = {},
 ): string {
-  switch (format) {
-    case AccountFormat.JSON:
-      return new JsonEncoder().encode(value)
-    case AccountFormat.Base64Json:
-      return new Base64JsonEncoder().encode(value)
-    case AccountFormat.SpendingKey:
-      return new SpendingKeyEncoder().encode(value)
-    case AccountFormat.Mnemonic:
-      return new MnemonicEncoder().encode(value, options)
-    default:
-      return Assert.isUnreachable(format)
-  }
+  const encoder = accountFormatToEncoder.get(format)
+  Assert.isNotUndefined(encoder, `Invalid account encoding format: ${format}`)
+
+  return new encoder().encode(value, options)
 }
 
 export function decodeAccountImport(
@@ -51,6 +50,13 @@ export function decodeAccountImport(
   options: AccountDecodingOptions = {},
 ): AccountImport {
   const errors: DecodeFailed[] = []
+
+  if (options.format) {
+    const encoder = accountFormatToEncoder.get(options.format)
+    Assert.isNotUndefined(encoder, `Invalid account decoding format: ${options.format}`)
+
+    return new encoder().decode(value, options)
+  }
 
   for (const encoder of ENCODER_VERSIONS) {
     try {
