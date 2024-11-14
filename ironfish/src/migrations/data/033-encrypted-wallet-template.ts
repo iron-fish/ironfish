@@ -1,20 +1,23 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '../../assert'
 import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
+import { MasterKey } from '../../wallet/masterKey'
 import { EncryptedWalletMigrationError } from '../errors'
 import { Database, Migration, MigrationContext } from '../migration'
-import { DecryptedAccountValue as NewDecryptedAccountValue } from './033-encrypted-wallet-template/new/accountValue'
-import { DecryptedAccountValue as OldDecryptedAccountValue } from './033-encrypted-wallet-template/old/accountValue'
-import { GetStores } from './033-encrypted-wallet-template/stores'
 import {
-  decryptNewEncryptedAccountValue,
-  decryptOldEncryptedAccountValue,
-  encryptOldAccountValue,
-  getKey,
-} from './033-encrypted-wallet-template/util'
+  AccountValueEncoding as NewAccountValueEncoding,
+  DecryptedAccountValue as NewDecryptedAccountValue,
+} from './033-encrypted-wallet-template/new/accountValue'
+import {
+  AccountValueEncoding as OldAccountValueEncoding,
+  DecryptedAccountValue as OldDecryptedAccountValue,
+  EncryptedAccountValue as OldEncryptedAccountValue,
+} from './033-encrypted-wallet-template/old/accountValue'
+import { GetStores } from './033-encrypted-wallet-template/stores'
 
 export class Migration033 extends Migration {
   path = __filename
@@ -33,61 +36,59 @@ export class Migration033 extends Migration {
     walletPassphrase: string | undefined,
   ): Promise<void> {
     const stores = GetStores(db)
+    const oldEncoding = new OldAccountValueEncoding()
+    const newEncoding = new NewAccountValueEncoding()
 
-    // forward migration inserts from old stores into new stores
     for await (const account of stores.old.accounts.getAllValuesIter(tx)) {
       let decryptedAccount
 
       // Check if the account is encrypted, and throw an error to allow client
       // code to prompt for passphrase.
-      //
-      // This assumes that serialization of encrypted accounts has NOT changed,
-      // so deserialization works with both old and new schema.
       if (account.encrypted) {
         if (!walletPassphrase) {
           throw new EncryptedWalletMigrationError('Cannot run migration on encrypted wallet')
         }
 
-        const key = await getKey(
-          stores.old.masterKey,
-          account.salt,
-          account.nonce,
-          walletPassphrase,
-        )
+        const masterKeyValue = await stores.old.masterKey.get('key')
+        Assert.isNotUndefined(masterKeyValue)
 
-        // Decrypt the old encrypted account data and apply migration
-        decryptedAccount = decryptOldEncryptedAccountValue(account.data, key)
+        const masterKey = new MasterKey(masterKeyValue)
+        await masterKey.unlock(walletPassphrase)
 
+        // Decrypt encrypted account data
+        const decrypted = masterKey.decrypt(account.data, account.salt, account.nonce)
+        decryptedAccount = oldEncoding.deserializeDecrypted(decrypted)
+
+        // Apply migration to decrypted account data
         logger.info(`  Migrating account ${decryptedAccount.name}`)
-
-        const migrated = this._accountForward(decryptedAccount)
+        const migrated = this.accountForward(decryptedAccount)
 
         // Re-encrypt the migrated data and write it to the store.
         // Assumes that schema for encrypted accounts has NOT changed.
-        const encryptedAccount = encryptOldAccountValue(
-          migrated,
-          key,
-          account.salt,
-          account.nonce,
-        )
+        const migratedSerialized = newEncoding.serialize(migrated)
+        const { ciphertext: data, salt, nonce } = masterKey.encrypt(migratedSerialized)
+
+        const encryptedAccount: OldEncryptedAccountValue = {
+          encrypted: true,
+          salt,
+          nonce,
+          data,
+        }
 
         await stores.new.accounts.put(decryptedAccount.id, encryptedAccount, tx)
-
-        key.destroy()
       } else {
         decryptedAccount = account
 
         logger.info(`  Migrating account ${decryptedAccount.name}`)
-
-        const migrated = this._accountForward(decryptedAccount)
+        const migrated = this.accountForward(decryptedAccount)
 
         await stores.new.accounts.put(decryptedAccount.id, migrated, tx)
       }
     }
   }
 
-  _accountForward(oldValue: OldDecryptedAccountValue): NewDecryptedAccountValue {
-    // Insert forward migration logic for a decrypted account
+  // Implement logic to migrate (decrypted) account data to the new schema
+  accountForward(oldValue: OldDecryptedAccountValue): NewDecryptedAccountValue {
     const newValue = oldValue
     return newValue
   }
@@ -104,59 +105,60 @@ export class Migration033 extends Migration {
     walletPassphrase: string | undefined,
   ): Promise<void> {
     const stores = GetStores(db)
+    const oldEncoding = new OldAccountValueEncoding()
+    const newEncoding = new NewAccountValueEncoding()
 
     for await (const account of stores.new.accounts.getAllValuesIter(tx)) {
       let decryptedAccount
 
       // Check if the account is encrypted, and throw an error to allow client
       // code to prompt for passphrase.
-      //
-      // This assumes that serialization of encrypted accounts has NOT changed,
-      // so deserialization works with both old and new schema.
       if (account.encrypted) {
         if (!walletPassphrase) {
           throw new EncryptedWalletMigrationError('Cannot run migration on encrypted wallet')
         }
 
-        // Read master key from old store. This assumes that the schema for the
-        // master key has NOT changed
-        const key = await getKey(
-          stores.old.masterKey,
-          account.salt,
-          account.nonce,
-          walletPassphrase,
-        )
+        // Load master key from database
+        const masterKeyValue = await stores.old.masterKey.get('key')
+        Assert.isNotUndefined(masterKeyValue)
 
-        decryptedAccount = decryptNewEncryptedAccountValue(account.data, key)
+        const masterKey = new MasterKey(masterKeyValue)
+        await masterKey.unlock(walletPassphrase)
 
+        // Decrypt encrypted account data
+        const decrypted = masterKey.decrypt(account.data, account.salt, account.nonce)
+        decryptedAccount = newEncoding.deserializeDecrypted(decrypted)
+
+        // Apply migration to decrypted account data
         logger.info(`  Migrating account ${decryptedAccount.name}`)
+        const migrated = this.accountBackward(decryptedAccount)
 
-        const migrated = this._accountBackward(decryptedAccount)
+        // Re-encrypt the migrated data and write it to the store.
+        // Assumes that schema for encrypted accounts has NOT changed.
+        const migratedSerialized = oldEncoding.serialize(migrated)
+        const { ciphertext: data, salt, nonce } = masterKey.encrypt(migratedSerialized)
 
-        const encryptedAccount = encryptOldAccountValue(
-          migrated,
-          key,
-          account.salt,
-          account.nonce,
-        )
+        const encryptedAccount: OldEncryptedAccountValue = {
+          encrypted: true,
+          salt,
+          nonce,
+          data,
+        }
 
         await stores.old.accounts.put(decryptedAccount.id, encryptedAccount, tx)
-
-        key.destroy()
       } else {
         decryptedAccount = account
 
         logger.info(`  Migrating account ${decryptedAccount.name}`)
-
-        const migrated = this._accountBackward(decryptedAccount)
+        const migrated = this.accountBackward(decryptedAccount)
 
         await stores.old.accounts.put(decryptedAccount.id, migrated, tx)
       }
     }
   }
 
-  _accountBackward(newValue: NewDecryptedAccountValue): OldDecryptedAccountValue {
-    // Insert backward migration logic for a decrypted account
+  // Implement logic to rever (decrypted) account data to the old schema
+  accountBackward(newValue: NewDecryptedAccountValue): OldDecryptedAccountValue {
     const oldValue = newValue
     return oldValue
   }
