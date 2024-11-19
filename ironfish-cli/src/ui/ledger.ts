@@ -19,6 +19,7 @@ import {
   LedgerClaNotSupportedError,
   LedgerConnectError,
   LedgerDeviceLockedError,
+  LedgerExpertModeError,
   LedgerGPAuthFailed,
   LedgerPanicError,
   LedgerPortIsBusyError,
@@ -73,6 +74,24 @@ export async function ledger<TResult>({
 
           const confirmed = await ui.confirmList(
             'Ledger Locked. Unlock and press enter to retry:',
+            'Retry',
+          )
+
+          if (!confirmed) {
+            ux.stdout('Operation aborted.')
+            ux.exit(0)
+          }
+
+          if (!wasRunning) {
+            ux.action.start(message)
+          }
+        } else if (e instanceof LedgerExpertModeError) {
+          // Polling the device may prevent the user from navigating to the
+          // expert mode screen in the app and enabling expert mode.
+          ux.action.stop('Expert mode required to send custom assets')
+
+          const confirmed = await ui.confirmList(
+            'Enable expert mode and press enter to retry:',
             'Retry',
           )
 
