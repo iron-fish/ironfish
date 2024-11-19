@@ -110,17 +110,15 @@ export class TransactionsSignCommand extends IronfishCommand {
 
   private async signWithLedger(client: RpcClient, unsignedTransaction: string) {
     const ledger = new LedgerSingleSigner()
-    try {
-      await ledger.connect()
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
 
-    const signature = (await ledger.sign(unsignedTransaction)).toString('hex')
+    const signature = (
+      await ui.ledger({
+        ledger,
+        message: 'Sign Transaction',
+        approval: true,
+        action: () => ledger.sign(unsignedTransaction),
+      })
+    ).toString('hex')
 
     this.log(`\nSignature: ${signature}`)
 
