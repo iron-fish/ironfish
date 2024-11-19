@@ -24,6 +24,7 @@ export const IronfishLedgerStatusCodes = {
   UNKNOWN_TRANSPORT_ERROR: 0xffff,
   INVALID_TX_HASH: 0xb025,
   PANIC: 0xe000,
+  EXPERT_MODE_REQUIRED: 0x6984,
 }
 
 export class Ledger {
@@ -71,6 +72,8 @@ export class Ledger {
           throw new LedgerPanicError()
         } else if (error.returnCode === IronfishLedgerStatusCodes.GP_AUTH_FAILED) {
           throw new LedgerGPAuthFailed()
+        } else if (error.returnCode === IronfishLedgerStatusCodes.EXPERT_MODE_REQUIRED) {
+          throw new LedgerExpertModeError()
         } else if (
           [
             IronfishLedgerStatusCodes.COMMAND_NOT_ALLOWED,
@@ -183,3 +186,4 @@ export class LedgerAppNotOpen extends LedgerError {}
 export class LedgerActionRejected extends LedgerError {}
 export class LedgerInvalidTxHash extends LedgerError {}
 export class LedgerPanicError extends LedgerError {}
+export class LedgerExpertModeError extends LedgerError {}
