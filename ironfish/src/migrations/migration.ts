@@ -45,6 +45,7 @@ export abstract class Migration {
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
     dryRun: boolean,
+    walletPassphrase: string | undefined,
   ): Promise<void>
 
   abstract backward(
@@ -53,5 +54,6 @@ export abstract class Migration {
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
     dryRun: boolean,
+    walletPassphrase: string | undefined,
   ): Promise<void>
 }

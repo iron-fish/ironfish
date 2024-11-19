@@ -1,7 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, FullNode, NodeUtils, PromiseUtils } from '@ironfish/sdk'
+import {
+  Assert,
+  EncryptedWalletMigrationError,
+  FullNode,
+  NodeUtils,
+  PromiseUtils,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import inspector from 'node:inspector'
 import { v4 as uuid } from 'uuid'
@@ -223,7 +229,19 @@ export default class Start extends IronfishCommand {
     }
     this.log(` `)
 
-    await NodeUtils.waitForOpen(node, () => this.closing)
+    try {
+      await NodeUtils.waitForOpen(node, () => this.closing)
+    } catch (e) {
+      if (e instanceof EncryptedWalletMigrationError) {
+        this.logger.error(e.message)
+        this.logger.error(
+          'Run `ironfish migrations:start` to enter wallet passphrase and migrate wallet databases',
+        )
+        this.exit(1)
+      } else {
+        throw e
+      }
+    }
 
     if (this.closing) {
       return startDoneResolve()

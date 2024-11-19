@@ -359,7 +359,10 @@ export class FullNode {
     const initial = await this.migrator.isInitial()
 
     if (migrate || initial) {
-      await this.migrator.migrate({ quiet: !migrate, quietNoop: true })
+      await this.migrator.migrate({
+        quiet: !migrate,
+        quietNoop: true,
+      })
     }
 
     try {
