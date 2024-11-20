@@ -7,7 +7,7 @@ import { Blockchain } from '../../blockchain'
 import { Block, BlockHeader } from '../../primitives'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../../testUtilities'
 import { AsyncUtils } from '../../utils'
-import { Account, Wallet } from '../../wallet'
+import { Account, toAccountImport, Wallet } from '../../wallet'
 import { BackgroundNoteDecryptor } from './noteDecryptor'
 
 describe('WalletScanner', () => {
@@ -279,6 +279,52 @@ describe('WalletScanner', () => {
     const lastBlocks = await createTestNotes(nodeTest.chain, nodeTest.wallet, [[accountB, 3]])
 
     await nodeTest.wallet.reset()
+    await nodeTest.wallet.scan()
+
+    const blocks = [firstBlocks[2], ...lastBlocks]
+
+    expect(decryptNotesFromBlock).toHaveBeenCalledTimes(blocks.length)
+    expect(connectBlockForAccount).toHaveBeenCalledTimes(blocks.length)
+
+    for (const [i, block] of blocks.entries()) {
+      expect(decryptNotesFromBlock).toHaveBeenNthCalledWith(
+        i + 1,
+        block.header,
+        block.transactions,
+        [expect.objectContaining({ incomingViewKey: accountB.incomingViewKey })],
+        expect.anything(),
+      )
+      expect(connectBlockForAccount).toHaveBeenNthCalledWith(
+        i + 1,
+        expect.objectContaining({ incomingViewKey: accountB.incomingViewKey }),
+        block.header,
+        expect.anything(),
+        true,
+      )
+    }
+  })
+
+  it('skips blocks preceeding the lowest createdAt when createdAt is reset', async () => {
+    const decryptNotesFromBlock = jest.spyOn(
+      BackgroundNoteDecryptor.prototype,
+      'decryptNotesFromBlock',
+    )
+    const connectBlockForAccount = jest.spyOn(nodeTest.wallet, 'connectBlockForAccount')
+
+    const accountA = await useAccountFixture(nodeTest.wallet, 'a')
+    const firstBlocks = await createTestNotes(nodeTest.chain, nodeTest.wallet, [[accountA, 3]])
+    await nodeTest.wallet.removeAccount(accountA)
+
+    const accountB = await useAccountFixture(nodeTest.wallet, 'b')
+    const lastBlocks = await createTestNotes(nodeTest.chain, nodeTest.wallet, [[accountB, 3]])
+
+    await nodeTest.wallet.reset({ resetCreatedAt: true })
+
+    await nodeTest.wallet.getAccountByName(accountB.name)?.updateCreatedAt({
+      hash: Buffer.alloc(32, 0),
+      sequence: accountB.createdAt?.sequence || 0,
+    })
+
     await nodeTest.wallet.scan()
 
     const blocks = [firstBlocks[2], ...lastBlocks]
