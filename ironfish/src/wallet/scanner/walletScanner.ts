@@ -17,8 +17,6 @@ import { BackgroundNoteDecryptor } from './noteDecryptor'
 import { RemoteChainProcessor } from './remoteChainProcessor'
 import { ScanState } from './scanState'
 
-type ScanFrom = { sequence: number; hash?: Buffer }
-
 export class WalletScanner {
   readonly logger: Logger
   readonly wallet: Wallet
@@ -37,7 +35,7 @@ export class WalletScanner {
    */
   private scanningAccounts = new Array<{
     account: Account
-    scanFrom: ScanFrom | 'cursor'
+    scanFrom: { sequence: number; hash?: Buffer } | 'cursor'
   }>()
 
   constructor(options: {
@@ -324,14 +322,14 @@ export class WalletScanner {
   }
 
   private async getEarliestHead(): Promise<HeadValue | null | 'none'> {
-    const withoutCursor: ScanFrom[] = []
+    const scanFroms: { sequence: number; hash?: Buffer }[] = []
     for (const { scanFrom } of this.scanningAccounts) {
       if (scanFrom !== 'cursor') {
-        withoutCursor.push(scanFrom)
+        scanFroms.push(scanFrom)
       }
     }
 
-    const sorted = withoutCursor.sort((a, b) => a.sequence - b.sequence)
+    const sorted = scanFroms.sort((a, b) => a.sequence - b.sequence)
 
     for (const scanFrom of sorted) {
       if (scanFrom.sequence < GENESIS_BLOCK_SEQUENCE) {
