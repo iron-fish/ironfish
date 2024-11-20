@@ -338,9 +338,7 @@ export class WalletScanner {
 
       if (!scanFrom.hash) {
         const atSequence = await this.wallet.accountHeadAtSequence(scanFrom.sequence)
-        if (atSequence) {
-          return atSequence
-        }
+        return atSequence ?? 'none'
       } else {
         return { hash: scanFrom.hash, sequence: scanFrom.sequence }
       }
