@@ -322,28 +322,30 @@ export class WalletScanner {
   }
 
   private async getEarliestHead(): Promise<HeadValue | null | 'none'> {
-    const scanFroms: { sequence: number; hash?: Buffer }[] = []
-    for (const { scanFrom } of this.scanningAccounts) {
-      if (scanFrom !== 'cursor') {
-        scanFroms.push(scanFrom)
+    let earliestHead: { sequence: number; hash?: Buffer } | null = null
+    for (const { scanFrom: head } of this.scanningAccounts) {
+      if (head === 'cursor') {
+        continue
+      }
+
+      if (!earliestHead || head.sequence < earliestHead.sequence) {
+        earliestHead = head
       }
     }
 
-    const sorted = scanFroms.sort((a, b) => a.sequence - b.sequence)
-
-    for (const scanFrom of sorted) {
-      if (scanFrom.sequence < GENESIS_BLOCK_SEQUENCE) {
-        return null
-      }
-
-      if (!scanFrom.hash) {
-        const atSequence = await this.wallet.accountHeadAtSequence(scanFrom.sequence)
-        return atSequence ?? 'none'
-      } else {
-        return { hash: scanFrom.hash, sequence: scanFrom.sequence }
-      }
+    if (!earliestHead) {
+      return 'none'
     }
 
-    return 'none'
+    if (earliestHead.sequence < GENESIS_BLOCK_SEQUENCE) {
+      return null
+    }
+
+    if (!earliestHead.hash) {
+      const atSequence = await this.wallet.accountHeadAtSequence(earliestHead.sequence)
+      return atSequence ?? 'none'
+    }
+
+    return { hash: earliestHead.hash, sequence: earliestHead.sequence }
   }
 }
