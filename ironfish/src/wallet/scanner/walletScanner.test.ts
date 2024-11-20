@@ -304,6 +304,40 @@ describe('WalletScanner', () => {
     }
   })
 
+  it('skips blocks preceeding the lowest createdAt when createdAt is reset', async () => {
+    const connectBlockForAccount = jest.spyOn(nodeTest.wallet, 'connectBlockForAccount')
+
+    const accountA = await useAccountFixture(nodeTest.wallet, 'a')
+    const firstBlocks = await createTestNotes(nodeTest.chain, nodeTest.wallet, [[accountA, 3]])
+    await nodeTest.wallet.removeAccount(accountA)
+
+    const accountB = await useAccountFixture(nodeTest.wallet, 'b')
+    const lastBlocks = await createTestNotes(nodeTest.chain, nodeTest.wallet, [[accountB, 3]])
+
+    await nodeTest.wallet.reset({ resetCreatedAt: true })
+
+    await nodeTest.wallet.getAccountByName(accountB.name)?.updateCreatedAt({
+      hash: Buffer.alloc(32, 0),
+      sequence: accountB.createdAt?.sequence || 0,
+    })
+
+    await nodeTest.wallet.scan()
+
+    const blocks = [firstBlocks[2], ...lastBlocks]
+
+    expect(connectBlockForAccount).toHaveBeenCalledTimes(blocks.length)
+
+    for (const [i, block] of blocks.entries()) {
+      expect(connectBlockForAccount).toHaveBeenNthCalledWith(
+        i + 1,
+        expect.objectContaining({ incomingViewKey: accountB.incomingViewKey }),
+        block.header,
+        expect.anything(),
+        true,
+      )
+    }
+  })
+
   describe('restarts scanning', () => {
     // Set up the BackgroundNoteDecryptor so that we can pause and resume the
     // scan after each block that gets processed.
