@@ -1453,7 +1453,7 @@ export class Wallet {
    * Try to get the block hash from the chain with createdAt sequence
    * Otherwise, return null
    */
-  private async accountHeadAtSequence(sequence: number): Promise<HeadValue | null> {
+  async accountHeadAtSequence(sequence: number): Promise<HeadValue | null> {
     try {
       const previousBlock = await this.chainGetBlock({ sequence })
       return previousBlock
