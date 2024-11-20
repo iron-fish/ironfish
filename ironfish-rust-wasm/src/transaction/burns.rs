@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{assets::AssetIdentifier, errors::IronfishError};
+use crate::{assets::AssetIdentifier, errors::IronfishError, wasm_bindgen_wrapper};
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct BurnDescription(ironfish::transaction::burns::BurnDescription);
+wasm_bindgen_wrapper! {
+    #[derive(Clone, PartialEq, Eq, Debug)]
+    pub struct BurnDescription(ironfish::transaction::burns::BurnDescription);
+}
 
 #[wasm_bindgen]
 impl BurnDescription {
@@ -35,17 +36,5 @@ impl BurnDescription {
     #[wasm_bindgen(getter)]
     pub fn value(&self) -> u64 {
         self.0.value
-    }
-}
-
-impl From<ironfish::transaction::burns::BurnDescription> for BurnDescription {
-    fn from(d: ironfish::transaction::burns::BurnDescription) -> Self {
-        Self(d)
-    }
-}
-
-impl AsRef<ironfish::transaction::burns::BurnDescription> for BurnDescription {
-    fn as_ref(&self) -> &ironfish::transaction::burns::BurnDescription {
-        &self.0
     }
 }

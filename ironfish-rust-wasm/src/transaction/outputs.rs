@@ -6,12 +6,14 @@ use crate::{
     errors::IronfishError,
     merkle_note::MerkleNote,
     primitives::{PublicKey, Scalar},
+    wasm_bindgen_wrapper,
 };
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-#[derive(Clone, PartialEq, Debug)]
-pub struct OutputDescription(ironfish::OutputDescription);
+wasm_bindgen_wrapper! {
+    #[derive(Clone, PartialEq, Debug)]
+    pub struct OutputDescription(ironfish::OutputDescription);
+}
 
 #[wasm_bindgen]
 impl OutputDescription {
@@ -46,17 +48,5 @@ impl OutputDescription {
     #[wasm_bindgen(getter, js_name = merkleNote)]
     pub fn merkle_note(&self) -> MerkleNote {
         self.0.merkle_note().into()
-    }
-}
-
-impl From<ironfish::OutputDescription> for OutputDescription {
-    fn from(d: ironfish::OutputDescription) -> Self {
-        Self(d)
-    }
-}
-
-impl AsRef<ironfish::OutputDescription> for OutputDescription {
-    fn as_ref(&self) -> &ironfish::OutputDescription {
-        &self.0
     }
 }

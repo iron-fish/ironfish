@@ -5,13 +5,15 @@
 use crate::{
     errors::IronfishError,
     primitives::{Nullifier, PublicKey, Scalar},
+    wasm_bindgen_wrapper,
 };
 use ironfish::errors::IronfishErrorKind;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-#[derive(Clone, Debug)]
-pub struct SpendDescription(ironfish::SpendDescription);
+wasm_bindgen_wrapper! {
+    #[derive(Clone, Debug)]
+    pub struct SpendDescription(ironfish::SpendDescription);
+}
 
 #[wasm_bindgen]
 impl SpendDescription {
@@ -70,17 +72,5 @@ impl SpendDescription {
             .into_iter()
             .map(Scalar::from)
             .collect()
-    }
-}
-
-impl From<ironfish::SpendDescription> for SpendDescription {
-    fn from(d: ironfish::SpendDescription) -> Self {
-        Self(d)
-    }
-}
-
-impl AsRef<ironfish::SpendDescription> for SpendDescription {
-    fn as_ref(&self) -> &ironfish::SpendDescription {
-        &self.0
     }
 }

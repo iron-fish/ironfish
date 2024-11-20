@@ -7,7 +7,7 @@ mod mints;
 mod outputs;
 mod spends;
 
-use crate::{errors::IronfishError, primitives::PublicKey};
+use crate::{errors::IronfishError, primitives::PublicKey, wasm_bindgen_wrapper};
 use wasm_bindgen::prelude::*;
 
 pub use burns::BurnDescription;
@@ -15,9 +15,10 @@ pub use mints::MintDescription;
 pub use outputs::OutputDescription;
 pub use spends::SpendDescription;
 
-#[wasm_bindgen]
-#[derive(Clone, Debug)]
-pub struct Transaction(ironfish::Transaction);
+wasm_bindgen_wrapper! {
+    #[derive(Clone, Debug)]
+    pub struct Transaction(ironfish::Transaction);
+}
 
 #[wasm_bindgen]
 impl Transaction {
@@ -96,18 +97,6 @@ impl Transaction {
             .transaction_signature_hash()
             .map(|hash| hash.to_vec())
             .map_err(|err| err.into())
-    }
-}
-
-impl From<ironfish::Transaction> for Transaction {
-    fn from(t: ironfish::Transaction) -> Self {
-        Self(t)
-    }
-}
-
-impl AsRef<ironfish::Transaction> for Transaction {
-    fn as_ref(&self) -> &ironfish::Transaction {
-        &self.0
     }
 }
 

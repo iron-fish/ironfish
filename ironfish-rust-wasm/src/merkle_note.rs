@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{errors::IronfishError, primitives::Scalar};
+use crate::{errors::IronfishError, primitives::Scalar, wasm_bindgen_wrapper};
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct MerkleNote(ironfish::MerkleNote);
+wasm_bindgen_wrapper! {
+    #[derive(Clone, PartialEq, Eq, Debug)]
+    pub struct MerkleNote(ironfish::MerkleNote);
+}
 
 #[wasm_bindgen]
 impl MerkleNote {
@@ -31,21 +32,10 @@ impl MerkleNote {
     }
 }
 
-impl From<ironfish::MerkleNote> for MerkleNote {
-    fn from(d: ironfish::MerkleNote) -> Self {
-        Self(d)
-    }
+wasm_bindgen_wrapper! {
+    #[derive(Clone, PartialEq, Eq, Debug)]
+    pub struct MerkleNoteHash(ironfish::MerkleNoteHash);
 }
-
-impl AsRef<ironfish::MerkleNote> for MerkleNote {
-    fn as_ref(&self) -> &ironfish::MerkleNote {
-        &self.0
-    }
-}
-
-#[wasm_bindgen]
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct MerkleNoteHash(ironfish::MerkleNoteHash);
 
 #[wasm_bindgen]
 impl MerkleNoteHash {
@@ -77,18 +67,6 @@ impl MerkleNoteHash {
     pub fn combine_hash(depth: usize, left: &Self, right: &Self) -> Self {
         let hash = ironfish::MerkleNoteHash::combine_hash(depth, &left.0 .0, &right.0 .0);
         ironfish::MerkleNoteHash(hash).into()
-    }
-}
-
-impl From<ironfish::MerkleNoteHash> for MerkleNoteHash {
-    fn from(d: ironfish::MerkleNoteHash) -> Self {
-        Self(d)
-    }
-}
-
-impl AsRef<ironfish::MerkleNoteHash> for MerkleNoteHash {
-    fn as_ref(&self) -> &ironfish::MerkleNoteHash {
-        &self.0
     }
 }
 

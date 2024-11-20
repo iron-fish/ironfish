@@ -6,13 +6,15 @@ use crate::{
     errors::IronfishError,
     keys::PublicAddress,
     primitives::{ExtendedPoint, SubgroupPoint},
+    wasm_bindgen_wrapper,
 };
 use ironfish::errors::IronfishErrorKind;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Asset(ironfish::assets::asset::Asset);
+wasm_bindgen_wrapper! {
+    #[derive(Clone, PartialEq, Eq, Debug)]
+    pub struct Asset(ironfish::assets::asset::Asset);
+}
 
 #[wasm_bindgen]
 impl Asset {
@@ -99,21 +101,10 @@ impl Asset {
     }
 }
 
-impl From<ironfish::assets::asset::Asset> for Asset {
-    fn from(d: ironfish::assets::asset::Asset) -> Self {
-        Self(d)
-    }
+wasm_bindgen_wrapper! {
+    #[derive(Clone, PartialEq, Eq, Debug)]
+    pub struct AssetIdentifier(ironfish::assets::asset_identifier::AssetIdentifier);
 }
-
-impl AsRef<ironfish::assets::asset::Asset> for Asset {
-    fn as_ref(&self) -> &ironfish::assets::asset::Asset {
-        &self.0
-    }
-}
-
-#[wasm_bindgen]
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct AssetIdentifier(ironfish::assets::asset_identifier::AssetIdentifier);
 
 #[wasm_bindgen]
 impl AssetIdentifier {
@@ -137,18 +128,6 @@ impl AssetIdentifier {
     #[wasm_bindgen(getter, js_name = valueCommitmentGenerator)]
     pub fn value_commitment_generator(&self) -> SubgroupPoint {
         self.0.value_commitment_generator().into()
-    }
-}
-
-impl From<ironfish::assets::asset_identifier::AssetIdentifier> for AssetIdentifier {
-    fn from(d: ironfish::assets::asset_identifier::AssetIdentifier) -> Self {
-        Self(d)
-    }
-}
-
-impl AsRef<ironfish::assets::asset_identifier::AssetIdentifier> for AssetIdentifier {
-    fn as_ref(&self) -> &ironfish::assets::asset_identifier::AssetIdentifier {
-        &self.0
     }
 }
 

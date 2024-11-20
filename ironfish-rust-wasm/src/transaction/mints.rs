@@ -7,13 +7,15 @@ use crate::{
     errors::IronfishError,
     keys::PublicAddress,
     primitives::{PublicKey, Scalar},
+    wasm_bindgen_wrapper,
 };
 use ironfish::{errors::IronfishErrorKind, transaction::TransactionVersion};
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-#[derive(Clone, Debug)]
-pub struct MintDescription(ironfish::transaction::mints::MintDescription);
+wasm_bindgen_wrapper! {
+    #[derive(Clone, Debug)]
+    pub struct MintDescription(ironfish::transaction::mints::MintDescription);
+}
 
 #[wasm_bindgen]
 impl MintDescription {
@@ -75,17 +77,5 @@ impl MintDescription {
             .into_iter()
             .map(Scalar::from)
             .collect()
-    }
-}
-
-impl From<ironfish::transaction::mints::MintDescription> for MintDescription {
-    fn from(d: ironfish::transaction::mints::MintDescription) -> Self {
-        Self(d)
-    }
-}
-
-impl AsRef<ironfish::transaction::mints::MintDescription> for MintDescription {
-    fn as_ref(&self) -> &ironfish::transaction::mints::MintDescription {
-        &self.0
     }
 }

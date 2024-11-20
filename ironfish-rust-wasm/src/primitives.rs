@@ -2,16 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::errors::IronfishError;
+use crate::{errors::IronfishError, wasm_bindgen_wrapper};
 use group::GroupEncoding;
 use ironfish::errors::IronfishErrorKind;
 use ironfish_zkp::redjubjub;
 use rand::thread_rng;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-#[derive(Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub struct Scalar(blstrs::Scalar);
+wasm_bindgen_wrapper! {
+    #[derive(Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+    pub struct Scalar(blstrs::Scalar);
+}
 
 #[wasm_bindgen]
 impl Scalar {
@@ -26,21 +27,10 @@ impl Scalar {
     }
 }
 
-impl From<blstrs::Scalar> for Scalar {
-    fn from(s: blstrs::Scalar) -> Self {
-        Self(s)
-    }
+wasm_bindgen_wrapper! {
+    #[derive(Default, Copy, Clone, PartialEq, Eq, Debug)]
+    pub struct Fr(ironfish_jubjub::Fr);
 }
-
-impl AsRef<blstrs::Scalar> for Scalar {
-    fn as_ref(&self) -> &blstrs::Scalar {
-        &self.0
-    }
-}
-
-#[wasm_bindgen]
-#[derive(Default, Copy, Clone, PartialEq, Eq, Debug)]
-pub struct Fr(ironfish_jubjub::Fr);
 
 #[wasm_bindgen]
 impl Fr {
@@ -50,21 +40,10 @@ impl Fr {
     }
 }
 
-impl From<ironfish_jubjub::Fr> for Fr {
-    fn from(s: ironfish_jubjub::Fr) -> Self {
-        Self(s)
-    }
+wasm_bindgen_wrapper! {
+    #[derive(Default, Copy, Clone, PartialEq, Eq, Debug)]
+    pub struct ExtendedPoint(ironfish_jubjub::ExtendedPoint);
 }
-
-impl AsRef<ironfish_jubjub::Fr> for Fr {
-    fn as_ref(&self) -> &ironfish_jubjub::Fr {
-        &self.0
-    }
-}
-
-#[wasm_bindgen]
-#[derive(Default, Copy, Clone, PartialEq, Eq, Debug)]
-pub struct ExtendedPoint(ironfish_jubjub::ExtendedPoint);
 
 #[wasm_bindgen]
 impl ExtendedPoint {
@@ -74,21 +53,10 @@ impl ExtendedPoint {
     }
 }
 
-impl From<ironfish_jubjub::ExtendedPoint> for ExtendedPoint {
-    fn from(s: ironfish_jubjub::ExtendedPoint) -> Self {
-        Self(s)
-    }
+wasm_bindgen_wrapper! {
+    #[derive(Default, Copy, Clone, PartialEq, Eq, Debug)]
+    pub struct SubgroupPoint(ironfish_jubjub::SubgroupPoint);
 }
-
-impl AsRef<ironfish_jubjub::ExtendedPoint> for ExtendedPoint {
-    fn as_ref(&self) -> &ironfish_jubjub::ExtendedPoint {
-        &self.0
-    }
-}
-
-#[wasm_bindgen]
-#[derive(Default, Copy, Clone, PartialEq, Eq, Debug)]
-pub struct SubgroupPoint(ironfish_jubjub::SubgroupPoint);
 
 #[wasm_bindgen]
 impl SubgroupPoint {
@@ -98,21 +66,10 @@ impl SubgroupPoint {
     }
 }
 
-impl From<ironfish_jubjub::SubgroupPoint> for SubgroupPoint {
-    fn from(s: ironfish_jubjub::SubgroupPoint) -> Self {
-        Self(s)
-    }
+wasm_bindgen_wrapper! {
+    #[derive(Copy, Clone, PartialEq, Eq, Debug)]
+    pub struct Nullifier(ironfish_zkp::Nullifier);
 }
-
-impl AsRef<ironfish_jubjub::SubgroupPoint> for SubgroupPoint {
-    fn as_ref(&self) -> &ironfish_jubjub::SubgroupPoint {
-        &self.0
-    }
-}
-
-#[wasm_bindgen]
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub struct Nullifier(ironfish_zkp::Nullifier);
 
 #[wasm_bindgen]
 impl Nullifier {
@@ -122,20 +79,9 @@ impl Nullifier {
     }
 }
 
-impl From<ironfish_zkp::Nullifier> for Nullifier {
-    fn from(s: ironfish_zkp::Nullifier) -> Self {
-        Self(s)
-    }
+wasm_bindgen_wrapper! {
+    pub struct PrivateKey(redjubjub::PrivateKey);
 }
-
-impl AsRef<ironfish_zkp::Nullifier> for Nullifier {
-    fn as_ref(&self) -> &ironfish_zkp::Nullifier {
-        &self.0
-    }
-}
-
-#[wasm_bindgen]
-pub struct PrivateKey(redjubjub::PrivateKey);
 
 #[wasm_bindgen]
 impl PrivateKey {
@@ -168,21 +114,10 @@ impl PrivateKey {
     }
 }
 
-impl From<redjubjub::PrivateKey> for PrivateKey {
-    fn from(p: redjubjub::PrivateKey) -> Self {
-        Self(p)
-    }
+wasm_bindgen_wrapper! {
+    #[derive(Clone, Debug)]
+    pub struct PublicKey(redjubjub::PublicKey);
 }
-
-impl AsRef<redjubjub::PrivateKey> for PrivateKey {
-    fn as_ref(&self) -> &redjubjub::PrivateKey {
-        &self.0
-    }
-}
-
-#[wasm_bindgen]
-#[derive(Clone, Debug)]
-pub struct PublicKey(redjubjub::PublicKey);
 
 #[wasm_bindgen]
 impl PublicKey {
@@ -218,21 +153,10 @@ impl PublicKey {
     }
 }
 
-impl From<redjubjub::PublicKey> for PublicKey {
-    fn from(p: redjubjub::PublicKey) -> Self {
-        Self(p)
-    }
+wasm_bindgen_wrapper! {
+    #[derive(Clone, Debug)]
+    pub struct Signature(redjubjub::Signature);
 }
-
-impl AsRef<redjubjub::PublicKey> for PublicKey {
-    fn as_ref(&self) -> &redjubjub::PublicKey {
-        &self.0
-    }
-}
-
-#[wasm_bindgen]
-#[derive(Clone, Debug)]
-pub struct Signature(redjubjub::Signature);
 
 #[wasm_bindgen]
 impl Signature {
@@ -247,17 +171,5 @@ impl Signature {
         let mut buf = Vec::new();
         self.0.write(&mut buf).expect("serialization failed");
         buf
-    }
-}
-
-impl From<redjubjub::Signature> for Signature {
-    fn from(s: redjubjub::Signature) -> Self {
-        Self(s)
-    }
-}
-
-impl AsRef<redjubjub::Signature> for Signature {
-    fn as_ref(&self) -> &redjubjub::Signature {
-        &self.0
     }
 }

@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::errors::IronfishError;
+use crate::{errors::IronfishError, wasm_bindgen_wrapper};
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct PublicAddress(ironfish::PublicAddress);
+wasm_bindgen_wrapper! {
+    #[derive(Clone, PartialEq, Eq, Debug)]
+    pub struct PublicAddress(ironfish::PublicAddress);
+}
 
 #[wasm_bindgen]
 impl PublicAddress {
@@ -29,18 +30,6 @@ impl PublicAddress {
     #[wasm_bindgen(getter)]
     pub fn hex(&self) -> String {
         self.0.hex_public_address()
-    }
-}
-
-impl From<ironfish::PublicAddress> for PublicAddress {
-    fn from(d: ironfish::PublicAddress) -> Self {
-        Self(d)
-    }
-}
-
-impl AsRef<ironfish::PublicAddress> for PublicAddress {
-    fn as_ref(&self) -> &ironfish::PublicAddress {
-        &self.0
     }
 }
 
