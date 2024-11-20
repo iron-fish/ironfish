@@ -323,13 +323,13 @@ export class WalletScanner {
 
   private async getEarliestHead(): Promise<HeadValue | null | 'none'> {
     let earliestHead: { sequence: number; hash?: Buffer } | null = null
-    for (const { scanFrom: head } of this.scanningAccounts) {
-      if (head === 'cursor') {
+    for (const { scanFrom } of this.scanningAccounts) {
+      if (scanFrom === 'cursor') {
         continue
       }
 
-      if (!earliestHead || head.sequence < earliestHead.sequence) {
-        earliestHead = head
+      if (!earliestHead || scanFrom.sequence < earliestHead.sequence) {
+        earliestHead = scanFrom
       }
     }
 
