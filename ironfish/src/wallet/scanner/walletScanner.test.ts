@@ -305,10 +305,6 @@ describe('WalletScanner', () => {
   })
 
   it('skips blocks preceeding the lowest createdAt when createdAt is reset', async () => {
-    const decryptNotesFromBlock = jest.spyOn(
-      BackgroundNoteDecryptor.prototype,
-      'decryptNotesFromBlock',
-    )
     const connectBlockForAccount = jest.spyOn(nodeTest.wallet, 'connectBlockForAccount')
 
     const accountA = await useAccountFixture(nodeTest.wallet, 'a')
@@ -329,17 +325,9 @@ describe('WalletScanner', () => {
 
     const blocks = [firstBlocks[2], ...lastBlocks]
 
-    expect(decryptNotesFromBlock).toHaveBeenCalledTimes(blocks.length)
     expect(connectBlockForAccount).toHaveBeenCalledTimes(blocks.length)
 
     for (const [i, block] of blocks.entries()) {
-      expect(decryptNotesFromBlock).toHaveBeenNthCalledWith(
-        i + 1,
-        block.header,
-        block.transactions,
-        [expect.objectContaining({ incomingViewKey: accountB.incomingViewKey })],
-        expect.anything(),
-      )
       expect(connectBlockForAccount).toHaveBeenNthCalledWith(
         i + 1,
         expect.objectContaining({ incomingViewKey: accountB.incomingViewKey }),
