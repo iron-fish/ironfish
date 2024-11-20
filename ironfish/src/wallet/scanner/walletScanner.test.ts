@@ -7,7 +7,7 @@ import { Blockchain } from '../../blockchain'
 import { Block, BlockHeader } from '../../primitives'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../../testUtilities'
 import { AsyncUtils } from '../../utils'
-import { Account, toAccountImport, Wallet } from '../../wallet'
+import { Account, Wallet } from '../../wallet'
 import { BackgroundNoteDecryptor } from './noteDecryptor'
 
 describe('WalletScanner', () => {
