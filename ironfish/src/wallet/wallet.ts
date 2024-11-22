@@ -2030,10 +2030,10 @@ export class Wallet {
       }
 
       Assert.isNotNull(this.masterKey)
-      const key = await this.masterKey.unlock(passphrase)
+      await this.masterKey.unlock(passphrase)
 
       for (const [id, account] of this.encryptedAccountById.entries()) {
-        this.accountById.set(id, account.decrypt(key))
+        this.accountById.set(id, account.decrypt(this.masterKey))
       }
 
       this.startUnlockTimeout(timeout)

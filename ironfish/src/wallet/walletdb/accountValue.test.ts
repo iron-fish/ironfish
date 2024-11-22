@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey, xchacha20poly1305 } from '@ironfish/rust-nodejs'
+import { generateKey } from '@ironfish/rust-nodejs'
 import { MasterKey } from '../masterKey'
 import {
   AccountValueEncoding,
@@ -91,16 +91,16 @@ describe('AccountValueEncoding', () => {
 
     const passphrase = 'foobarbaz'
     const masterKey = MasterKey.generate(passphrase)
-    const xchacha20poly1305Key = await masterKey.unlock(passphrase)
+    await masterKey.unlock(passphrase)
 
     const data = encoder.serialize(value)
-    const encryptedData = xchacha20poly1305Key.encrypt(data)
+    const { ciphertext: encryptedData, salt, nonce } = masterKey.encrypt(data)
 
     const encryptedValue: EncryptedAccountValue = {
       encrypted: true,
       data: encryptedData,
-      salt: Buffer.alloc(xchacha20poly1305.XSALT_LENGTH),
-      nonce: Buffer.alloc(xchacha20poly1305.XNONCE_LENGTH),
+      salt,
+      nonce,
     }
 
     const buffer = encoder.serialize(encryptedValue)

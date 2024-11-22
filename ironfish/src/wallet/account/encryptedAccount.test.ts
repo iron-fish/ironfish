@@ -15,10 +15,10 @@ describe('EncryptedAccount', () => {
     const account = await useAccountFixture(node.wallet)
 
     const masterKey = MasterKey.generate(passphrase)
-    const key = await masterKey.unlock(passphrase)
+    await masterKey.unlock(passphrase)
 
     const encryptedAccount = account.encrypt(masterKey)
-    const decryptedAccount = encryptedAccount.decrypt(key)
+    const decryptedAccount = encryptedAccount.decrypt(masterKey)
 
     expect(account.serialize()).toMatchObject(decryptedAccount.serialize())
   })
@@ -31,11 +31,13 @@ describe('EncryptedAccount', () => {
 
     const masterKey = MasterKey.generate(passphrase)
     const invalidMasterKey = MasterKey.generate(invalidPassphrase)
-    const invalidKey = await invalidMasterKey.unlock(passphrase)
+    await invalidMasterKey.unlock(passphrase)
 
     await masterKey.unlock(passphrase)
     const encryptedAccount = account.encrypt(masterKey)
 
-    expect(() => encryptedAccount.decrypt(invalidKey)).toThrow(AccountDecryptionFailedError)
+    expect(() => encryptedAccount.decrypt(invalidMasterKey)).toThrow(
+      AccountDecryptionFailedError,
+    )
   })
 })
