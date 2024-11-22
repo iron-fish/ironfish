@@ -21,6 +21,7 @@ import {
   LedgerDeviceLockedError,
   LedgerExpertModeError,
   LedgerGPAuthFailed,
+  LedgerInvalidDkgStatusError,
   LedgerPanicError,
   LedgerPortIsBusyError,
   LedgerSingleSigner,
@@ -103,6 +104,12 @@ export async function ledger<TResult>({
           if (!wasRunning) {
             ux.action.start(message)
           }
+        } else if (e instanceof LedgerInvalidDkgStatusError) {
+          ux.action.stop('Ironfish DKG Ledger App does not have any multisig keys!')
+          ux.stdout(
+            'Use `wallet:multisig:ledger:restore` to restore an encrypted backup to your Ledger',
+          )
+          ux.exit(1)
         } else if (e instanceof LedgerActionRejected) {
           ux.action.status = 'User Rejected Ledger Request!'
           ux.stdout('User Rejected Ledger Request!')
