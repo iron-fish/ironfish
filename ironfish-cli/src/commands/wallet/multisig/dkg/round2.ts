@@ -98,22 +98,13 @@ export class DkgRound2Command extends IronfishCommand {
     round1SecretPackage: string,
   ): Promise<void> {
     const ledger = new LedgerMultiSigner()
-    try {
-      await ledger.connect()
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
 
-    // TODO(hughy): determine how to handle multiple identities using index
-    const { publicPackage, secretPackage } = await ledger.dkgRound2(
-      0,
-      round1PublicPackages,
-      round1SecretPackage,
-    )
+    const { publicPackage, secretPackage } = await ui.ledger({
+      ledger,
+      message: 'Round2 on Ledger',
+      approval: true,
+      action: () => ledger.dkgRound2(0, round1PublicPackages, round1SecretPackage),
+    })
 
     this.log('\nRound 2 Encrypted Secret Package:\n')
     this.log(secretPackage.toString('hex'))
