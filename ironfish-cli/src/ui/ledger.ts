@@ -111,8 +111,8 @@ export async function ledger<TResult>({
           )
           ux.exit(1)
         } else if (e instanceof LedgerActionRejected) {
-          ux.action.status = 'User Rejected Ledger Request!'
-          ux.stdout('User Rejected Ledger Request!')
+          ux.action.stop('User Rejected Ledger Request!')
+          ux.exit(0)
         } else if (e instanceof LedgerConnectError) {
           ux.action.status = 'Connect and unlock your Ledger'
         } else if (e instanceof LedgerAppNotOpen) {
