@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ErrorUtils, Logger } from '@ironfish/sdk'
 import { ux } from '@oclif/core'
+import { ExitError } from '@oclif/core/errors'
 import { confirmList } from './prompt'
 
 export async function retryStep<T>(
@@ -18,6 +19,10 @@ export async function retryStep<T>(
       const result = await stepFunction()
       return result
     } catch (error) {
+      if (error instanceof ExitError) {
+        throw error
+      }
+
       logger.log(`An Error Occurred: ${ErrorUtils.renderError(error)}`)
 
       if (askToRetry) {
