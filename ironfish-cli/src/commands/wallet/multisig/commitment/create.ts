@@ -125,20 +125,16 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     signers: string[],
   ): Promise<void> {
     const ledger = new LedgerMultiSigner()
-    try {
-      await ledger.connect()
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
 
     const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
     const identity = identityResponse.content.identity
 
-    const rawCommitments = await ledger.dkgGetCommitments(unsignedTransaction)
+    const rawCommitments = await ui.ledger({
+      ledger,
+      message: 'Get Commitments',
+      approval: true,
+      action: () => ledger.dkgGetCommitments(unsignedTransaction),
+    })
 
     const signingCommitment = multisig.SigningCommitment.fromRaw(
       identity,

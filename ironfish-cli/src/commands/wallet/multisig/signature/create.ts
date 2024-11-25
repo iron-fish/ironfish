@@ -121,20 +121,16 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     frostSigningPackage: string,
   ): Promise<void> {
     const ledger = new LedgerMultiSigner()
-    try {
-      await ledger.connect()
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
 
     const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
     const identity = identityResponse.content.identity
 
-    const frostSignatureShare = await ledger.dkgSign(unsignedTransaction, frostSigningPackage)
+    const frostSignatureShare = await ui.ledger({
+      ledger,
+      message: 'Sign Transaction',
+      approval: true,
+      action: () => ledger.dkgSign(unsignedTransaction, frostSigningPackage),
+    })
 
     const signatureShare = multisig.SignatureShare.fromFrost(
       frostSignatureShare,
