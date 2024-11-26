@@ -72,47 +72,24 @@ export async function ledger<TResult>({
           // is trying to enter their pin. When we run into this error, we
           // cannot send any commands to the Ledger in the app's CLA.
           ux.action.stop('Ledger Locked')
-
-          const confirmed = await ui.confirmList(
+          await confirmRetryAction(
             'Ledger Locked. Unlock and press enter to retry:',
-            'Retry',
+            wasRunning,
           )
-
-          if (!confirmed) {
-            ux.stdout('Operation aborted.')
-            ux.exit(0)
-          }
-
-          if (!wasRunning) {
-            ux.action.start(message)
-          }
         } else if (e instanceof LedgerExpertModeError) {
           // Polling the device may prevent the user from navigating to the
           // expert mode screen in the app and enabling expert mode.
           ux.action.stop('Expert mode required to send custom assets')
-
-          const confirmed = await ui.confirmList(
-            'Enable expert mode and press enter to retry:',
-            'Retry',
-          )
-
-          if (!confirmed) {
-            ux.stdout('Operation aborted.')
-            ux.exit(0)
-          }
-
-          if (!wasRunning) {
-            ux.action.start(message)
-          }
+          await confirmRetryAction('Enable expert mode and press enter to retry:', wasRunning)
+        } else if (e instanceof LedgerActionRejected) {
+          ux.action.stop('User Rejected Ledger Request!')
+          await confirmRetryAction('Request rejected. Retry?', wasRunning)
         } else if (e instanceof LedgerInvalidDkgStatusError) {
           ux.action.stop('Ironfish DKG Ledger App does not have any multisig keys!')
           ux.stdout(
             'Use `wallet:multisig:ledger:restore` to restore an encrypted backup to your Ledger',
           )
           ux.exit(1)
-        } else if (e instanceof LedgerActionRejected) {
-          ux.action.stop('User Rejected Ledger Request!')
-          ux.exit(0)
         } else if (e instanceof LedgerConnectError) {
           ux.action.status = 'Connect and unlock your Ledger'
         } else if (e instanceof LedgerAppNotOpen) {
@@ -142,6 +119,19 @@ export async function ledger<TResult>({
       clearTimeout(clearStatusTimer)
       ux.action.stop()
     }
+  }
+}
+
+async function confirmRetryAction(message: string, actionRunning: boolean): Promise<void> {
+  const confirmed = await ui.confirmList(message, 'Retry')
+
+  if (!confirmed) {
+    ux.stdout('Operation aborted.')
+    ux.exit(0)
+  }
+
+  if (!actionRunning) {
+    ux.action.start(message)
   }
 }
 
