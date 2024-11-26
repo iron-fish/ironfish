@@ -100,6 +100,21 @@ impl From<ZcashProofGenerationKey> for ProofGenerationKey {
     }
 }
 
+impl PartialEq for ProofGenerationKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.to_bytes() == other.to_bytes()
+    }
+}
+
+impl Eq for ProofGenerationKey {}
+
+impl fmt::Debug for ProofGenerationKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Hide all private keys
+        f.debug_struct("ProofGenerationKey").finish_non_exhaustive()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use ff::Field;

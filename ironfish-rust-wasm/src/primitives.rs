@@ -153,6 +153,18 @@ impl PublicKey {
     }
 }
 
+impl From<ironfish_jubjub::ExtendedPoint> for PublicKey {
+    fn from(p: ironfish_jubjub::ExtendedPoint) -> Self {
+        Self(redjubjub::PublicKey(p))
+    }
+}
+
+impl From<ironfish_jubjub::SubgroupPoint> for PublicKey {
+    fn from(p: ironfish_jubjub::SubgroupPoint) -> Self {
+        Self(redjubjub::PublicKey(p.into()))
+    }
+}
+
 wasm_bindgen_wrapper! {
     #[derive(Clone, Debug)]
     pub struct Signature(redjubjub::Signature);
