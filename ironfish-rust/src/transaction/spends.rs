@@ -68,7 +68,7 @@ impl SpendBuilder {
     /// This is the only time this API thinks about the merkle tree. The witness
     /// contains the root-hash at the time the witness was created and the path
     /// to verify the location of that note in the tree.
-    pub(crate) fn new(note: Note, witness: &dyn WitnessTrait) -> Self {
+    pub(crate) fn new<W: WitnessTrait + ?Sized>(note: Note, witness: &W) -> Self {
         let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         SpendBuilder {
