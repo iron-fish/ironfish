@@ -34,6 +34,7 @@ describe('Route wallt/multisig/createSignatureShare', () => {
       version: ACCOUNT_SCHEMA_VERSION,
       spendingKey: null,
       createdAt: null,
+      isLedger: false,
     }
 
     const account = await routeTest.wallet.importAccount(accountImport)

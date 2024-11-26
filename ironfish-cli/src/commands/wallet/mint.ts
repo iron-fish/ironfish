@@ -108,10 +108,6 @@ This will create tokens and increase supply for a given asset.`
         'Return a serialized UnsignedTransaction. Use it to create a transaction and build proofs but not post to the network',
       exclusive: ['rawTransaction'],
     }),
-    ledger: Flags.boolean({
-      default: false,
-      description: 'Mint a transaction using a Ledger device',
-    }),
   }
 
   async start(): Promise<void> {
@@ -130,6 +126,7 @@ This will create tokens and increase supply for a given asset.`
     }
 
     const account = await useAccount(client, flags.account)
+    const accountStatus = (await client.wallet.getAccountStatus({ account })).content.account
 
     const publicKeyResponse = await client.wallet.getAccountPublicKey({ account })
     const accountPublicKey = publicKeyResponse.content.publicKey
@@ -311,7 +308,7 @@ This will create tokens and increase supply for a given asset.`
       assetData,
     )
 
-    if (flags.ledger) {
+    if (accountStatus.isLedger) {
       await ui.sendTransactionWithLedger(
         client,
         raw,

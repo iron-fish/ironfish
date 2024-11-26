@@ -645,6 +645,7 @@ describe('Wallet', () => {
       incomingViewKey: account.incomingViewKey,
       createdAt: null,
       proofAuthorizingKey: account.proofAuthorizingKey,
+      isLedger: false,
     }
     const viewOnlyAccount = await viewOnlyNode.wallet.importAccount(accountValue)
 
@@ -1176,6 +1177,7 @@ describe('Wallet', () => {
         name: trustedDealerPackage.keyPackages[0].identity,
         spendingKey: null,
         createdAt: null,
+        isLedger: false,
         multisigKeys: getMultisigKeys(0),
         ...trustedDealerPackage,
       })
@@ -1184,6 +1186,7 @@ describe('Wallet', () => {
         name: trustedDealerPackage.keyPackages[1].identity,
         spendingKey: null,
         createdAt: null,
+        isLedger: false,
         multisigKeys: getMultisigKeys(1),
         ...trustedDealerPackage,
       })
@@ -1192,6 +1195,7 @@ describe('Wallet', () => {
         name: trustedDealerPackage.keyPackages[2].identity,
         spendingKey: null,
         createdAt: null,
+        isLedger: false,
         multisigKeys: getMultisigKeys(2),
         ...trustedDealerPackage,
       })
@@ -1203,6 +1207,7 @@ describe('Wallet', () => {
         name: 'coordinator',
         spendingKey: null,
         createdAt: null,
+        isLedger: false,
         multisigKeys: {
           publicKeyPackage: trustedDealerPackage.publicKeyPackage,
         },
@@ -1369,6 +1374,7 @@ describe('Wallet', () => {
         identity: trustedDealerPackage.keyPackages[0].identity,
         keyPackage: trustedDealerPackage.keyPackages[0].keyPackage,
       },
+      isLedger: false,
       ...trustedDealerPackage,
     })
 

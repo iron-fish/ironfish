@@ -20,6 +20,7 @@ export type EncryptedAccountValue = {
 
 export type DecryptedAccountValue = {
   encrypted: false
+  isLedger: boolean
   version: number
   id: string
   name: string
@@ -66,6 +67,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     flags |= Number(!!value.proofAuthorizingKey) << 3
     flags |= Number(!!value.scanningEnabled) << 4
     flags |= Number(!!value.encrypted) << 5
+    flags |= Number(!!value.isLedger) << 6
 
     bw.writeU8(flags)
     bw.writeU16(value.version)
@@ -137,6 +139,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const hasMultisigKeys = flags & (1 << 2)
     const hasProofAuthorizingKey = flags & (1 << 3)
     const scanningEnabled = Boolean(flags & (1 << 4))
+    const isLedger = Boolean(flags & (1 << 6))
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
     const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
@@ -176,6 +179,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       scanningEnabled,
       multisigKeys,
       proofAuthorizingKey,
+      isLedger,
     }
   }
 

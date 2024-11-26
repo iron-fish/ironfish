@@ -638,6 +638,7 @@ describe('WalletDB', () => {
         version: 1,
         createdAt: null,
         scanningEnabled: false,
+        isLedger: false,
         ...key,
       }
       const account = new Account({ accountValue, walletDb })
@@ -657,6 +658,7 @@ describe('WalletDB', () => {
         version: 1,
         createdAt: null,
         scanningEnabled: false,
+        isLedger: false,
         ...key,
       }
       const account = new Account({ accountValue, walletDb })
@@ -687,6 +689,7 @@ describe('WalletDB', () => {
         version: 1,
         createdAt: null,
         scanningEnabled: false,
+        isLedger: false,
         ...key,
       }
       const account = new Account({ accountValue, walletDb })
@@ -710,6 +713,7 @@ describe('WalletDB', () => {
         version: 1,
         createdAt: null,
         scanningEnabled: false,
+        isLedger: false,
         ...key,
       }
       const account = new Account({ accountValue, walletDb })

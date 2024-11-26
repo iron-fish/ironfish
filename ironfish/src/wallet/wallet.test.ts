@@ -534,6 +534,7 @@ describe('Wallet', () => {
         version: 1,
         spendingKey: null,
         createdAt: null,
+        isLedger: false,
         ...key,
       }
       const viewonlyAccount = await node.wallet.importAccount(accountValue)
@@ -555,6 +556,7 @@ describe('Wallet', () => {
         version: 1,
         spendingKey: null,
         createdAt: null,
+        isLedger: false,
         ...key,
       }
       const accountImport1 = await node.wallet.importAccount(accountValue)
@@ -670,6 +672,7 @@ describe('Wallet', () => {
         version: 1,
         createdAt: null,
         scanningEnabled: false,
+        isLedger: false,
         ...key,
       }
 
@@ -690,6 +693,7 @@ describe('Wallet', () => {
         name: 'new-account',
         version: 1,
         createdAt: null,
+        isLedger: false,
         scanningEnabled: false,
         ...key,
       }
