@@ -11,15 +11,15 @@ import { Database, Migration, MigrationContext } from '../migration'
 import {
   AccountValueEncoding as NewAccountValueEncoding,
   DecryptedAccountValue as NewDecryptedAccountValue,
-} from './033-encrypted-wallet-template/new/accountValue'
+} from './000-encrypted-wallet-template/new/accountValue'
 import {
   AccountValueEncoding as OldAccountValueEncoding,
   DecryptedAccountValue as OldDecryptedAccountValue,
   EncryptedAccountValue as OldEncryptedAccountValue,
-} from './033-encrypted-wallet-template/old/accountValue'
-import { GetStores } from './033-encrypted-wallet-template/stores'
+} from './000-encrypted-wallet-template/old/accountValue'
+import { GetStores } from './000-encrypted-wallet-template/stores'
 
-export class Migration033 extends Migration {
+export class Migration000 extends Migration {
   path = __filename
   database = Database.WALLET
 
