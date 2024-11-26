@@ -159,6 +159,7 @@ describe('multisig RPC integration', () => {
         publicKeyPackage: trustedDealerPackage.publicKeyPackage,
       },
       ...trustedDealerPackage,
+      isLedger: false,
     }
 
     // import an account to serve as the coordinator

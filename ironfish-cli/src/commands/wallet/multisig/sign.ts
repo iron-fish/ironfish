@@ -44,10 +44,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       char: 'a',
       description: 'Name of the account to use for signing the transaction',
     }),
-    ledger: Flags.boolean({
-      default: false,
-      description: 'Perform operation with a ledger device',
-    }),
     server: Flags.boolean({
       description: 'connect to a multisig broker server',
     }),
@@ -78,12 +74,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
 
-    let ledger: LedgerMultiSigner | undefined = undefined
-
-    if (flags.ledger) {
-      ledger = new LedgerMultiSigner()
-    }
-
     let multisigAccountName: string
     if (!flags.account) {
       multisigAccountName = await ui.accountPrompt(client)
@@ -95,6 +85,18 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       if (!account) {
         this.error(`Account ${multisigAccountName} not found`)
       }
+    }
+
+    const accountStatus = (
+      await client.wallet.getAccountStatus({
+        account: multisigAccountName,
+      })
+    ).content.account
+
+    let ledger: LedgerMultiSigner | undefined = undefined
+
+    if (accountStatus.isLedger) {
+      ledger = new LedgerMultiSigner()
     }
 
     const accountIdentities = (
@@ -149,7 +151,10 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     )
 
     // Prompt for confirmation before broker automates signing
-    if (!flags.ledger && sessionManager instanceof MultisigClientSigningSessionManager) {
+    if (
+      !accountStatus.isLedger &&
+      sessionManager instanceof MultisigClientSigningSessionManager
+    ) {
       await ui.confirmOrQuit('Sign this transaction?')
     }
 

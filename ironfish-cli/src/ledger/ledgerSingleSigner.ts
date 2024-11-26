@@ -50,6 +50,7 @@ export class LedgerSingleSigner extends Ledger {
       outgoingViewKey: responseViewKey.ovk.toString('hex'),
       proofAuthorizingKey: responsePGK.nsk.toString('hex'),
       spendingKey: null,
+      isLedger: true,
       createdAt: null,
     }
 

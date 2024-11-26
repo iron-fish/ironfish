@@ -41,8 +41,11 @@ import {
   TransactionUtils,
 } from '../utils'
 import { WorkerPool } from '../workerPool'
-import { DecryptedNote, DecryptNotesItem } from '../workerPool/tasks/decryptNotes'
-import { DecryptNotesOptions } from '../workerPool/tasks/decryptNotes'
+import {
+  DecryptedNote,
+  DecryptNotesItem,
+  DecryptNotesOptions,
+} from '../workerPool/tasks/decryptNotes'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { EncryptedAccount } from './account/encryptedAccount'
 import { AssetBalances } from './assetBalances'
@@ -1400,6 +1403,7 @@ export class Wallet {
         spendingKey: key.spendingKey,
         viewKey: key.viewKey,
         scanningEnabled: true,
+        isLedger: false,
         createdAt,
       },
       walletDb: this.walletDb,

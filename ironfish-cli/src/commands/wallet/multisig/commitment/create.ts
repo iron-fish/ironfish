@@ -38,10 +38,6 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     path: Flags.string({
       description: 'Path to a JSON file containing multisig transaction data',
     }),
-    ledger: Flags.boolean({
-      default: false,
-      description: 'Create signing commitment using a Ledger device',
-    }),
   }
 
   async start(): Promise<void> {
@@ -57,6 +53,9 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     if (!participantName) {
       participantName = await ui.multisigSecretPrompt(client)
     }
+
+    const accountStatus = (await client.wallet.getAccountStatus({ account: participantName }))
+      .content.account
 
     let identities = options.identity
     if (!identities || identities.length < 2) {
@@ -94,7 +93,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
 
     await ui.confirmOrQuit('Confirm signing commitment creation', flags.confirm)
 
-    if (flags.ledger) {
+    if (accountStatus.isLedger) {
       await this.createSigningCommitmentWithLedger(
         client,
         participantName,

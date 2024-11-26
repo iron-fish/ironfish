@@ -527,6 +527,7 @@ export class DkgCreateCommand extends IronfishCommand {
       },
       version: ACCOUNT_SCHEMA_VERSION,
       name: accountName,
+      isLedger: true,
       createdAt: null,
       spendingKey: null,
     }

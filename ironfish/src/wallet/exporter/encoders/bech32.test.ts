@@ -22,6 +22,7 @@ describe('Bech32AccountEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      isLedger: false,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -42,6 +43,7 @@ describe('Bech32AccountEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      isLedger: false,
     })
 
     const decoded = encoder.decode(encoded, { name: 'foo' })
@@ -65,6 +67,7 @@ describe('Bech32AccountEncoder', () => {
         sequence: 1,
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
+      isLedger: false,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -85,6 +88,7 @@ describe('Bech32AccountEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      isLedger: false,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -108,6 +112,7 @@ describe('Bech32AccountEncoder', () => {
         publicKeyPackage: 'abcdef0000',
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
+      isLedger: false,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -133,6 +138,7 @@ describe('Bech32AccountEncoder', () => {
         keyPackage: 'bbbb',
       },
       proofAuthorizingKey: null,
+      isLedger: false,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -153,6 +159,7 @@ describe('Bech32AccountEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: null,
+      isLedger: false,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -185,6 +192,7 @@ describe('Bech32AccountEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      isLedger: false,
     }
 
     encoder.VERSION = 0

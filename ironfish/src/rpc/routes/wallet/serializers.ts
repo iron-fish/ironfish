@@ -161,6 +161,7 @@ export async function serializeRpcAccountStatus(
   return {
     name: account.name,
     id: account.id,
+    isLedger: account.isLedger,
     head: head
       ? {
           hash: head.hash.toString('hex'),

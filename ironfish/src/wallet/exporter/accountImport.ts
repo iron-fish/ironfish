@@ -29,6 +29,7 @@ export type AccountImport = {
   } | null
   multisigKeys?: MultisigKeysImport
   proofAuthorizingKey: string | null
+  isLedger: boolean
 }
 
 export function toAccountImport(
@@ -54,6 +55,7 @@ export function toAccountImport(
     createdAt,
     multisigKeys: account.multisigKeys,
     proofAuthorizingKey: account.proofAuthorizingKey,
+    isLedger: account.isLedger,
   }
 
   if (viewOnly) {

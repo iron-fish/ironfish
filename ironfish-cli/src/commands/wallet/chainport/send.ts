@@ -79,10 +79,6 @@ export class BridgeCommand extends IronfishCommand {
       description:
         'Return a serialized UnsignedTransaction. Use it to create a transaction and build proofs but not post to the network',
     }),
-    ledger: Flags.boolean({
-      default: false,
-      description: 'Send a transaction using a Ledger device',
-    }),
   }
 
   async start(): Promise<void> {
@@ -107,7 +103,7 @@ export class BridgeCommand extends IronfishCommand {
       }
     }
 
-    const { targetToken, from, to, amount, asset, assetData, expiration } =
+    const { targetToken, from, to, amount, asset, assetData, expiration, isLedger } =
       await this.getAndValidateInputs(client, networkId)
 
     const rawTransaction = await this.constructBridgeTransaction(
@@ -132,7 +128,7 @@ export class BridgeCommand extends IronfishCommand {
       this.exit(0)
     }
 
-    if (flags.ledger) {
+    if (isLedger) {
       await ui.sendTransactionWithLedger(
         client,
         rawTransaction,
@@ -305,7 +301,20 @@ export class BridgeCommand extends IronfishCommand {
         },
       })
     }
-    return { targetToken, from, to, amount, asset, assetData, expiration }
+
+    const accountStatus = (await client.wallet.getAccountStatus({ account: from })).content
+      .account
+
+    return {
+      targetToken,
+      from,
+      to,
+      amount,
+      asset,
+      assetData,
+      expiration,
+      isLedger: accountStatus.isLedger,
+    }
   }
 
   private async constructBridgeTransaction(

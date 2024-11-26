@@ -165,6 +165,7 @@ export type RpcMultisigKeys = {
 export type RpcAccountStatus = {
   name: string
   id: string
+  isLedger: boolean
   head: {
     hash: string
     sequence: number
@@ -179,6 +180,7 @@ export const RpcAccountStatusSchema: yup.ObjectSchema<RpcAccountStatus> = yup
   .object<RpcAccountStatus>({
     name: yup.string().defined(),
     id: yup.string().defined(),
+    isLedger: yup.boolean().defined(),
     head: yup
       .object({
         hash: yup.string().defined(),
