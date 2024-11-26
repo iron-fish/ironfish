@@ -41,6 +41,7 @@ import {
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNotesItem } from '../workerPool/tasks/decryptNotes'
+import { DecryptNotesOptions } from '../workerPool/tasks/decryptNotes'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { EncryptedAccount } from './account/encryptedAccount'
 import { AssetBalances } from './assetBalances'
@@ -418,13 +419,21 @@ export class Wallet {
       }
 
       if (accounts.length * decryptNotesPayloads.length >= workloadSize) {
-        notePromises.push(this.decryptNotesFromTransaction(accounts, decryptNotesPayloads))
+        notePromises.push(
+          this.decryptNotesFromTransaction(accounts, decryptNotesPayloads, {
+            decryptForSpender,
+          }),
+        )
         decryptNotesPayloads = []
       }
     }
 
     if (decryptNotesPayloads.length) {
-      notePromises.push(this.decryptNotesFromTransaction(accounts, decryptNotesPayloads))
+      notePromises.push(
+        this.decryptNotesFromTransaction(accounts, decryptNotesPayloads, {
+          decryptForSpender,
+        }),
+      )
     }
 
     const mergedResults: Map<string, Array<DecryptedNote>> = new Map()
@@ -448,6 +457,7 @@ export class Wallet {
   private decryptNotesFromTransaction(
     accounts: ReadonlyArray<Account>,
     encryptedNotes: Array<DecryptNotesItem>,
+    options: DecryptNotesOptions,
   ): Promise<Map<string, Array<DecryptedNote | undefined>>> {
     const accountKeys = accounts.map((account) => ({
       accountId: account.id,
@@ -456,9 +466,7 @@ export class Wallet {
       viewKey: Buffer.from(account.viewKey, 'hex'),
     }))
 
-    return this.workerPool.decryptNotes(accountKeys, encryptedNotes, {
-      decryptForSpender: false,
-    })
+    return this.workerPool.decryptNotes(accountKeys, encryptedNotes, options)
   }
 
   async connectBlockForAccount(
