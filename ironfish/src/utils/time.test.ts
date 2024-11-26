@@ -10,7 +10,10 @@ describe('TimeUtils', () => {
       expect(TimeUtils.renderEstimate(50, 100, 60)).toEqual('soon')
       expect(TimeUtils.renderEstimate(50, 100, 20)).toEqual('2s')
       expect(TimeUtils.renderEstimate(50, 200, 1)).toEqual('2m 30s')
-      expect(TimeUtils.renderEstimate(10, 10000, 1)).toEqual('2h 46m 30s')
+      expect(TimeUtils.renderEstimate(10, 10000, 1)).toEqual('2h 46m')
+      expect(TimeUtils.renderEstimate(10, 198010, 1)).toEqual('2d 7h')
+      expect(TimeUtils.renderEstimate(10, 7689610, 1)).toEqual('2M 29d')
+      expect(TimeUtils.renderEstimate(10, 73699210, 1)).toEqual('2y 4M 3d')
     })
 
     it('should render time spans', () => {
@@ -21,6 +24,10 @@ describe('TimeUtils', () => {
       expect(TimeUtils.renderSpan(1150)).toEqual('1s 150ms')
       expect(TimeUtils.renderSpan(330000)).toEqual('5m 30s')
       expect(TimeUtils.renderSpan(7530000)).toEqual('2h 5m')
+      expect(TimeUtils.renderSpan(90000000)).toEqual('1d 1h')
+      expect(TimeUtils.renderSpan(7775940000)).toEqual('2M 29d')
+      expect(TimeUtils.renderSpan(31622400000)).toEqual('1y')
+      expect(TimeUtils.renderSpan(71193600000)).toEqual('2y 3M')
     })
 
     it('should render negative times', () => {
@@ -31,6 +38,10 @@ describe('TimeUtils', () => {
       expect(TimeUtils.renderSpan(-1150)).toEqual('-1s 150ms')
       expect(TimeUtils.renderSpan(-330000)).toEqual('-5m 30s')
       expect(TimeUtils.renderSpan(-7530000)).toEqual('-2h 5m')
+      expect(TimeUtils.renderSpan(-90000000)).toEqual('-1d 1h')
+      expect(TimeUtils.renderSpan(-7775940000)).toEqual('-2M 29d')
+      expect(TimeUtils.renderSpan(-31622400000)).toEqual('-1y')
+      expect(TimeUtils.renderSpan(-71193600000)).toEqual('-2y 3M')
     })
   })
 })
