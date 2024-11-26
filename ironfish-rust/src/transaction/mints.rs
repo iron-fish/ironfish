@@ -29,6 +29,7 @@ use ironfish_zkp::{proofs::MintAsset, ProofGenerationKey};
 
 /// Parameters used to build a circuit that verifies an asset can be minted with
 /// a given key
+#[derive(Clone, Debug)]
 #[cfg(feature = "transaction-proofs")]
 pub struct MintBuilder {
     /// Asset to be minted
@@ -101,7 +102,7 @@ impl MintBuilder {
 /// The publicly visible values of a mint description in a transaction.
 /// These fields get serialized when computing the transaction hash and are used
 /// to prove that the creator has knowledge of these values.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UnsignedMintDescription {
     /// Used to add randomness to signature generation. Referred to as `ar` in
     /// the literature.

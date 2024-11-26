@@ -5,8 +5,8 @@
 use crate::{
     assets::Asset,
     errors::IronfishError,
-    keys::PublicAddress,
-    primitives::{PublicKey, Scalar},
+    keys::{PublicAddress, SaplingKey},
+    primitives::{PublicKey, Scalar, Signature},
     wasm_bindgen_wrapper,
 };
 use ironfish::{errors::IronfishErrorKind, transaction::TransactionVersion};
@@ -77,5 +77,52 @@ impl MintDescription {
             .into_iter()
             .map(Scalar::from)
             .collect()
+    }
+}
+
+wasm_bindgen_wrapper! {
+    #[derive(Clone, Debug)]
+    pub struct UnsignedMintDescription(ironfish::transaction::mints::UnsignedMintDescription);
+}
+
+#[wasm_bindgen]
+impl UnsignedMintDescription {
+    #[wasm_bindgen(constructor)]
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, IronfishError> {
+        Ok(Self(
+            ironfish::transaction::mints::UnsignedMintDescription::read(
+                bytes,
+                TransactionVersion::V1,
+            )?,
+        ))
+    }
+
+    #[wasm_bindgen]
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut buf = Vec::new();
+        self.0
+            .write(&mut buf, TransactionVersion::V1)
+            .expect("failed to serialize unsigned mint description");
+        buf
+    }
+
+    #[wasm_bindgen]
+    pub fn sign(
+        self,
+        spender_key: &SaplingKey,
+        signature_hash: &[u8],
+    ) -> Result<MintDescription, IronfishError> {
+        let signature_hash: &[u8; 32] = signature_hash
+            .try_into()
+            .map_err(|_| IronfishErrorKind::InvalidData)?;
+        self.0
+            .sign(spender_key.as_ref(), signature_hash)
+            .map(|d| d.into())
+            .map_err(|e| e.into())
+    }
+
+    #[wasm_bindgen(js_name = addSignature)]
+    pub fn add_signature(self, signature: Signature) -> MintDescription {
+        self.0.add_signature(signature.into()).into()
     }
 }
