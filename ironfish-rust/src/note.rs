@@ -85,7 +85,7 @@ impl fmt::Display for Memo {
 ///
 /// When receiving funds, a new note needs to be created for the new owner
 /// to hold those funds.
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Note {
     /// Asset identifier the note is associated with
     pub(crate) asset_id: AssetIdentifier,
