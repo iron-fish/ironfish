@@ -120,6 +120,11 @@ impl AssetIdentifier {
         self.0.as_bytes().to_vec()
     }
 
+    #[wasm_bindgen(getter)]
+    pub fn native() -> Self {
+        Self(ironfish::assets::asset_identifier::NATIVE_ASSET)
+    }
+
     #[wasm_bindgen(getter, js_name = assetGenerator)]
     pub fn asset_generator(&self) -> ExtendedPoint {
         self.0.asset_generator().into()
@@ -207,6 +212,16 @@ mod tests {
                 hex!("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb1");
             let id = AssetIdentifier::deserialize(&serialization[..]).unwrap();
             assert_eq!(id.serialize(), serialization);
+        }
+
+        #[test]
+        #[wasm_bindgen_test]
+        fn native() {
+            let id = AssetIdentifier::native();
+            assert_eq!(
+                id.serialize(),
+                hex!("51f33a2f14f92735e562dc658a5639279ddca3d5079a6d1242b2a588a9cbf44c")
+            );
         }
     }
 }
