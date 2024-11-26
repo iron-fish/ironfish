@@ -26,6 +26,7 @@ export const IronfishLedgerStatusCodes = {
   PANIC: 0xe000,
   EXPERT_MODE_REQUIRED: 0x6984,
   DKG_EXPERT_MODE_REQUIRED: 0xb027,
+  INVALID_DKG_STATUS: 0xb022,
 }
 
 export class Ledger {
@@ -73,6 +74,8 @@ export class Ledger {
           throw new LedgerPanicError()
         } else if (error.returnCode === IronfishLedgerStatusCodes.GP_AUTH_FAILED) {
           throw new LedgerGPAuthFailed()
+        } else if (error.returnCode === IronfishLedgerStatusCodes.INVALID_DKG_STATUS) {
+          throw new LedgerInvalidDkgStatusError()
         } else if (
           error.returnCode === IronfishLedgerStatusCodes.EXPERT_MODE_REQUIRED ||
           error.returnCode === IronfishLedgerStatusCodes.DKG_EXPERT_MODE_REQUIRED
@@ -191,3 +194,4 @@ export class LedgerActionRejected extends LedgerError {}
 export class LedgerInvalidTxHash extends LedgerError {}
 export class LedgerPanicError extends LedgerError {}
 export class LedgerExpertModeError extends LedgerError {}
+export class LedgerInvalidDkgStatusError extends LedgerError {}
