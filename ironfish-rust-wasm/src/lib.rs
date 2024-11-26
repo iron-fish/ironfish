@@ -19,6 +19,7 @@ pub mod assets;
 pub mod errors;
 pub mod keys;
 pub mod merkle_note;
+pub mod note;
 pub mod primitives;
 pub mod transaction;
 
