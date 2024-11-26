@@ -6,14 +6,16 @@ mod burns;
 mod mints;
 mod outputs;
 mod spends;
+mod unsigned;
 
 use crate::{errors::IronfishError, primitives::PublicKey, wasm_bindgen_wrapper};
 use wasm_bindgen::prelude::*;
 
 pub use burns::BurnDescription;
-pub use mints::MintDescription;
+pub use mints::{MintDescription, UnsignedMintDescription};
 pub use outputs::OutputDescription;
-pub use spends::SpendDescription;
+pub use spends::{SpendDescription, UnsignedSpendDescription};
+pub use unsigned::UnsignedTransaction;
 
 wasm_bindgen_wrapper! {
     #[derive(Clone, Debug)]

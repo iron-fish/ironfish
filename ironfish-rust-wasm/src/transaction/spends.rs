@@ -4,7 +4,8 @@
 
 use crate::{
     errors::IronfishError,
-    primitives::{Nullifier, PublicKey, Scalar},
+    keys::SaplingKey,
+    primitives::{Nullifier, PublicKey, Scalar, Signature},
     wasm_bindgen_wrapper,
 };
 use ironfish::errors::IronfishErrorKind;
@@ -72,5 +73,49 @@ impl SpendDescription {
             .into_iter()
             .map(Scalar::from)
             .collect()
+    }
+}
+
+wasm_bindgen_wrapper! {
+    #[derive(Clone, Debug)]
+    pub struct UnsignedSpendDescription(ironfish::transaction::spends::UnsignedSpendDescription);
+}
+
+#[wasm_bindgen]
+impl UnsignedSpendDescription {
+    #[wasm_bindgen(constructor)]
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, IronfishError> {
+        Ok(Self(
+            ironfish::transaction::spends::UnsignedSpendDescription::read(bytes)?,
+        ))
+    }
+
+    #[wasm_bindgen]
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut buf = Vec::new();
+        self.0
+            .write(&mut buf)
+            .expect("failed to serialize unsigned spend description");
+        buf
+    }
+
+    #[wasm_bindgen]
+    pub fn sign(
+        self,
+        spender_key: &SaplingKey,
+        signature_hash: &[u8],
+    ) -> Result<SpendDescription, IronfishError> {
+        let signature_hash: &[u8; 32] = signature_hash
+            .try_into()
+            .map_err(|_| IronfishErrorKind::InvalidData)?;
+        self.0
+            .sign(spender_key.as_ref(), signature_hash)
+            .map(|d| d.into())
+            .map_err(|e| e.into())
+    }
+
+    #[wasm_bindgen(js_name = addSignature)]
+    pub fn add_signature(self, signature: Signature) -> SpendDescription {
+        self.0.add_signature(signature.into()).into()
     }
 }

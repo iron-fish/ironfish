@@ -150,7 +150,7 @@ impl SpendBuilder {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UnsignedSpendDescription {
     /// Used to add randomness to signature generation without leaking the
     /// key. Referred to as `ar` in the literature.
