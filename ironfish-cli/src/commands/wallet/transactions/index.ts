@@ -5,9 +5,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import {
   Assert,
   CurrencyUtils,
-  GetAccountTransactionsResponse,
   PartialRecursive,
-  RpcAsset,
   RpcClient,
   RpcWalletTransaction,
   TransactionType,
@@ -19,6 +17,12 @@ import * as ui from '../../../ui'
 import { getAssetsByIDs, useAccount } from '../../../utils'
 import { extractChainportDataFromTransaction } from '../../../utils/chainport'
 import { TableCols, TableOutput } from '../../../utils/table'
+import {
+  getTransactionRows,
+  getTransactionRowsByNote,
+  TransactionAssetRow,
+  TransactionNoteRow,
+} from './transactionExportUtils'
 
 const { sort: _, ...tableFlags } = ui.TableFlags
 
@@ -138,7 +142,7 @@ export class TransactionsCommand extends IronfishCommand {
     )
 
     let hasTransactions = false
-    let transactionRows: PartialRecursive<TransactionRow>[] = []
+    const transactionRows: PartialRecursive<TransactionRow>[] = []
 
     for await (const { account, transaction } of transactions) {
       if (transactionRows.length >= flags.limit) {
@@ -153,6 +157,7 @@ export class TransactionsCommand extends IronfishCommand {
         continue
       }
 
+      let transactionSubRows: TransactionNoteRow[] | TransactionAssetRow[]
       if (format === 'notes' || format === 'transfers') {
         Assert.isNotUndefined(transaction.notes)
 
@@ -170,14 +175,11 @@ export class TransactionsCommand extends IronfishCommand {
               : ('Bridge (incoming)' as TransactionType)
         }
 
-        transactionRows = transactionRows.concat(
-          this.getTransactionRowsByNote(
-            assetLookup,
-            accountsByAddress,
-            transaction,
-            output,
-            format,
-          ),
+        transactionSubRows = getTransactionRowsByNote(
+          assetLookup,
+          accountsByAddress,
+          transaction,
+          format,
         )
       } else {
         const assetLookup = await getAssetsByIDs(
@@ -186,9 +188,30 @@ export class TransactionsCommand extends IronfishCommand {
           account,
           flags.confirmations,
         )
-        transactionRows = transactionRows.concat(
-          this.getTransactionRows(assetLookup, transaction, output),
-        )
+        transactionSubRows = getTransactionRows(assetLookup, transaction)
+
+        // exclude the native asset in cli output if no amount was sent/received
+        // and it was not the only asset exchanged
+        if (output === TableOutput.cli && transactionSubRows.length > 1) {
+          transactionSubRows = transactionSubRows.filter(({ assetId, amount }) => {
+            return assetId !== Asset.nativeId().toString('hex') || amount !== 0n
+          })
+        }
+      }
+
+      const feePaid = transaction.type === TransactionType.SEND ? BigInt(transaction.fee) : 0n
+
+      for (const [index, subRow] of transactionSubRows.entries()) {
+        const group =
+          format === 'transfers' ? '' : this.getRowGroup(index, transactionSubRows.length)
+
+        const addTransaction = index === 0 || output !== TableOutput.cli
+
+        transactionRows.push({
+          ...(addTransaction ? { ...transaction, feePaid } : {}),
+          ...subRow,
+          group,
+        })
       }
       hasTransactions = true
     }
@@ -230,143 +253,6 @@ export class TransactionsCommand extends IronfishCommand {
         yield { account, transaction }
       }
     }
-  }
-
-  getTransactionRows(
-    assetLookup: { [key: string]: RpcAsset },
-    transaction: GetAccountTransactionsResponse,
-    output: TableOutput,
-  ): PartialRecursive<TransactionRow>[] {
-    const nativeAssetId = Asset.nativeId().toString('hex')
-
-    const assetBalanceDeltas = transaction.assetBalanceDeltas.sort((d) =>
-      d.assetId === nativeAssetId ? -1 : 1,
-    )
-
-    const feePaid = transaction.type === TransactionType.SEND ? BigInt(transaction.fee) : 0n
-
-    const transactionRows = []
-
-    let assetCount = assetBalanceDeltas.length
-
-    for (const [index, { assetId, delta }] of assetBalanceDeltas.entries()) {
-      const asset = assetLookup[assetId]
-      let amount = BigInt(delta)
-
-      if (assetId === Asset.nativeId().toString('hex')) {
-        if (transaction.type === TransactionType.SEND) {
-          amount += feePaid
-        }
-
-        // exclude the native asset in cli output if no amount was sent/received
-        // and it was not the only asset exchanged
-        if (output === TableOutput.cli && amount === 0n && assetCount > 1) {
-          assetCount -= 1
-          continue
-        }
-      }
-
-      const group = this.getRowGroup(index, assetCount, transactionRows.length)
-
-      const transactionRow = {
-        group,
-        assetId,
-        assetName: asset.name,
-        amount,
-        assetDecimals: asset.verification.decimals,
-        assetSymbol: asset.verification.symbol,
-      }
-
-      // include full transaction details in first row or non-cli-formatted output
-      if (transactionRows.length === 0 || output !== TableOutput.cli) {
-        transactionRows.push({
-          ...transaction,
-          ...transactionRow,
-          feePaid,
-        })
-      } else {
-        transactionRows.push(transactionRow)
-      }
-    }
-
-    return transactionRows
-  }
-
-  getTransactionRowsByNote(
-    assetLookup: { [key: string]: RpcAsset },
-    accountLookup: Map<string, string>,
-    transaction: GetAccountTransactionsResponse,
-    output: TableOutput,
-    format: 'notes' | 'transactions' | 'transfers',
-  ): PartialRecursive<TransactionRow>[] {
-    Assert.isNotUndefined(transaction.notes)
-    const transactionRows = []
-
-    const nativeAssetId = Asset.nativeId().toString('hex')
-
-    const notes = transaction.notes.sort((n) => (n.assetId === nativeAssetId ? -1 : 1))
-
-    const noteCount = transaction.notes.length
-
-    const feePaid = transaction.type === TransactionType.SEND ? BigInt(transaction.fee) : 0n
-
-    for (const [index, note] of notes.entries()) {
-      const amount = BigInt(note.value)
-      const assetId = note.assetId
-      const assetName = assetLookup[note.assetId].name
-      const assetDecimals = assetLookup[note.assetId].verification.decimals
-      const assetSymbol = assetLookup[note.assetId].verification.symbol
-      const sender = note.sender
-      const recipient = note.owner
-      const memo = note.memo
-      const senderName = accountLookup.get(note.sender)
-      const recipientName = accountLookup.get(note.owner)
-
-      let group = this.getRowGroup(index, noteCount, transactionRows.length)
-
-      if (format === 'transfers') {
-        if (note.sender === note.owner && !transaction.mints.length) {
-          continue
-        } else {
-          group = ''
-        }
-      }
-
-      // include full transaction details in first row or non-cli-formatted output
-      if (transactionRows.length === 0 || output !== TableOutput.cli) {
-        transactionRows.push({
-          ...transaction,
-          group,
-          assetId,
-          assetName,
-          assetDecimals,
-          assetSymbol,
-          amount,
-          feePaid,
-          sender,
-          senderName,
-          recipient,
-          recipientName,
-          memo,
-        })
-      } else {
-        transactionRows.push({
-          group,
-          assetId,
-          assetName,
-          assetDecimals,
-          assetSymbol,
-          amount,
-          sender,
-          senderName,
-          recipient,
-          recipientName,
-          memo,
-        })
-      }
-    }
-
-    return transactionRows
   }
 
   getColumns(
@@ -484,18 +370,18 @@ export class TransactionsCommand extends IronfishCommand {
     return columns
   }
 
-  getRowGroup(index: number, assetCount: number, assetRowCount: number): string {
-    if (assetCount > 1) {
-      if (assetRowCount === 0) {
-        return '┏'
-      } else if (assetRowCount > 0 && index < assetCount - 1) {
-        return '┣'
-      } else if (assetRowCount > 0 && index === assetCount - 1) {
-        return '┗'
-      }
+  getRowGroup(index: number, total: number): string {
+    if (total <= 1) {
+      return ''
     }
 
-    return ''
+    if (index === 0) {
+      return '┏'
+    } else if (index === total - 1) {
+      return '┗'
+    } else {
+      return '┣'
+    }
   }
 }
 
