@@ -120,6 +120,11 @@ impl AssetIdentifier {
         self.0.as_bytes().to_vec()
     }
 
+    #[wasm_bindgen(getter)]
+    pub fn native() -> Self {
+        Self(ironfish::assets::asset_identifier::NATIVE_ASSET)
+    }
+
     #[wasm_bindgen(getter, js_name = assetGenerator)]
     pub fn asset_generator(&self) -> ExtendedPoint {
         self.0.asset_generator().into()
