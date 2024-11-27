@@ -336,7 +336,7 @@ impl MintDescription {
             transfer_ownership_to = None;
         }
 
-        let authorizing_signature = redjubjub::Signature::read(&mut reader)?;
+        let authorizing_signature = Signature::read(&mut reader)?;
 
         Ok(MintDescription {
             proof,
