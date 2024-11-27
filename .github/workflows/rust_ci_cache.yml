@@ -19,7 +19,7 @@ name: Cache Rust build
 jobs:
   build-rust-cache:
     name: Build and cache rust code
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 

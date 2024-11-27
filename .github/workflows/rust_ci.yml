@@ -33,7 +33,7 @@ name: Rust CI
 jobs:
   rust_lint:
     name: Lint Rust
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -63,7 +63,7 @@ jobs:
 
   cargo_check:
     name: Check Rust
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -83,7 +83,7 @@ jobs:
 
   cargo_vet:
     name: Vet Dependencies
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -103,7 +103,7 @@ jobs:
 
   ironfish_rust:
     name: Test ironfish-rust
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         shard: [1/2, 2/2]
@@ -142,7 +142,7 @@ jobs:
 
   ironfish_rust_no_default_features:
     name: Test ironfish-rust (no default features)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         shard: [1/2, 2/2]
@@ -168,7 +168,7 @@ jobs:
 
   ironfish_rust_all_features:
     name: Test ironfish-rust (all features)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         shard: [1/2, 2/2]
@@ -194,7 +194,7 @@ jobs:
 
   ironfish_zkp:
     name: Test ironfish-zkp
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -228,7 +228,7 @@ jobs:
 
   ironfish_wasm:
     name: Test ironfish-rust-wasm
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 

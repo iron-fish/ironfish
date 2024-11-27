@@ -8,7 +8,7 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - if: ${{ contains(github.event.pull_request.base.ref, 'master') && !contains(github.event.pull_request.title, 'master') }}
         run: |

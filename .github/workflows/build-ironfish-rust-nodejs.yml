@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - host: ubuntu-latest
+          - host: ubuntu-22.04
             target: x86_64-apple-darwin
 
           - host: windows-latest
@@ -24,16 +24,16 @@ jobs:
           - host: macos-latest
             target: x86_64-unknown-linux-gnu
 
-          - host: ubuntu-latest
+          - host: ubuntu-22.04
             target: x86_64-unknown-linux-musl
 
-          - host: ubuntu-latest
+          - host: ubuntu-22.04
             target: aarch64-apple-darwin
 
-          - host: ubuntu-latest
+          - host: ubuntu-22.04
             target: aarch64-unknown-linux-gnu
 
-          - host: ubuntu-latest
+          - host: ubuntu-22.04
             target: aarch64-unknown-linux-musl
 
     name: Build ${{ matrix.settings.target }}
@@ -94,19 +94,19 @@ jobs:
           - host: windows-latest
             target: x86_64-pc-windows-msvc
 
-          - host: ubuntu-latest
+          - host: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             docker: node:18-slim
 
-          - host: ubuntu-latest
+          - host: ubuntu-22.04
             target: x86_64-unknown-linux-musl
             docker: node:18-alpine
 
-          - host: ubuntu-latest
+          - host: ubuntu-22.04
             target: aarch64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs:aarch64-16
 
-          - host: ubuntu-latest
+          - host: ubuntu-22.04
             target: aarch64-unknown-linux-musl
             docker: arm64v8/node:18-alpine
             platform: linux/arm64/v8
