@@ -268,7 +268,7 @@ impl SpendDescription {
         let tree_size = reader.read_u32::<LittleEndian>()?;
         let mut nullifier = Nullifier([0; 32]);
         reader.read_exact(&mut nullifier.0)?;
-        let authorizing_signature = redjubjub::Signature::read(&mut reader)?;
+        let authorizing_signature = Signature::read(&mut reader)?;
 
         Ok(SpendDescription {
             proof,
