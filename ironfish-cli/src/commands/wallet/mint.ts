@@ -243,7 +243,7 @@ This will create tokens and increase supply for a given asset.`
       ...(assetData != null ? { assetId } : {}),
       name: name,
       metadata: metadata,
-      value: CurrencyUtils.encode(amount),
+      value: amount.toString(),
       transferOwnershipTo: flags.transferOwnershipTo,
     }
 
@@ -251,8 +251,8 @@ This will create tokens and increase supply for a given asset.`
       account,
       outputs: [],
       mints: [mint],
-      fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
-      feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
+      fee: flags.fee ? flags.fee.toString() : null,
+      feeRate: flags.feeRate ? flags.feeRate.toString() : null,
       expiration: expiration,
       confirmations: flags.confirmations,
     }

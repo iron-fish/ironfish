@@ -6,7 +6,6 @@ import '../../../testUtilities/matchers'
 import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../../../assert'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { CurrencyUtils } from '../../../utils'
 
 describe('Route chain.getAsset', () => {
   const routeTest = createRouteTest()
@@ -24,7 +23,7 @@ describe('Route chain.getAsset', () => {
     expect(response.content.nonce).toBe(asset.nonce)
     expect(response.content.creator).toBe(asset.creator.toString('hex'))
     expect(response.content.owner).toBe(asset.owner.toString('hex'))
-    expect(response.content.supply).toBe(CurrencyUtils.encode(asset.supply))
+    expect(response.content.supply).toBe(asset.supply.toString())
     expect(response.content.createdTransactionHash).toBe(
       asset.createdTransactionHash.toString('hex'),
     )

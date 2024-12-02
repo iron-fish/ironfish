@@ -5,7 +5,6 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { PRIORITY_LEVELS, PriorityLevel } from '../../../memPool/feeEstimator'
 import { FullNode } from '../../../node'
-import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 
@@ -35,6 +34,6 @@ routes.register<typeof EstimateFeeRateRequestSchema, EstimateFeeRateResponse>(
 
     const priority = request.data?.priority ?? 'average'
     const rate = node.memPool.feeEstimator.estimateFeeRate(priority)
-    request.end({ rate: CurrencyUtils.encode(rate) })
+    request.end({ rate: rate.toString() })
   },
 )
