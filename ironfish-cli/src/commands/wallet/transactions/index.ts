@@ -3,18 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import {
+  allAccountsByAddress,
   Assert,
   CurrencyUtils,
+  getTransactionsWithAssets,
   PartialRecursive,
-  RpcClient,
-  RpcWalletTransaction,
   TransactionType,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { DateFlag, RemoteFlags } from '../../../flags'
 import * as ui from '../../../ui'
-import { getAssetsByIDs, useAccount } from '../../../utils'
+import { useAccount } from '../../../utils'
 import { extractChainportDataFromTransaction } from '../../../utils/chainport'
 import { TableCols, TableOutput } from '../../../utils/table'
 import {
@@ -109,28 +109,18 @@ export class TransactionsCommand extends IronfishCommand {
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
 
-    const allAccounts = (await client.wallet.getAccounts()).content.accounts
+    const accountsByAddress = await allAccountsByAddress(client)
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
     let accounts = flags.account
     if (flags['no-account']) {
-      accounts = allAccounts
+      accounts = [...accountsByAddress.keys()]
     } else if (!accounts) {
       const account = await useAccount(client, undefined)
       accounts = [account]
     }
 
-    const accountsByAddress = new Map<string, string>(
-      await Promise.all(
-        allAccounts.map<Promise<[string, string]>>(async (account) => {
-          const response = await client.wallet.getAccountPublicKey({ account })
-          return [response.content.publicKey, response.content.account]
-        }),
-      ),
-    )
-
-    const networkId = (await client.chain.getNetworkInfo()).content.networkId
-
-    const transactions = this.getTransactions(
+    const transactions = getTransactionsWithAssets(
       client,
       accounts,
       flags.transaction,
@@ -144,7 +134,7 @@ export class TransactionsCommand extends IronfishCommand {
     let hasTransactions = false
     const transactionRows: PartialRecursive<TransactionRow>[] = []
 
-    for await (const { account, transaction } of transactions) {
+    for await (const { transaction, assetLookup } of transactions) {
       if (transactionRows.length >= flags.limit) {
         break
       }
@@ -159,22 +149,6 @@ export class TransactionsCommand extends IronfishCommand {
 
       let transactionSubRows: TransactionNoteRow[] | TransactionAssetRow[]
       if (format === 'notes' || format === 'transfers') {
-        Assert.isNotUndefined(transaction.notes)
-
-        const assetLookup = await getAssetsByIDs(
-          client,
-          transaction.notes.map((n) => n.assetId) || [],
-          account,
-          flags.confirmations,
-        )
-
-        if (extractChainportDataFromTransaction(networkId, transaction)) {
-          transaction.type =
-            transaction.type === TransactionType.SEND
-              ? ('Bridge (outgoing)' as TransactionType)
-              : ('Bridge (incoming)' as TransactionType)
-        }
-
         transactionSubRows = getTransactionRowsByNote(
           assetLookup,
           accountsByAddress,
@@ -182,12 +156,6 @@ export class TransactionsCommand extends IronfishCommand {
           format,
         )
       } else {
-        const assetLookup = await getAssetsByIDs(
-          client,
-          transaction.assetBalanceDeltas.map((d) => d.assetId),
-          account,
-          flags.confirmations,
-        )
         transactionSubRows = getTransactionRows(assetLookup, transaction)
 
         // exclude the native asset in cli output if no amount was sent/received
@@ -200,15 +168,21 @@ export class TransactionsCommand extends IronfishCommand {
       }
 
       const feePaid = transaction.type === TransactionType.SEND ? BigInt(transaction.fee) : 0n
+      let transactionType: string = transaction.type
+      if (extractChainportDataFromTransaction(networkId, transaction)) {
+        transactionType =
+          transaction.type === TransactionType.SEND ? 'Bridge (outgoing)' : 'Bridge (incoming)'
+      }
 
       for (const [index, subRow] of transactionSubRows.entries()) {
         const group =
           format === 'transfers' ? '' : this.getRowGroup(index, transactionSubRows.length)
 
         const addTransaction = index === 0 || output !== TableOutput.cli
+        const fullTransactionInfo = { ...transaction, feePaid, type: transactionType }
 
         transactionRows.push({
-          ...(addTransaction ? { ...transaction, feePaid } : {}),
+          ...(addTransaction ? fullTransactionInfo : {}),
           ...subRow,
           group,
         })
@@ -225,33 +199,6 @@ export class TransactionsCommand extends IronfishCommand {
 
     if (!hasTransactions) {
       this.log('No transactions found')
-    }
-  }
-
-  async *getTransactions(
-    client: RpcClient,
-    accounts: string[],
-    hash?: string,
-    sequence?: number,
-    limit?: number,
-    offset?: number,
-    confirmations?: number,
-    notes?: boolean,
-  ): AsyncGenerator<{ account: string; transaction: RpcWalletTransaction }, void> {
-    for (const account of accounts) {
-      const response = client.wallet.getAccountTransactionsStream({
-        account,
-        hash: hash,
-        sequence: sequence,
-        limit: limit,
-        offset: offset,
-        confirmations: confirmations,
-        notes: notes,
-      })
-
-      for await (const transaction of response.contentStream()) {
-        yield { account, transaction }
-      }
     }
   }
 
