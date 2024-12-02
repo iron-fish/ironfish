@@ -2,10 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { SpiedFunction } from 'jest-mock'
-import { Asset, ASSET_ID_LENGTH, generateKey, multisig } from '@ironfish/rust-nodejs'
+import {
+  Asset,
+  ASSET_ID_LENGTH,
+  generateKey,
+  multisig,
+  Note as NativeNote,
+  verifyTransactions,
+} from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
-import { Transaction } from '../primitives'
+import { makeFakeWitness } from '../devUtils'
+import { Note, RawTransaction, Transaction } from '../primitives'
 import { Target } from '../primitives/target'
+import { TransactionVersion } from '../primitives/transaction'
 import {
   createNodeTest,
   useAccountFixture,
@@ -1367,5 +1376,63 @@ describe('Wallet', () => {
       .getMultisigParticipantIdentities()
       .map((identity) => identity.toString('hex'))
     expect(identities.sort()).toEqual(storedIdentities.sort())
+  })
+
+  it('build and signs transactions', () => {
+    // Generate random key
+    const { outgoingViewKey, proofAuthorizingKey, publicAddress, spendingKey, viewKey } =
+      generateKey()
+
+    const inNote = new NativeNote(
+      publicAddress,
+      42n,
+      Buffer.from(''),
+      Asset.nativeId(),
+      publicAddress,
+    )
+    const outNote = new NativeNote(
+      publicAddress,
+      40n,
+      Buffer.from(''),
+      Asset.nativeId(),
+      publicAddress,
+    )
+    const asset = new Asset(publicAddress, 'Testcoin', 'A really cool coin')
+    const mintOutNote = new NativeNote(
+      publicAddress,
+      5n,
+      Buffer.from(''),
+      asset.id(),
+      publicAddress,
+    )
+
+    // Construct fake note witness for input note to spend
+    const witness = makeFakeWitness(new Note(inNote.serialize()))
+
+    // Construct raw transaction
+    const raw = new RawTransaction(TransactionVersion.V1)
+    raw.spends.push({ note: new Note(inNote.serialize()), witness })
+    raw.outputs.push({ note: new Note(outNote.serialize()) })
+    raw.outputs.push({ note: new Note(mintOutNote.serialize()) })
+    raw.mints.push({
+      creator: asset.creator().toString('hex'),
+      name: asset.name().toString(),
+      metadata: asset.metadata().toString(),
+      value: mintOutNote.value(),
+    })
+    raw.fee = 1n
+
+    // Build transaction and construct proofs to generate unsigned transaction
+    const unsignedTransaction = raw.build(proofAuthorizingKey, viewKey, outgoingViewKey)
+
+    // Sign unsigned transaction
+    const serializedTransaction = unsignedTransaction.sign(spendingKey)
+    const signedTransaction = new Transaction(serializedTransaction)
+
+    // Check that hash is equal to hash of unsigned transaction
+    expect(signedTransaction.unsignedHash()).toEqualBuffer(unsignedTransaction.hash())
+
+    // Check that signed transaction verifies
+    expect(verifyTransactions([serializedTransaction])).toBeTruthy()
   })
 })
