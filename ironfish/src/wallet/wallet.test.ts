@@ -6,7 +6,7 @@ import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
-import { VerificationResultReason } from '../consensus'
+import { VerificationResultReason, Verifier } from '../consensus'
 import { RawTransaction } from '../primitives'
 import { TransactionVersion } from '../primitives/transaction'
 import {
@@ -28,6 +28,7 @@ import {
   DuplicateAccountNameError,
   DuplicateSpendingKeyError,
   MaxMemoLengthError,
+  MaxTransactionSizeError,
 } from './errors'
 import { toAccountImport } from './exporter'
 import { AssetStatus, Wallet } from './wallet'
@@ -1458,6 +1459,33 @@ describe('Wallet', () => {
 
       // no spends needed
       expect(rawTransaction.spends.length).toBe(0)
+    })
+
+    it('should throw error if transaction exceeds maximum size', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet, 'a')
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await expect(node.chain).toAddBlock(block1)
+      await node.wallet.scan()
+
+      // Mock verifier to only allow transactions of size 0
+      jest.spyOn(Verifier, 'getMaxTransactionBytes').mockImplementation((_) => 0)
+
+      const promise = nodeTest.wallet.createTransaction({
+        account: account,
+        fee: 0n,
+        outputs: [
+          {
+            publicAddress: account.publicAddress,
+            amount: 1n,
+            memo: Buffer.alloc(0),
+            assetId: Asset.nativeId(),
+          },
+        ],
+      })
+      await expect(promise).rejects.toThrow(MaxTransactionSizeError)
     })
   })
 
