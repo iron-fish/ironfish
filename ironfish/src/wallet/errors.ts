@@ -34,6 +34,10 @@ export class MaxMemoLengthError extends Error {
   }
 }
 
+export class MaxTransactionSizeError extends Error {
+  name = this.constructor.name
+}
+
 export class DuplicateAccountNameError extends Error {
   name = this.constructor.name
 

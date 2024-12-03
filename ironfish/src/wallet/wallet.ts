@@ -51,6 +51,7 @@ import {
   DuplicateMultisigSecretNameError,
   DuplicateSpendingKeyError,
   MaxMemoLengthError,
+  MaxTransactionSizeError,
   NotEnoughFundsError,
 } from './errors'
 import { isMultisigSignerImport } from './exporter'
@@ -932,6 +933,15 @@ export class Wallet {
           notes: options.notes,
           confirmations: confirmations,
         })
+      }
+
+      const maxTransactionSize = Verifier.getMaxTransactionBytes(
+        this.consensus.parameters.maxBlockSizeBytes,
+      )
+      if (raw.postedSize() > maxTransactionSize) {
+        throw new MaxTransactionSizeError(
+          `Proposed transaction is larger than maximum transaction size of ${maxTransactionSize} bytes`,
+        )
       }
 
       return raw
