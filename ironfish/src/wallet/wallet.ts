@@ -914,7 +914,7 @@ export class Wallet {
       }
 
       if (options.feeRate) {
-        raw.fee = getFee(options.feeRate, raw.postedSize(options.account.publicAddress))
+        raw.fee = getFee(options.feeRate, raw.postedSize())
       }
 
       await this.fund(raw, {
@@ -924,7 +924,7 @@ export class Wallet {
       })
 
       if (options.feeRate) {
-        raw.fee = getFee(options.feeRate, raw.postedSize(options.account.publicAddress))
+        raw.fee = getFee(options.feeRate, raw.postedSize())
         raw.spends = []
 
         await this.fund(raw, {

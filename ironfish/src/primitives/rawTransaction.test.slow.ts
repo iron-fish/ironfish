@@ -219,7 +219,7 @@ describe('RawTransaction', () => {
             )
           ).serialize()
 
-          expect(raw.postedSize(account.publicAddress)).toEqual(serialized.byteLength)
+          expect(raw.postedSize()).toEqual(serialized.byteLength)
         })
       })
     })
@@ -254,7 +254,7 @@ describe('RawTransaction', () => {
             )
           ).serialize()
 
-          expect(raw.postedSize(account.publicAddress)).toEqual(serialized.byteLength)
+          expect(raw.postedSize()).toEqual(serialized.byteLength)
         })
       })
     })
