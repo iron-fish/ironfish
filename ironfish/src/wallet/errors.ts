@@ -36,6 +36,10 @@ export class MaxMemoLengthError extends Error {
 
 export class MaxTransactionSizeError extends Error {
   name = this.constructor.name
+  constructor(maxTransactionSize: number) {
+    super()
+    this.message = `Proposed transaction is larger than maximum transaction size of ${maxTransactionSize} bytes`
+  }
 }
 
 export class DuplicateAccountNameError extends Error {
