@@ -3,8 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    errors::IronfishError, keys::PublicAddress, primitives::PublicKey, wasm_bindgen_wrapper,
+    errors::IronfishError,
+    keys::PublicAddress,
+    primitives::{Fr, PublicKey},
+    wasm_bindgen_wrapper,
 };
+use ironfish_zkp::constants::SPENDING_KEY_GENERATOR;
+use rand::thread_rng;
 use wasm_bindgen::prelude::*;
 
 wasm_bindgen_wrapper! {
@@ -115,5 +120,47 @@ impl ViewKey {
     #[wasm_bindgen(getter, js_name = nullifierDerivingKey)]
     pub fn nullifier_deriving_key(&self) -> PublicKey {
         self.0.nullifier_deriving_key.into()
+    }
+
+    #[wasm_bindgen(js_name = randomizedPublicKey)]
+    pub fn randomized_public_key_pair(&self) -> RandomizedPublicKeyPair {
+        let (r, s) = self.0.randomized_public_key(thread_rng());
+        RandomizedPublicKeyPair::new(r.into(), s.into())
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Debug)]
+pub struct RandomizedPublicKeyPair(Fr, PublicKey);
+
+#[wasm_bindgen]
+impl RandomizedPublicKeyPair {
+    #[wasm_bindgen(constructor)]
+    pub fn new(public_key_randomness: Fr, randomized_public_key: PublicKey) -> Self {
+        Self(public_key_randomness, randomized_public_key)
+    }
+
+    #[wasm_bindgen(js_name = fromViewKey)]
+    pub fn from_view_key(view_key: &ViewKey) -> Self {
+        let public_key_randomness = Fr::random();
+        Self::from_view_key_and_randomness(view_key, public_key_randomness)
+    }
+
+    #[wasm_bindgen(js_name = fromViewKeyAndRandomness)]
+    pub fn from_view_key_and_randomness(view_key: &ViewKey, public_key_randomness: Fr) -> Self {
+        let randomized_public_key = view_key
+            .authorizing_key()
+            .randomize(&public_key_randomness, &(*SPENDING_KEY_GENERATOR).into());
+        Self(public_key_randomness, randomized_public_key)
+    }
+
+    #[wasm_bindgen(js_name = publicKeyRandomness)]
+    pub fn public_key_randomness(&self) -> Fr {
+        self.0
+    }
+
+    #[wasm_bindgen(js_name = randomizedPublicKey)]
+    pub fn randomized_public_key(&self) -> PublicKey {
+        self.1.clone()
     }
 }
