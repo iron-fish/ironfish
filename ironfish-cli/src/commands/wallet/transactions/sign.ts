@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { CurrencyUtils, RpcClient, Transaction } from '@ironfish/sdk'
+import { CurrencyUtils, RpcClient, Transaction, UnsignedTransaction } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { LedgerSingleSigner } from '../../../ledger'
 import * as ui from '../../../ui'
-import { renderTransactionDetails, watchTransaction } from '../../../utils/transaction'
+import { renderUnsignedTransactionDetails, watchTransaction } from '../../../utils/transaction'
 
 export class TransactionsSignCommand extends IronfishCommand {
   static description = `sign an unsigned transaction`
@@ -45,9 +45,9 @@ export class TransactionsSignCommand extends IronfishCommand {
       this.error('Cannot use --watch without --broadcast')
     }
 
-    let unsignedTransaction = flags.unsignedTransaction
-    if (!unsignedTransaction) {
-      unsignedTransaction = await ui.longPrompt('Enter the unsigned transaction', {
+    let unsignedTransactionHex = flags.unsignedTransaction
+    if (!unsignedTransactionHex) {
+      unsignedTransactionHex = await ui.longPrompt('Enter the unsigned transaction', {
         required: true,
       })
     }
@@ -55,12 +55,17 @@ export class TransactionsSignCommand extends IronfishCommand {
     let signedTransaction: string
     let account: string
 
+    const unsignedTransaction = new UnsignedTransaction(
+      Buffer.from(unsignedTransactionHex, 'hex'),
+    )
+    await renderUnsignedTransactionDetails(client, unsignedTransaction, undefined, this.logger)
+
     if (flags.ledger) {
-      const response = await this.signWithLedger(client, unsignedTransaction)
+      const response = await this.signWithLedger(client, unsignedTransactionHex)
       signedTransaction = response.transaction
       account = response.account
     } else {
-      const response = await this.signWithAccount(client, unsignedTransaction)
+      const response = await this.signWithAccount(client, unsignedTransactionHex)
       signedTransaction = response.transaction
       account = response.account
     }
@@ -76,8 +81,6 @@ export class TransactionsSignCommand extends IronfishCommand {
     this.log(`\nSigned Transaction: ${signedTransaction}`)
     this.log(`\nHash: ${transaction.hash().toString('hex')}`)
     this.log(`Fee: ${CurrencyUtils.render(transaction.fee(), true)}`)
-
-    await renderTransactionDetails(client, transaction, account, this.logger)
 
     if (flags.broadcast && response.content.accepted === false) {
       this.error(
