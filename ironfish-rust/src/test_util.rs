@@ -16,9 +16,6 @@ use rand::{thread_rng, Rng};
 /// path placing that note at a random location in a Merkle tree.
 pub fn make_fake_witness(note: &Note) -> Witness {
     let mut rng = thread_rng();
-    let mut buffer = [0u8; 64];
-    thread_rng().fill(&mut buffer[..]);
-
     let mut witness_auth_path = vec![];
     for _ in 0..TREE_DEPTH {
         witness_auth_path.push(match rng.gen() {
@@ -49,10 +46,10 @@ pub(crate) fn auth_path_to_root_hash(
     for (i, node) in auth_path.iter().enumerate() {
         cur = match node {
             WitnessNode::Left(ref sibling_hash) => {
-                MerkleNoteHash::combine_hash(i, &cur, &sibling_hash.clone())
+                MerkleNoteHash::combine_hash(i, &cur, sibling_hash)
             }
             WitnessNode::Right(ref sibling_hash) => {
-                MerkleNoteHash::combine_hash(i, &sibling_hash.clone(), &cur)
+                MerkleNoteHash::combine_hash(i, sibling_hash, &cur)
             }
         }
     }
