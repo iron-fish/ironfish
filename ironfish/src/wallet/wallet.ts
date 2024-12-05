@@ -29,6 +29,7 @@ import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../primitives/rawTransaction'
+import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
 import { Transaction } from '../primitives/transaction'
 import { GetBlockRequest, GetBlockResponse, RpcClient } from '../rpc'
 import { IDatabaseTransaction } from '../storage/database/transaction'
@@ -939,9 +940,7 @@ export class Wallet {
         this.consensus.parameters.maxBlockSizeBytes,
       )
       if (raw.postedSize() > maxTransactionSize) {
-        throw new MaxTransactionSizeError(
-          `Proposed transaction is larger than maximum transaction size of ${maxTransactionSize} bytes`,
-        )
+        throw new MaxTransactionSizeError(maxTransactionSize)
       }
 
       return raw
@@ -1009,6 +1008,11 @@ export class Wallet {
       confirmations: number
     },
   ): Promise<void> {
+    let postedSize = raw.postedSize()
+    const maxTransactionSize = Verifier.getMaxTransactionBytes(
+      this.consensus.parameters.maxBlockSizeBytes,
+    )
+
     const needed = this.buildAmountsNeeded(raw, { fee: raw.fee })
     const spent = new BufferMap<bigint>()
     const notesSpent = new BufferMap<BufferSet>()
@@ -1034,28 +1038,47 @@ export class Wallet {
       notesSpent.set(assetId, assetNotesSpent)
 
       raw.spends.push({ note: decryptedNote.note, witness })
+
+      postedSize += SPEND_SERIALIZED_SIZE_IN_BYTE
+      if (postedSize > maxTransactionSize) {
+        throw new MaxTransactionSizeError(maxTransactionSize)
+      }
     }
 
     for (const [assetId, assetAmountNeeded] of needed.entries()) {
-      const assetAmountSpent = spent.get(assetId) ?? 0n
+      let assetAmountSpent = spent.get(assetId) ?? 0n
       const assetNotesSpent = notesSpent.get(assetId) ?? new BufferSet()
 
       if (assetAmountSpent >= assetAmountNeeded) {
         continue
       }
 
-      const amountSpent = await this.addSpendsForAsset(
-        raw,
-        options.account,
-        assetId,
-        assetAmountNeeded,
-        assetAmountSpent,
-        assetNotesSpent,
-        options.confirmations,
-      )
+      for await (const unspentNote of options.account.getUnspentNotes(assetId, {
+        reverse: true,
+        confirmations: options.confirmations,
+      })) {
+        if (assetNotesSpent.has(unspentNote.note.hash())) {
+          continue
+        }
 
-      if (amountSpent < assetAmountNeeded) {
-        throw new NotEnoughFundsError(assetId, amountSpent, assetAmountNeeded)
+        const witness = await this.getNoteWitness(unspentNote, options.confirmations)
+
+        assetAmountSpent += unspentNote.note.value()
+
+        raw.spends.push({ note: unspentNote.note, witness })
+
+        postedSize += SPEND_SERIALIZED_SIZE_IN_BYTE
+        if (postedSize > maxTransactionSize) {
+          throw new MaxTransactionSizeError(maxTransactionSize)
+        }
+
+        if (assetAmountSpent >= assetAmountNeeded) {
+          break
+        }
+      }
+
+      if (assetAmountSpent < assetAmountNeeded) {
+        throw new NotEnoughFundsError(assetId, assetAmountSpent, assetAmountNeeded)
       }
     }
   }
@@ -1120,37 +1143,6 @@ export class Wallet {
     }
 
     return amountsNeeded
-  }
-
-  async addSpendsForAsset(
-    raw: RawTransaction,
-    sender: Account,
-    assetId: Buffer,
-    amountNeeded: bigint,
-    amountSpent: bigint,
-    notesSpent: BufferSet,
-    confirmations: number,
-  ): Promise<bigint> {
-    for await (const unspentNote of sender.getUnspentNotes(assetId, {
-      reverse: true,
-      confirmations,
-    })) {
-      if (notesSpent.has(unspentNote.note.hash())) {
-        continue
-      }
-
-      const witness = await this.getNoteWitness(unspentNote, confirmations)
-
-      amountSpent += unspentNote.note.value()
-
-      raw.spends.push({ note: unspentNote.note, witness })
-
-      if (amountSpent >= amountNeeded) {
-        break
-      }
-    }
-
-    return amountSpent
   }
 
   async broadcastTransaction(
