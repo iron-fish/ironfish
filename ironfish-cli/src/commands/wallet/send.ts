@@ -103,10 +103,6 @@ export class Send extends IronfishCommand {
       description: 'The note hashes to include in the transaction',
       multiple: true,
     }),
-    ledger: Flags.boolean({
-      default: false,
-      description: 'Send a transaction using a Ledger device',
-    }),
   }
 
   async start(): Promise<void> {
@@ -128,6 +124,8 @@ export class Send extends IronfishCommand {
     }
 
     const from = await useAccount(client, flags.account, 'Select an account to send from')
+    const accountStatus = (await client.wallet.getAccountStatus({ account: from })).content
+      .account
 
     if (assetId == null) {
       const asset = await ui.assetPrompt(client, from, {
@@ -255,7 +253,7 @@ export class Send extends IronfishCommand {
       this.exit(0)
     }
 
-    if (flags.ledger) {
+    if (accountStatus.isLedger) {
       await ui.sendTransactionWithLedger(
         client,
         raw,

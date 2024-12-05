@@ -70,7 +70,7 @@ describe('JsonEncoder', () => {
         version: ACCOUNT_SCHEMA_VERSION,
         name: 'test',
         spendingKey: null,
-        viewKey: key.viewKey,
+        viewKey: key.viewKey, // viewKey is required
         incomingViewKey: key.incomingViewKey,
         outgoingViewKey: key.outgoingViewKey,
         publicAddress: key.publicAddress,
@@ -79,6 +79,7 @@ describe('JsonEncoder', () => {
           publicKeyPackage: 'cccc',
         },
         proofAuthorizingKey: key.proofAuthorizingKey,
+        isLedger: false,
       }
 
       const encoder = new JsonEncoder()
@@ -107,6 +108,7 @@ describe('JsonEncoder', () => {
           keyPackage: 'bbbb',
         },
         proofAuthorizingKey: key.proofAuthorizingKey,
+        isLedger: false,
       }
 
       const encoder = new JsonEncoder()

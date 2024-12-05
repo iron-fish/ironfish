@@ -76,7 +76,7 @@ export class Account {
   readonly prefixRange: DatabaseKeyRange
   readonly multisigKeys?: MultisigKeys
   readonly proofAuthorizingKey: string | null
-
+  readonly isLedger: boolean
   constructor({
     accountValue,
     walletDb,
@@ -103,6 +103,7 @@ export class Account {
     this.scanningEnabled = accountValue.scanningEnabled
     this.multisigKeys = accountValue.multisigKeys
     this.proofAuthorizingKey = accountValue.proofAuthorizingKey
+    this.isLedger = accountValue.isLedger
   }
 
   isSpendingAccount(): this is SpendingAccount {
@@ -124,6 +125,7 @@ export class Account {
       scanningEnabled: this.scanningEnabled,
       multisigKeys: this.multisigKeys,
       proofAuthorizingKey: this.proofAuthorizingKey,
+      isLedger: this.isLedger,
     }
   }
 
