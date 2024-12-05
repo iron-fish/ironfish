@@ -22,6 +22,7 @@ pub mod merkle_note;
 pub mod note;
 pub mod primitives;
 pub mod transaction;
+pub mod witness;
 
 /// Creates a [`wasm_bindgen`] wrapper for an existing type.
 ///

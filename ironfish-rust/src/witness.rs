@@ -35,19 +35,11 @@ pub trait WitnessTrait {
 
 /// A Rust implementation of a WitnessTrait, used for testing Witness-related
 /// code within Rust.
+#[derive(Clone, PartialEq, Eq)]
 pub struct Witness {
     pub tree_size: usize,
     pub root_hash: Scalar,
     pub auth_path: Vec<WitnessNode<Scalar>>,
-}
-
-/// Implement partial equality, ignoring the Sapling Arc
-impl PartialEq for Witness {
-    fn eq(&self, other: &Witness) -> bool {
-        self.tree_size == other.tree_size
-            && self.root_hash == other.root_hash
-            && self.auth_path == other.auth_path
-    }
 }
 
 impl WitnessTrait for Witness {
