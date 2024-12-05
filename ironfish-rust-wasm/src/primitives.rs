@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{errors::IronfishError, wasm_bindgen_wrapper};
+use group::ff::Field;
 use group::GroupEncoding;
 use ironfish::errors::IronfishErrorKind;
 use ironfish_zkp::redjubjub;
@@ -16,6 +17,11 @@ wasm_bindgen_wrapper! {
 
 #[wasm_bindgen]
 impl Scalar {
+    #[wasm_bindgen]
+    pub fn random() -> Self {
+        Self(blstrs::Scalar::random(thread_rng()))
+    }
+
     #[wasm_bindgen(js_name = toBytesBe)]
     pub fn to_bytes_be(&self) -> Vec<u8> {
         self.0.to_bytes_be().to_vec()
@@ -34,6 +40,11 @@ wasm_bindgen_wrapper! {
 
 #[wasm_bindgen]
 impl Fr {
+    #[wasm_bindgen]
+    pub fn random() -> Self {
+        Self(ironfish_jubjub::Fr::random(thread_rng()))
+    }
+
     #[wasm_bindgen(js_name = toBytes)]
     pub fn to_bytes(&self) -> Vec<u8> {
         self.0.to_bytes().to_vec()
