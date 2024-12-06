@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { DecodeInvalidName } from '../../../wallet'
-import { DuplicateAccountNameError, DuplicateIdentityNameError } from '../../../wallet/errors'
+import { DuplicateAccountNameError } from '../../../wallet/errors'
 import { AccountFormat, decodeAccountImport } from '../../../wallet/exporter/account'
 import { decryptEncodedAccount } from '../../../wallet/exporter/encryption'
 import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters'
@@ -75,9 +75,6 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
         isDefaultAccount,
       })
     } catch (e) {
-      if (e instanceof DuplicateIdentityNameError) {
-        throw new RpcValidationError(e.message, 400, RPC_ERROR_CODES.DUPLICATE_IDENTITY_NAME)
-      }
       if (e instanceof DuplicateAccountNameError) {
         throw new RpcValidationError(e.message, 400, RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME)
       } else if (e instanceof DecodeInvalidName) {

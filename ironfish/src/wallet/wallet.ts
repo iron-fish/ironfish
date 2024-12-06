@@ -47,7 +47,6 @@ import { EncryptedAccount } from './account/encryptedAccount'
 import { AssetBalances } from './assetBalances'
 import {
   DuplicateAccountNameError,
-  DuplicateIdentityNameError,
   DuplicateMultisigSecretNameError,
   DuplicateSpendingKeyError,
   MaxMemoLengthError,
@@ -1587,27 +1586,7 @@ export class Wallet {
       }
 
       if (identity) {
-        const existingIdentity = await this.walletDb.getMultisigIdentity(identity, tx)
-
-        if (!existingIdentity) {
-          const duplicateSecret = await this.walletDb.getMultisigSecretByName(
-            accountValue.name,
-            tx,
-          )
-
-          if (duplicateSecret) {
-            throw new DuplicateIdentityNameError(accountValue.name)
-          }
-
-          await this.walletDb.putMultisigIdentity(
-            identity,
-            {
-              name: account.name,
-              secret,
-            },
-            tx,
-          )
-        }
+        await this.walletDb.deleteMultisigIdentity(identity, tx)
       }
 
       const accountHead =
