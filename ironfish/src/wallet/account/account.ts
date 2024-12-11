@@ -845,6 +845,22 @@ export class Account {
     }
   }
 
+  async *getTransactionsBySequenceRange(
+    startSequence?: number,
+    endSequence?: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Readonly<TransactionValue>> {
+    startSequence = startSequence ?? GENESIS_BLOCK_SEQUENCE
+    endSequence = endSequence ?? 2 ** 32 - 1
+
+    for await (const {
+      hash: _hash,
+      ...transaction
+    } of this.walletDb.loadTransactionsInSequenceRange(this, startSequence, endSequence, tx)) {
+      yield transaction
+    }
+  }
+
   getPendingTransactions(
     headSequence: number,
     tx?: IDatabaseTransaction,

@@ -91,6 +91,36 @@ describe('Route wallet/getAccountTransactions', () => {
     expect(accountTransactionHashes).toEqual(blockTransactionHashes)
   })
 
+  it('streams back transactions for a given block sequence range', async () => {
+    const node = routeTest.node
+    const account = await useAccountFixture(node.wallet, 'sequence-range')
+
+    const block1 = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
+    await expect(node.chain).toAddBlock(block1)
+    const block2 = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
+    await expect(node.chain).toAddBlock(block2)
+    const block3 = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
+    await expect(node.chain).toAddBlock(block3)
+    await node.wallet.scan()
+
+    const response = routeTest.client.wallet.getAccountTransactionsStream({
+      account: account.name,
+      startSequence: block2.header.sequence,
+      endSequence: block3.header.sequence,
+    })
+
+    const blockTransactionHashes = [
+      block2.transactions[0].hash(),
+      block3.transactions[0].hash(),
+    ]
+    const accountTransactions = await AsyncUtils.materialize(response.contentStream())
+    const accountTransactionHashes = accountTransactions
+      .map(({ hash }) => Buffer.from(hash, 'hex'))
+      .sort()
+
+    expect(accountTransactionHashes).toEqual(blockTransactionHashes)
+  })
+
   it('streams back all transactions by default', async () => {
     const node = routeTest.node
     const account = await useAccountFixture(node.wallet, 'default-stream')
