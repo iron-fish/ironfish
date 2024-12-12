@@ -1389,6 +1389,7 @@ export class Wallet {
         viewKey: key.viewKey,
         scanningEnabled: true,
         createdAt,
+        ledger: false,
       },
       walletDb: this.walletDb,
     })
