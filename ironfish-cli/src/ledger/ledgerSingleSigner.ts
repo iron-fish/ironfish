@@ -10,9 +10,9 @@ export class LedgerSingleSigner extends Ledger {
     super(false)
   }
 
-  getPublicAddress = async () => {
+  getPublicAddress = async (showInDevice: boolean = false) => {
     const response: KeyResponse = await this.tryInstruction((app) =>
-      app.retrieveKeys(this.PATH, IronfishKeys.PublicAddress, false),
+      app.retrieveKeys(this.PATH, IronfishKeys.PublicAddress, showInDevice),
     )
 
     if (!isResponseAddress(response)) {
