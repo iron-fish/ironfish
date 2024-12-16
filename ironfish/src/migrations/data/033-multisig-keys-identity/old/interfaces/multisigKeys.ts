@@ -4,7 +4,6 @@
 
 export interface MultisigSigner {
   secret: string
-  identity: string
   keyPackage: string
   publicKeyPackage: string
 }
