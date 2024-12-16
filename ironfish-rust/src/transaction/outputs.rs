@@ -131,7 +131,7 @@ impl OutputBuilder {
 ///
 /// This is the variation of an Output that gets serialized to bytes and can
 /// be loaded from bytes.
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct OutputDescription {
     /// Proof that the output circuit was valid and successful
     pub(crate) proof: groth16::Proof<Bls12>,

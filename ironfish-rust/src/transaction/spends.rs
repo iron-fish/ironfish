@@ -68,7 +68,7 @@ impl SpendBuilder {
     /// This is the only time this API thinks about the merkle tree. The witness
     /// contains the root-hash at the time the witness was created and the path
     /// to verify the location of that note in the tree.
-    pub(crate) fn new(note: Note, witness: &dyn WitnessTrait) -> Self {
+    pub(crate) fn new<W: WitnessTrait + ?Sized>(note: Note, witness: &W) -> Self {
         let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         SpendBuilder {
@@ -150,7 +150,7 @@ impl SpendBuilder {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UnsignedSpendDescription {
     /// Used to add randomness to signature generation without leaking the
     /// key. Referred to as `ar` in the literature.
@@ -268,7 +268,7 @@ impl SpendDescription {
         let tree_size = reader.read_u32::<LittleEndian>()?;
         let mut nullifier = Nullifier([0; 32]);
         reader.read_exact(&mut nullifier.0)?;
-        let authorizing_signature = redjubjub::Signature::read(&mut reader)?;
+        let authorizing_signature = Signature::read(&mut reader)?;
 
         Ok(SpendDescription {
             proof,

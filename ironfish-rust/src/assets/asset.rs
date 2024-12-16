@@ -21,7 +21,7 @@ pub const ID_LENGTH: usize = ASSET_ID_LENGTH;
 
 /// Describes all the fields necessary for creating and transacting with an
 /// asset on the Iron Fish network
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Asset {
     /// Name of the asset
     pub(crate) name: [u8; NAME_LENGTH],

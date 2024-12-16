@@ -29,6 +29,7 @@ import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../primitives/rawTransaction'
+import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
 import { Transaction } from '../primitives/transaction'
 import { GetBlockRequest, GetBlockResponse, RpcClient } from '../rpc'
 import { IDatabaseTransaction } from '../storage/database/transaction'
@@ -41,6 +42,7 @@ import {
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNotesItem } from '../workerPool/tasks/decryptNotes'
+import { DecryptNotesOptions } from '../workerPool/tasks/decryptNotes'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { EncryptedAccount } from './account/encryptedAccount'
 import { AssetBalances } from './assetBalances'
@@ -50,6 +52,7 @@ import {
   DuplicateMultisigSecretNameError,
   DuplicateSpendingKeyError,
   MaxMemoLengthError,
+  MaxTransactionSizeError,
   NotEnoughFundsError,
 } from './errors'
 import { isMultisigSignerImport } from './exporter'
@@ -418,13 +421,21 @@ export class Wallet {
       }
 
       if (accounts.length * decryptNotesPayloads.length >= workloadSize) {
-        notePromises.push(this.decryptNotesFromTransaction(accounts, decryptNotesPayloads))
+        notePromises.push(
+          this.decryptNotesFromTransaction(accounts, decryptNotesPayloads, {
+            decryptForSpender,
+          }),
+        )
         decryptNotesPayloads = []
       }
     }
 
     if (decryptNotesPayloads.length) {
-      notePromises.push(this.decryptNotesFromTransaction(accounts, decryptNotesPayloads))
+      notePromises.push(
+        this.decryptNotesFromTransaction(accounts, decryptNotesPayloads, {
+          decryptForSpender,
+        }),
+      )
     }
 
     const mergedResults: Map<string, Array<DecryptedNote>> = new Map()
@@ -448,6 +459,7 @@ export class Wallet {
   private decryptNotesFromTransaction(
     accounts: ReadonlyArray<Account>,
     encryptedNotes: Array<DecryptNotesItem>,
+    options: DecryptNotesOptions,
   ): Promise<Map<string, Array<DecryptedNote | undefined>>> {
     const accountKeys = accounts.map((account) => ({
       accountId: account.id,
@@ -456,9 +468,7 @@ export class Wallet {
       viewKey: Buffer.from(account.viewKey, 'hex'),
     }))
 
-    return this.workerPool.decryptNotes(accountKeys, encryptedNotes, {
-      decryptForSpender: false,
-    })
+    return this.workerPool.decryptNotes(accountKeys, encryptedNotes, options)
   }
 
   async connectBlockForAccount(
@@ -906,7 +916,7 @@ export class Wallet {
       }
 
       if (options.feeRate) {
-        raw.fee = getFee(options.feeRate, raw.postedSize(options.account.publicAddress))
+        raw.fee = getFee(options.feeRate, raw.postedSize())
       }
 
       await this.fund(raw, {
@@ -916,7 +926,7 @@ export class Wallet {
       })
 
       if (options.feeRate) {
-        raw.fee = getFee(options.feeRate, raw.postedSize(options.account.publicAddress))
+        raw.fee = getFee(options.feeRate, raw.postedSize())
         raw.spends = []
 
         await this.fund(raw, {
@@ -924,6 +934,13 @@ export class Wallet {
           notes: options.notes,
           confirmations: confirmations,
         })
+      }
+
+      const maxTransactionSize = Verifier.getMaxTransactionBytes(
+        this.consensus.parameters.maxBlockSizeBytes,
+      )
+      if (raw.postedSize() > maxTransactionSize) {
+        throw new MaxTransactionSizeError(maxTransactionSize)
       }
 
       return raw
@@ -991,6 +1008,11 @@ export class Wallet {
       confirmations: number
     },
   ): Promise<void> {
+    let postedSize = raw.postedSize()
+    const maxTransactionSize = Verifier.getMaxTransactionBytes(
+      this.consensus.parameters.maxBlockSizeBytes,
+    )
+
     const needed = this.buildAmountsNeeded(raw, { fee: raw.fee })
     const spent = new BufferMap<bigint>()
     const notesSpent = new BufferMap<BufferSet>()
@@ -1016,28 +1038,47 @@ export class Wallet {
       notesSpent.set(assetId, assetNotesSpent)
 
       raw.spends.push({ note: decryptedNote.note, witness })
+
+      postedSize += SPEND_SERIALIZED_SIZE_IN_BYTE
+      if (postedSize > maxTransactionSize) {
+        throw new MaxTransactionSizeError(maxTransactionSize)
+      }
     }
 
     for (const [assetId, assetAmountNeeded] of needed.entries()) {
-      const assetAmountSpent = spent.get(assetId) ?? 0n
+      let assetAmountSpent = spent.get(assetId) ?? 0n
       const assetNotesSpent = notesSpent.get(assetId) ?? new BufferSet()
 
       if (assetAmountSpent >= assetAmountNeeded) {
         continue
       }
 
-      const amountSpent = await this.addSpendsForAsset(
-        raw,
-        options.account,
-        assetId,
-        assetAmountNeeded,
-        assetAmountSpent,
-        assetNotesSpent,
-        options.confirmations,
-      )
+      for await (const unspentNote of options.account.getUnspentNotes(assetId, {
+        reverse: true,
+        confirmations: options.confirmations,
+      })) {
+        if (assetNotesSpent.has(unspentNote.note.hash())) {
+          continue
+        }
 
-      if (amountSpent < assetAmountNeeded) {
-        throw new NotEnoughFundsError(assetId, amountSpent, assetAmountNeeded)
+        const witness = await this.getNoteWitness(unspentNote, options.confirmations)
+
+        assetAmountSpent += unspentNote.note.value()
+
+        raw.spends.push({ note: unspentNote.note, witness })
+
+        postedSize += SPEND_SERIALIZED_SIZE_IN_BYTE
+        if (postedSize > maxTransactionSize) {
+          throw new MaxTransactionSizeError(maxTransactionSize)
+        }
+
+        if (assetAmountSpent >= assetAmountNeeded) {
+          break
+        }
+      }
+
+      if (assetAmountSpent < assetAmountNeeded) {
+        throw new NotEnoughFundsError(assetId, assetAmountSpent, assetAmountNeeded)
       }
     }
   }
@@ -1102,37 +1143,6 @@ export class Wallet {
     }
 
     return amountsNeeded
-  }
-
-  async addSpendsForAsset(
-    raw: RawTransaction,
-    sender: Account,
-    assetId: Buffer,
-    amountNeeded: bigint,
-    amountSpent: bigint,
-    notesSpent: BufferSet,
-    confirmations: number,
-  ): Promise<bigint> {
-    for await (const unspentNote of sender.getUnspentNotes(assetId, {
-      reverse: true,
-      confirmations,
-    })) {
-      if (notesSpent.has(unspentNote.note.hash())) {
-        continue
-      }
-
-      const witness = await this.getNoteWitness(unspentNote, confirmations)
-
-      amountSpent += unspentNote.note.value()
-
-      raw.spends.push({ note: unspentNote.note, witness })
-
-      if (amountSpent >= amountNeeded) {
-        break
-      }
-    }
-
-    return amountSpent
   }
 
   async broadcastTransaction(
@@ -1453,7 +1463,7 @@ export class Wallet {
    * Try to get the block hash from the chain with createdAt sequence
    * Otherwise, return null
    */
-  private async accountHeadAtSequence(sequence: number): Promise<HeadValue | null> {
+  async accountHeadAtSequence(sequence: number): Promise<HeadValue | null> {
     try {
       const previousBlock = await this.chainGetBlock({ sequence })
       return previousBlock
@@ -2030,10 +2040,10 @@ export class Wallet {
       }
 
       Assert.isNotNull(this.masterKey)
-      const key = await this.masterKey.unlock(passphrase)
+      await this.masterKey.unlock(passphrase)
 
       for (const [id, account] of this.encryptedAccountById.entries()) {
-        this.accountById.set(id, account.decrypt(key))
+        this.accountById.set(id, account.decrypt(this.masterKey))
       }
 
       this.startUnlockTimeout(timeout)

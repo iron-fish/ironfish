@@ -69,7 +69,7 @@ export class Migrator {
     }
   }
 
-  async revert(options?: { dryRun?: boolean }): Promise<void> {
+  async revert(options?: { dryRun?: boolean; walletPassphrase?: string }): Promise<void> {
     const dryRun = options?.dryRun ?? false
 
     const migrations = this.migrations.slice().reverse()
@@ -88,7 +88,14 @@ export class Migrator {
           await db.open()
           tx = db.transaction()
 
-          await migration.backward(this.context, db, tx, childLogger, dryRun)
+          await migration.backward(
+            this.context,
+            db,
+            tx,
+            childLogger,
+            dryRun,
+            options?.walletPassphrase,
+          )
           await db.putVersion(migration.id - 1, tx)
 
           if (dryRun) {
@@ -109,6 +116,7 @@ export class Migrator {
     quiet?: boolean
     quietNoop?: boolean
     dryRun?: boolean
+    walletPassphrase?: string
   }): Promise<void> {
     const dryRun = options?.dryRun ?? false
     const logger = this.logger.create({})
@@ -154,7 +162,14 @@ export class Migrator {
           tx = db.transaction()
         }
 
-        await migration.forward(this.context, db, tx, childLogger, dryRun)
+        await migration.forward(
+          this.context,
+          db,
+          tx,
+          childLogger,
+          dryRun,
+          options?.walletPassphrase,
+        )
         await db.putVersion(migration.id, tx)
 
         if (dryRun) {

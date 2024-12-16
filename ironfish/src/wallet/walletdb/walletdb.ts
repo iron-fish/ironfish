@@ -418,7 +418,7 @@ export class WalletDB {
   async removeAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       await this.accounts.del(account.id, tx)
-      await this.clearBalance(account, tx)
+      await this.balances.clear(tx, account.prefixRange)
       await this.accountIdsToCleanup.put(account.id, null, tx)
     })
   }
@@ -542,32 +542,6 @@ export class WalletDB {
     await this.transactions.del([account.prefix, transactionHash], tx)
   }
 
-  async clearTransactions(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.transactions.clear(tx, account.prefixRange)
-    await this.timestampToTransactionHash.clear(tx, account.prefixRange)
-  }
-
-  async clearSequenceToNoteHash(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.sequenceToNoteHash.clear(tx, account.prefixRange)
-  }
-
-  async clearNonChainNoteHashes(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.nonChainNoteHashes.clear(tx, account.prefixRange)
-  }
-
-  async *getTransactionHashesBySequence(
-    account: Account,
-    tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{ sequence: number; hash: Buffer }> {
-    for await (const [, [sequence, hash]] of this.sequenceToTransactionHash.getAllKeysIter(
-      tx,
-      account.prefixRange,
-      { ordered: true },
-    )) {
-      yield { sequence, hash }
-    }
-  }
-
   async *loadTransactions(
     account: Account,
     range?: DatabaseKeyRange,
@@ -615,22 +589,6 @@ export class WalletDB {
     )
   }
 
-  async setNoteHashSequence(
-    account: Account,
-    noteHash: Buffer,
-    sequence: number | null,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.db.withTransaction(tx, async (tx) => {
-      if (sequence) {
-        await this.sequenceToNoteHash.put([account.prefix, [sequence, noteHash]], null, tx)
-        await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
-      } else {
-        await this.nonChainNoteHashes.put([account.prefix, noteHash], null, tx)
-      }
-    })
-  }
-
   async disconnectNoteHashSequence(
     account: Account,
     noteHash: Buffer,
@@ -656,20 +614,6 @@ export class WalletDB {
         await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
       }
     })
-  }
-
-  /*
-   * clears sequenceToNoteHash entries for all accounts for a given sequence
-   */
-  async clearSequenceNoteHashes(sequence: number, tx?: IDatabaseTransaction): Promise<void> {
-    const encoding = this.sequenceToNoteHash.keyEncoding
-
-    const keyRange = StorageUtils.getPrefixesKeyRange(
-      encoding.serialize([Buffer.alloc(4, 0), [sequence, Buffer.alloc(0)]]),
-      encoding.serialize([Buffer.alloc(4, 255), [sequence, Buffer.alloc(0)]]),
-    )
-
-    await this.sequenceToNoteHash.clear(tx, keyRange)
   }
 
   async addUnspentNoteHash(
@@ -858,24 +802,6 @@ export class WalletDB {
     }
   }
 
-  async *loadNullifierToNoteHash(
-    account: Account,
-    tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{
-    nullifier: Buffer
-    noteHash: Buffer
-  }> {
-    for await (const [[_, nullifier], noteHash] of this.nullifierToNoteHash.getAllIter(
-      tx,
-      account.prefixRange,
-    )) {
-      yield {
-        nullifier,
-        noteHash,
-      }
-    }
-  }
-
   async deleteNullifier(
     account: Account,
     nullifier: Buffer,
@@ -898,7 +824,12 @@ export class WalletDB {
         await this.saveNullifierNoteHash(account, note.nullifier, noteHash, tx)
       }
 
-      await this.setNoteHashSequence(account, noteHash, note.sequence, tx)
+      if (note.sequence) {
+        await this.sequenceToNoteHash.put([account.prefix, [note.sequence, noteHash]], null, tx)
+        await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
+      } else {
+        await this.nonChainNoteHashes.put([account.prefix, noteHash], null, tx)
+      }
 
       await this.decryptedNotes.put([account.prefix, noteHash], note, tx)
     })
@@ -1027,10 +958,6 @@ export class WalletDB {
     await this.decryptedNotes.del([account.prefix, noteHash], tx)
   }
 
-  async clearDecryptedNotes(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.decryptedNotes.clear(tx, account.prefixRange)
-  }
-
   async *loadDecryptedNotes(
     account: Account,
     range?: DatabaseKeyRange,
@@ -1086,10 +1013,6 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.balances.put([account.prefix, assetId], balance, tx)
-  }
-
-  async clearBalance(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.balances.clear(tx, account.prefixRange)
   }
 
   async *loadExpiredTransactionHashes(
@@ -1177,19 +1100,6 @@ export class WalletDB {
     }
   }
 
-  async saveSequenceToTransactionHash(
-    account: Account,
-    sequence: number,
-    transactionHash: Buffer,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.sequenceToTransactionHash.put(
-      [account.prefix, [sequence, transactionHash]],
-      null,
-      tx,
-    )
-  }
-
   async deleteSequenceToTransactionHash(
     account: Account,
     sequence: number,
@@ -1219,13 +1129,6 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.pendingTransactionHashes.del([account.prefix, [expiration, transactionHash]], tx)
-  }
-
-  async clearPendingTransactionHashes(
-    account: Account,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.pendingTransactionHashes.clear(tx, account.prefixRange)
   }
 
   async forceCleanupDeletedAccounts(signal?: AbortSignal): Promise<void> {
@@ -1283,7 +1186,7 @@ export class WalletDB {
       Assert.isNotNull(masterKeyValue)
 
       const masterKey = new MasterKey(masterKeyValue)
-      const key = await masterKey.unlock(passphrase)
+      await masterKey.unlock(passphrase)
 
       for await (const [id, accountValue] of this.accounts.getAllIter(tx)) {
         if (!accountValue.encrypted) {
@@ -1294,7 +1197,7 @@ export class WalletDB {
           accountValue,
           walletDb: this,
         })
-        const account = encryptedAccount.decrypt(key)
+        const account = encryptedAccount.decrypt(masterKey)
         await this.accounts.put(id, account.serialize(), tx)
       }
 
@@ -1446,10 +1349,6 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<MultisigIdentityValue | undefined> {
     return this.multisigIdentities.get(identity, tx)
-  }
-
-  async hasMultisigIdentity(identity: Buffer, tx?: IDatabaseTransaction): Promise<boolean> {
-    return (await this.getMultisigIdentity(identity, tx)) !== undefined
   }
 
   async deleteMultisigIdentity(identity: Buffer, tx?: IDatabaseTransaction): Promise<void> {

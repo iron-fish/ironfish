@@ -9,8 +9,8 @@ import type { HeadValue } from '../walletdb/headValue'
 import { Config } from '../../fileStores'
 import { Logger } from '../../logger'
 import { Mutex } from '../../mutex'
-import { BlockHeader, Transaction } from '../../primitives'
-import { BufferUtils, HashUtils } from '../../utils'
+import { BlockHeader, GENESIS_BLOCK_SEQUENCE, Transaction } from '../../primitives'
+import { HashUtils } from '../../utils'
 import { WorkerPool } from '../../workerPool'
 import { ChainProcessorWithTransactions } from './chainProcessorWithTransactions'
 import { BackgroundNoteDecryptor } from './noteDecryptor'
@@ -33,7 +33,10 @@ export class WalletScanner {
    * A snapshot of the accounts that have `scanningEnabled` set to true. Used
    * to tell what accounts should be scanned, and from what block.
    */
-  private scanningAccounts = new Array<{ account: Account; scanFrom: HeadValue | null }>()
+  private scanningAccounts = new Array<{
+    account: Account
+    scanFrom: { sequence: number; hash?: Buffer } | 'cursor'
+  }>()
 
   constructor(options: {
     logger: Logger
@@ -76,9 +79,11 @@ export class WalletScanner {
 
     try {
       await this.refreshScanningAccounts()
-
-      const start = this.getEarliestHead()
+      const start = await this.getEarliestHead()
       const end = await this.wallet.getChainHead()
+      if (start === 'none') {
+        return new ScanState(end, end)
+      }
 
       const decryptor = new BackgroundNoteDecryptor(this.workerPool, this.config, {
         decryptForSpender: false,
@@ -128,7 +133,10 @@ export class WalletScanner {
             // chain processor.
             await decryptor.flush()
             await this.refreshScanningAccounts()
-            const head = this.getEarliestHead()
+            const head = await this.getEarliestHead()
+            if (head === 'none') {
+              break
+            }
             chainProcessor.hash = head?.hash ?? null
           }
 
@@ -177,33 +185,25 @@ export class WalletScanner {
       )
     }
 
-    const connectOnlyAccounts = new Array<Account>()
-    const decryptAndConnectAccounts = new Array<Account>()
-
     for (const candidate of this.scanningAccounts) {
-      if (
-        !candidate.scanFrom ||
-        BufferUtils.equalsNullable(candidate.scanFrom.hash, blockHeader.previousBlockHash)
-      ) {
-        candidate.scanFrom = null
+      const { scanFrom } = candidate
 
-        if (
-          candidate.account.createdAt === null ||
-          blockHeader.sequence >= candidate.account.createdAt.sequence
-        ) {
-          decryptAndConnectAccounts.push(candidate.account)
-        } else {
-          connectOnlyAccounts.push(candidate.account)
-        }
+      if (scanFrom === 'cursor') {
+        continue
+      }
+
+      if (!scanFrom.hash && blockHeader.sequence >= scanFrom.sequence) {
+        candidate.scanFrom = 'cursor'
+      }
+
+      if (scanFrom.hash?.equals(blockHeader.previousBlockHash)) {
+        candidate.scanFrom = 'cursor'
       }
     }
 
-    for (const account of connectOnlyAccounts) {
-      if (abort?.signal.aborted) {
-        return
-      }
-      await this.wallet.connectBlockForAccount(account, blockHeader, [], false)
-    }
+    const decryptAndConnectAccounts = this.scanningAccounts
+      .filter(({ scanFrom }) => scanFrom === 'cursor')
+      .map(({ account }) => account)
 
     if (abort?.signal.aborted) {
       return
@@ -230,7 +230,7 @@ export class WalletScanner {
     this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)
 
     const accounts = (await this.getScanningAccountsWithHead()).filter(({ head }) =>
-      BufferUtils.equalsNullable(head?.hash, header.hash),
+      head?.hash?.equals(header.hash),
     )
 
     for (const { account } of accounts) {
@@ -241,8 +241,12 @@ export class WalletScanner {
     }
 
     for (const account of this.scanningAccounts) {
-      if (account.scanFrom && BufferUtils.equalsNullable(account.scanFrom.hash, header.hash)) {
-        account.scanFrom = null
+      if (account.scanFrom === 'cursor') {
+        continue
+      }
+
+      if (account.scanFrom.hash?.equals(header.hash)) {
+        account.scanFrom = 'cursor'
       }
     }
   }
@@ -308,20 +312,40 @@ export class WalletScanner {
    */
   private async refreshScanningAccounts(): Promise<void> {
     this.scanningAccounts = (await this.getScanningAccountsWithHead()).map(
-      ({ account, head }) => ({ account, scanFrom: head }),
+      ({ account, head }) => {
+        const scanFrom = head || {
+          sequence: (account.createdAt?.sequence ?? GENESIS_BLOCK_SEQUENCE) - 1,
+        }
+        return { account, scanFrom }
+      },
     )
   }
 
-  private getEarliestHead(): HeadValue | null {
-    let earliestHead = null
-    for (const { scanFrom: head } of this.scanningAccounts) {
-      if (!head) {
-        return null
+  private async getEarliestHead(): Promise<HeadValue | null | 'none'> {
+    let earliestHead: { sequence: number; hash?: Buffer } | null = null
+    for (const { scanFrom } of this.scanningAccounts) {
+      if (scanFrom === 'cursor') {
+        continue
       }
-      if (!earliestHead || earliestHead.sequence > head.sequence) {
-        earliestHead = head
+
+      if (!earliestHead || scanFrom.sequence < earliestHead.sequence) {
+        earliestHead = scanFrom
       }
     }
-    return earliestHead
+
+    if (!earliestHead) {
+      return 'none'
+    }
+
+    if (earliestHead.sequence < GENESIS_BLOCK_SEQUENCE) {
+      return null
+    }
+
+    if (!earliestHead.hash) {
+      const atSequence = await this.wallet.accountHeadAtSequence(earliestHead.sequence)
+      return atSequence ?? 'none'
+    }
+
+    return { hash: earliestHead.hash, sequence: earliestHead.sequence }
   }
 }

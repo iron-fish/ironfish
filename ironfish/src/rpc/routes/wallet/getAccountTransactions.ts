@@ -19,6 +19,8 @@ export type GetAccountTransactionsRequest = {
   account?: string
   hash?: string
   sequence?: number
+  startSequence?: number
+  endSequence?: number
   limit?: number
   offset?: number
   reverse?: boolean
@@ -34,6 +36,8 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
       account: yup.string().trim(),
       hash: yup.string().notRequired(),
       sequence: yup.number().min(GENESIS_BLOCK_SEQUENCE).notRequired(),
+      startSequence: yup.number().min(GENESIS_BLOCK_SEQUENCE).notRequired(),
+      endSequence: yup.number().min(GENESIS_BLOCK_SEQUENCE).notRequired(),
       limit: yup.number().notRequired(),
       offset: yup.number().notRequired(),
       reverse: yup.boolean().notRequired().default(true),
@@ -86,9 +90,17 @@ routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
     let count = 0
     let offset = 0
 
-    const transactions = request.data.sequence
-      ? account.getTransactionsBySequence(request.data.sequence)
-      : account.getTransactionsByTime(undefined, { reverse: request.data.reverse })
+    let transactions
+    if (request.data.startSequence || request.data.endSequence) {
+      transactions = account.getTransactionsBySequenceRange(
+        request.data.startSequence,
+        request.data.endSequence,
+      )
+    } else if (request.data.sequence) {
+      transactions = account.getTransactionsBySequence(request.data.sequence)
+    } else {
+      transactions = account.getTransactionsByTime(undefined, { reverse: request.data.reverse })
+    }
 
     for await (const transaction of transactions) {
       if (request.closed) {

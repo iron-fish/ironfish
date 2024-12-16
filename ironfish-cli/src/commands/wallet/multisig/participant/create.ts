@@ -72,17 +72,11 @@ export class MultisigIdentityCreate extends IronfishCommand {
 
   async getIdentityFromLedger(): Promise<Buffer> {
     const ledger = new LedgerMultiSigner()
-    try {
-      await ledger.connect()
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
 
-    // TODO(hughy): support multiple identities using index
-    return ledger.dkgGetIdentity(0)
+    return ui.ledger({
+      ledger,
+      message: 'Getting Ledger Identity',
+      action: () => ledger.dkgGetIdentity(0),
+    })
   }
 }

@@ -135,7 +135,7 @@ pub(crate) fn assert_valid_asset_generator<CS: ConstraintSystem<blstrs::Scalar>>
     // Compare the generator bits to the computed generator bits, proving that
     // this is the asset id that derived the generator
     for i in 0..256 {
-        boolean::Boolean::enforce_equal(
+        Boolean::enforce_equal(
             cs.namespace(|| format!("asset generator bit {} equality", i)),
             &asset_generator_bits[i],
             &asset_generator_repr[i],

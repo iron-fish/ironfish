@@ -73,6 +73,8 @@ impl PartialEq for MerkleNote {
     }
 }
 
+impl Eq for MerkleNote {}
+
 impl MerkleNote {
     pub fn new(
         outgoing_view_key: &OutgoingViewKey,
@@ -283,7 +285,9 @@ impl MerkleNote {
 }
 
 #[cfg(feature = "transaction-proofs")]
-pub(crate) fn sapling_auth_path(witness: &dyn WitnessTrait) -> Vec<Option<(Scalar, bool)>> {
+pub(crate) fn sapling_auth_path<W: WitnessTrait + ?Sized>(
+    witness: &W,
+) -> Vec<Option<(Scalar, bool)>> {
     let mut auth_path = vec![];
     for element in &witness.get_auth_path() {
         let sapling_element = match element {
@@ -303,7 +307,7 @@ pub(crate) fn sapling_auth_path(witness: &dyn WitnessTrait) -> Vec<Option<(Scala
 /// like making Witness a trait since it's otherwise very simple.
 /// So this hacky function gets to live here.
 #[cfg(feature = "transaction-proofs")]
-pub(crate) fn position(witness: &dyn WitnessTrait) -> u64 {
+pub(crate) fn position<W: WitnessTrait + ?Sized>(witness: &W) -> u64 {
     let mut pos = 0;
     for (i, element) in witness.get_auth_path().iter().enumerate() {
         if let WitnessNode::Right(_) = element {

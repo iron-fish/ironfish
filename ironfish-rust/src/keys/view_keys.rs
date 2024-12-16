@@ -20,17 +20,19 @@ use crate::{
 };
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
+use ff::Field;
 use group::GroupEncoding;
 use ironfish_jubjub::SubgroupPoint;
-
-use std::io;
+use ironfish_zkp::{constants::SPENDING_KEY_GENERATOR, redjubjub};
+use rand::RngCore;
+use std::{fmt, io};
 
 const DIFFIE_HELLMAN_PERSONALIZATION: &[u8; 16] = b"Iron Fish shared";
 
 /// Key that allows someone to view a transaction that you have received.
 ///
 /// Referred to as `ivk` in the literature.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct IncomingViewKey {
     pub(crate) view_key: ironfish_jubjub::Fr,
 }
@@ -40,6 +42,10 @@ impl IncomingViewKey {
     pub fn read<R: io::Read>(reader: R) -> Result<Self, IronfishError> {
         let view_key = read_scalar(reader)?;
         Ok(IncomingViewKey { view_key })
+    }
+
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.view_key.to_bytes()
     }
 
     /// Load a key from a string of hexadecimal digits
@@ -102,10 +108,17 @@ impl IncomingViewKey {
     }
 }
 
+impl fmt::Debug for IncomingViewKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Hide all private keys
+        f.debug_struct("IncomingViewKey").finish_non_exhaustive()
+    }
+}
+
 /// Contains two keys that are required (along with outgoing view key)
 /// to have full view access to an account.
 /// Referred to as `ViewingKey` in the literature.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct ViewKey {
     /// Part of the full viewing key. Generally referred to as
     /// `ak` in the literature. Derived from spend_authorizing_key using scalar
@@ -118,15 +131,12 @@ pub struct ViewKey {
 }
 
 impl ViewKey {
-    /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
-        let bytes: [u8; 64] = hex_to_bytes(value)?;
-
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let mut authorizing_key_bytes = [0; 32];
         let mut nullifier_deriving_key_bytes = [0; 32];
 
-        authorizing_key_bytes.clone_from_slice(&bytes[..32]);
-        nullifier_deriving_key_bytes.clone_from_slice(&bytes[32..]);
+        reader.read_exact(&mut authorizing_key_bytes)?;
+        reader.read_exact(&mut nullifier_deriving_key_bytes)?;
 
         let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key_bytes))
             .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidAuthorizingKey))?;
@@ -139,6 +149,12 @@ impl ViewKey {
             authorizing_key,
             nullifier_deriving_key,
         })
+    }
+
+    /// Load a key from a string of hexadecimal digits
+    pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
+        let bytes: [u8; 64] = hex_to_bytes(value)?;
+        Self::read(&bytes[..])
     }
 
     /// Viewing key as hexadecimal, for readability.
@@ -163,12 +179,29 @@ impl ViewKey {
 
         Ok(ivk.public_address())
     }
+
+    pub fn randomized_public_key<R: RngCore>(
+        &self,
+        rng: R,
+    ) -> (ironfish_jubjub::Fr, redjubjub::PublicKey) {
+        let public_key_randomness = ironfish_jubjub::Fr::random(rng);
+        let randomized_public_key = redjubjub::PublicKey(self.authorizing_key.into())
+            .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+        (public_key_randomness, randomized_public_key)
+    }
+}
+
+impl fmt::Debug for ViewKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Hide all private keys
+        f.debug_struct("ViewKey").finish_non_exhaustive()
+    }
 }
 
 /// Key that allows someone to view a transaction that you have spent.
 ///
 /// Referred to as `ovk` in the literature.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct OutgoingViewKey {
     pub(crate) view_key: [u8; 32],
 }
@@ -179,6 +212,10 @@ impl OutgoingViewKey {
         let mut view_key = [0u8; 32];
         reader.read_exact(&mut view_key)?;
         Ok(OutgoingViewKey { view_key })
+    }
+
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.view_key
     }
 
     /// Load a key from a string of hexadecimal digits
@@ -212,6 +249,13 @@ impl OutgoingViewKey {
             .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidLanguageEncoding))?;
         let mnemonic = Mnemonic::from_entropy(&self.view_key, language).unwrap();
         Ok(mnemonic.phrase().to_string())
+    }
+}
+
+impl fmt::Debug for OutgoingViewKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Hide all private keys
+        f.debug_struct("OutgoingViewKey").finish_non_exhaustive()
     }
 }
 

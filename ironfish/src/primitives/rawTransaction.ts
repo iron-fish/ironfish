@@ -63,7 +63,7 @@ export class RawTransaction {
     this.version = version
   }
 
-  postedSize(_publicAddress: string): number {
+  postedSize(): number {
     let size = 0
     size += 1 // version
     size += 8 // spends length

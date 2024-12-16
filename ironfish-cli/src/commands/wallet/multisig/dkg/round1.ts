@@ -101,15 +101,6 @@ export class DkgRound1Command extends IronfishCommand {
     minSigners: number,
   ): Promise<void> {
     const ledger = new LedgerMultiSigner()
-    try {
-      await ledger.connect()
-    } catch (e) {
-      if (e instanceof Error) {
-        this.error(e.message)
-      } else {
-        throw e
-      }
-    }
 
     const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
     const identity = identityResponse.content.identity
@@ -118,8 +109,12 @@ export class DkgRound1Command extends IronfishCommand {
       identities.push(identity)
     }
 
-    // TODO(hughy): determine how to handle multiple identities using index
-    const { publicPackage, secretPackage } = await ledger.dkgRound1(0, identities, minSigners)
+    const { publicPackage, secretPackage } = await ui.ledger({
+      ledger,
+      message: 'Round1 on Ledger',
+      approval: true,
+      action: () => ledger.dkgRound1(0, identities, minSigners),
+    })
 
     this.log('\nRound 1 Encrypted Secret Package:\n')
     this.log(secretPackage.toString('hex'))

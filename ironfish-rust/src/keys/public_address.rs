@@ -38,13 +38,13 @@ impl PublicAddress {
     }
 
     /// Load a public address from a Read implementation (e.g: socket, file)
-    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, IronfishError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let mut address_bytes = [0; PUBLIC_ADDRESS_SIZE];
         reader.read_exact(&mut address_bytes)?;
         Self::new(&address_bytes)
     }
 
-    pub fn read_unchecked<R: io::Read>(reader: &mut R) -> Result<Self, IronfishError> {
+    pub fn read_unchecked<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let mut address_bytes = [0; PUBLIC_ADDRESS_SIZE];
         reader.read_exact(&mut address_bytes)?;
         Self::new_unchecked(&address_bytes)
@@ -99,6 +99,8 @@ impl PartialEq for PublicAddress {
         self.hex_public_address() == other.hex_public_address()
     }
 }
+
+impl Eq for PublicAddress {}
 
 #[cfg(test)]
 mod test {

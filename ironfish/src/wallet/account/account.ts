@@ -845,12 +845,18 @@ export class Account {
     }
   }
 
-  async *getTransactionsOrderedBySequence(
+  async *getTransactionsBySequenceRange(
+    startSequence?: number,
+    endSequence?: number,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<Readonly<TransactionValue>> {
-    for await (const { hash } of this.walletDb.getTransactionHashesBySequence(this, tx)) {
-      const transaction = await this.getTransaction(hash, tx)
-      Assert.isNotUndefined(transaction)
+    startSequence = startSequence ?? GENESIS_BLOCK_SEQUENCE
+    endSequence = endSequence ?? 2 ** 32 - 1
+
+    for await (const {
+      hash: _hash,
+      ...transaction
+    } of this.walletDb.loadTransactionsInSequenceRange(this, startSequence, endSequence, tx)) {
       yield transaction
     }
   }
@@ -1344,15 +1350,14 @@ export class Account {
   encrypt(masterKey: MasterKey): EncryptedAccount {
     const encoder = new AccountValueEncoding()
     const serialized = encoder.serialize(this.serialize())
-    const derivedKey = masterKey.deriveNewKey()
-    const data = derivedKey.encrypt(serialized)
+    const { ciphertext, salt, nonce } = masterKey.encrypt(serialized)
 
     return new EncryptedAccount({
       accountValue: {
         encrypted: true,
-        data,
-        salt: derivedKey.salt(),
-        nonce: derivedKey.nonce(),
+        data: ciphertext,
+        salt,
+        nonce,
       },
       walletDb: this.walletDb,
     })

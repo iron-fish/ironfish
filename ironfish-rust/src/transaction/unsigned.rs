@@ -32,7 +32,7 @@ use super::{
     TransactionVersion, SIGNATURE_HASH_PERSONALIZATION, TRANSACTION_SIGNATURE_VERSION,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UnsignedTransaction {
     /// The transaction serialization version. This can be incremented when
     /// changes need to be made to the transaction format
@@ -318,13 +318,29 @@ impl UnsignedTransaction {
         })
     }
 
+    pub fn fee(&self) -> i64 {
+        self.fee
+    }
+
+    pub fn expiration(&self) -> u32 {
+        self.expiration
+    }
+
     // Exposes the public key package for use in round two of FROST multisig protocol
     pub fn public_key_randomness(&self) -> ironfish_jubjub::Fr {
         self.public_key_randomness
     }
 
+    pub fn randomized_public_key(&self) -> &redjubjub::PublicKey {
+        &self.randomized_public_key
+    }
+
     pub fn randomized_public_key_bytes(&self) -> [u8; 32] {
         self.randomized_public_key.0.to_bytes()
+    }
+
+    pub fn spends(&self) -> &Vec<UnsignedSpendDescription> {
+        &self.spends
     }
 
     pub fn outputs(&self) -> &Vec<OutputDescription> {

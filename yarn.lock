@@ -1506,16 +1506,6 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
-"@ledgerhq/devices@^8.4.2":
-  version "8.4.3"
-  resolved "https://registry.yarnpkg.com/@ledgerhq/devices/-/devices-8.4.3.tgz#4c296df4dd4af6f1085d728609b6931a640baf86"
-  integrity sha512-+ih+M27E6cm6DHrmw3GbS3mEaznCyFc0e62VdQux40XK2psgYhL2yBPftM4KCrBYm1UbHqXzqLN+Jb7rNIzsHg==
-  dependencies:
-    "@ledgerhq/errors" "^6.19.0"
-    "@ledgerhq/logs" "^6.12.0"
-    rxjs "^7.8.1"
-    semver "^7.3.5"
-
 "@ledgerhq/devices@^8.4.4":
   version "8.4.4"
   resolved "https://registry.yarnpkg.com/@ledgerhq/devices/-/devices-8.4.4.tgz#0d195c1650fe57da2fad7f0d9074a0190947cd6f"
@@ -1526,7 +1516,7 @@
     rxjs "^7.8.1"
     semver "^7.3.5"
 
-"@ledgerhq/errors@6.19.1", "@ledgerhq/errors@^6.18.0", "@ledgerhq/errors@^6.19.0", "@ledgerhq/errors@^6.19.1":
+"@ledgerhq/errors@6.19.1", "@ledgerhq/errors@^6.19.1":
   version "6.19.1"
   resolved "https://registry.yarnpkg.com/@ledgerhq/errors/-/errors-6.19.1.tgz#d9ac45ad4ff839e468b8f63766e665537aaede58"
   integrity sha512-75yK7Nnit/Gp7gdrJAz0ipp31CCgncRp+evWt6QawQEtQKYEDfGo10QywgrrBBixeRxwnMy1DP6g2oCWRf1bjw==
@@ -1556,17 +1546,7 @@
     node-hid "2.1.2"
     usb "2.9.0"
 
-"@ledgerhq/hw-transport@6.31.2":
-  version "6.31.2"
-  resolved "https://registry.yarnpkg.com/@ledgerhq/hw-transport/-/hw-transport-6.31.2.tgz#79c95f7928a64a0e3b5bc4ea7b5be04b9f738322"
-  integrity sha512-B27UIzMzm2IXPGYnEB95R7eHxpXBkTBHh6MUJJQZVknt8LilEz1tfpTYUdzAKDGQ+Z5MZyYb01Eh3Zqm3kn3uw==
-  dependencies:
-    "@ledgerhq/devices" "^8.4.2"
-    "@ledgerhq/errors" "^6.18.0"
-    "@ledgerhq/logs" "^6.12.0"
-    events "^3.3.0"
-
-"@ledgerhq/hw-transport@^6.31.4":
+"@ledgerhq/hw-transport@6.31.4", "@ledgerhq/hw-transport@^6.31.4":
   version "6.31.4"
   resolved "https://registry.yarnpkg.com/@ledgerhq/hw-transport/-/hw-transport-6.31.4.tgz#9b23a6de4a4caaa5c24b149c2dea8adde46f0eb1"
   integrity sha512-6c1ir/cXWJm5dCWdq55NPgCJ3UuKuuxRvf//Xs36Bq9BwkV2YaRQhZITAkads83l07NAdR16hkTWqqpwFMaI6A==
@@ -3908,19 +3888,19 @@
   dependencies:
     argparse "^2.0.1"
 
-"@zondax/ledger-ironfish@1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@zondax/ledger-ironfish/-/ledger-ironfish-1.0.0.tgz#f1831b44e75d74a372d7bcd4bbb4c5df76731211"
-  integrity sha512-eWbvTP2pwqiRylWuA8YybcX7V7Iw2zcvYIhQ7cYjyZCI6ruDVO7bEdi/d2Q8Wfkjq9vOadHeoVZYAaVk/ulBMw==
+"@zondax/ledger-ironfish@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@zondax/ledger-ironfish/-/ledger-ironfish-1.1.0.tgz#b28c2644ea8ead90c149730a6496776cdf0db971"
+  integrity sha512-Ba+W7slKkwIFz0kNa0JyyH9eiAAYXOVk1HvV6gEA/a6Pll0qbhPgDxBYbAfvmCdLFlBHydX5UTcZuezYCeeIBw==
   dependencies:
-    "@zondax/ledger-js" "^1.0.1"
+    "@zondax/ledger-js" "^1.2.0"
 
-"@zondax/ledger-js@1.0.1", "@zondax/ledger-js@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@zondax/ledger-js/-/ledger-js-1.0.1.tgz#a1c51943c5b7d1370cea588b193197234485d196"
-  integrity sha512-9h+aIXyEK+Rdic5Ppsmq+tptDFwPTacG1H6tpZHFdhtBFHYFOLLkKTTmq5rMTv84aAPS1v0tnsF1e2Il6M05Cg==
+"@zondax/ledger-js@1.2.0", "@zondax/ledger-js@^1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@zondax/ledger-js/-/ledger-js-1.2.0.tgz#13fb6b4ac1b395f39d05d1efb23dfe97d6011463"
+  integrity sha512-HGvDU0s4zg0scu8ebGenFHFB6g5SLDqmrctncZUY9ie5pGibOU8C0VdjZSHbttSOCyh+IloLi/a4jyMPOEQGuQ==
   dependencies:
-    "@ledgerhq/hw-transport" "6.31.2"
+    "@ledgerhq/hw-transport" "6.31.4"
 
 JSONStream@^1.0.4:
   version "1.3.5"

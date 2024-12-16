@@ -76,11 +76,11 @@ const makeChainportRequest = async <T extends object>(url: string): Promise<T> =
     })
     .catch((error) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const chainportError = error.response?.data?.error?.description as string
-      if (chainportError) {
-        throw new Error(chainportError)
+      const apiError = error.response?.data?.message as string
+      if (apiError) {
+        throw new Error('Chainport error: ' + apiError)
       } else {
-        throw new Error('Chainport error - ' + error)
+        throw new Error('Chainport error: ' + error)
       }
     })
 

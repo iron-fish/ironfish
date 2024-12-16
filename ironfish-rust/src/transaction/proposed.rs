@@ -102,10 +102,10 @@ impl ProposedTransaction {
     }
 
     /// Spend the note owned by spender_key at the given witness location.
-    pub fn add_spend(
+    pub fn add_spend<W: WitnessTrait + ?Sized>(
         &mut self,
         note: Note,
-        witness: &dyn WitnessTrait,
+        witness: &W,
     ) -> Result<(), IronfishError> {
         self.value_balances
             .add(note.asset_id(), note.value().try_into()?)?;

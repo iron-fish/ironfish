@@ -8,26 +8,48 @@ import {
   GetAccountTransactionsResponse,
   PartialRecursive,
   RpcAsset,
+  RpcClient,
+  RpcWalletTransaction,
   TransactionType,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
-import { RemoteFlags } from '../../../flags'
+import { DateFlag, RemoteFlags } from '../../../flags'
 import * as ui from '../../../ui'
 import { getAssetsByIDs, useAccount } from '../../../utils'
 import { extractChainportDataFromTransaction } from '../../../utils/chainport'
-import { Format, TableCols } from '../../../utils/table'
+import { TableCols, TableOutput } from '../../../utils/table'
 
 const { sort: _, ...tableFlags } = ui.TableFlags
+
 export class TransactionsCommand extends IronfishCommand {
   static description = `list the account's transactions`
+
+  static examples = [
+    {
+      description: 'List all transactions in the current wallet:',
+      command: '$ <%= config.bin %> <%= command.id %>',
+    },
+    {
+      description:
+        'Export transactions in all wallets for the month of october in an accounting friendly format:',
+      command:
+        '$ <%= config.bin %> <%= command.id %> --no-account --filter.start 2024-10-01 --filter.end 2024-11-01 --output csv --format transfers',
+    },
+  ]
 
   static flags = {
     ...RemoteFlags,
     ...tableFlags,
     account: Flags.string({
       char: 'a',
-      description: 'Name of the account to get transactions for',
+      multiple: true,
+      description: 'show transactions from this account',
+    }),
+    'no-account': Flags.boolean({
+      description: 'show transactions for all accounts',
+      exclusive: ['account'],
+      aliases: ['no-a'],
     }),
     transaction: Flags.string({
       char: 't',
@@ -45,49 +67,95 @@ export class TransactionsCommand extends IronfishCommand {
       description: 'Number of block confirmations needed to confirm a transaction',
     }),
     notes: Flags.boolean({
-      default: false,
       description: 'Include data from transaction output notes',
+    }),
+    format: Flags.string({
+      description: 'show the data in a specified view',
+      exclusive: ['notes'],
+      options: ['notes', 'transactions', 'transfers'],
+      helpGroup: 'OUTPUT',
+    }),
+    'filter.start': DateFlag({
+      description: 'include transactions after this date (inclusive). Example: 2023-04-01',
+    }),
+    'filter.end': DateFlag({
+      description: 'include transactions before this date (exclusive). Example: 2023-05-01',
     }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(TransactionsCommand)
 
-    const format: Format =
+    const output: TableOutput =
       flags.csv || flags.output === 'csv'
-        ? Format.csv
+        ? TableOutput.csv
         : flags.output === 'json'
-        ? Format.json
-        : Format.cli
+        ? TableOutput.json
+        : TableOutput.cli
+
+    const format =
+      flags.notes || flags.format === 'notes'
+        ? 'notes'
+        : flags.format === 'transactions'
+        ? 'transactions'
+        : flags.format === 'transfers'
+        ? 'transfers'
+        : 'transfers'
 
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
 
-    const account = await useAccount(client, flags.account)
+    const allAccounts = (await client.wallet.getAccounts()).content.accounts
+
+    let accounts = flags.account
+    if (flags['no-account']) {
+      accounts = allAccounts
+    } else if (!accounts) {
+      const account = await useAccount(client, undefined)
+      accounts = [account]
+    }
+
+    const accountsByAddress = new Map<string, string>(
+      await Promise.all(
+        allAccounts.map<Promise<[string, string]>>(async (account) => {
+          const response = await client.wallet.getAccountPublicKey({ account })
+          return [response.content.publicKey, response.content.account]
+        }),
+      ),
+    )
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
-    const response = client.wallet.getAccountTransactionsStream({
-      account,
-      hash: flags.transaction,
-      sequence: flags.sequence,
-      limit: flags.limit,
-      offset: flags.offset,
-      confirmations: flags.confirmations,
-      notes: flags.notes,
-    })
-
-    const columns = this.getColumns(flags.extended, flags.notes, format)
+    const transactions = this.getTransactions(
+      client,
+      accounts,
+      flags.transaction,
+      flags.sequence,
+      flags.limit,
+      flags.offset,
+      flags.confirmations,
+      format === 'notes' || format === 'transfers',
+    )
 
     let hasTransactions = false
-
     let transactionRows: PartialRecursive<TransactionRow>[] = []
-    for await (const transaction of response.contentStream()) {
+
+    for await (const { account, transaction } of transactions) {
       if (transactionRows.length >= flags.limit) {
         break
       }
-      if (flags.notes) {
+
+      if (flags['filter.start'] && transaction.timestamp < flags['filter.start'].valueOf()) {
+        continue
+      }
+
+      if (flags['filter.end'] && transaction.timestamp >= flags['filter.end'].valueOf()) {
+        continue
+      }
+
+      if (format === 'notes' || format === 'transfers') {
         Assert.isNotUndefined(transaction.notes)
+
         const assetLookup = await getAssetsByIDs(
           client,
           transaction.notes.map((n) => n.assetId) || [],
@@ -102,7 +170,15 @@ export class TransactionsCommand extends IronfishCommand {
               : ('Bridge (incoming)' as TransactionType)
         }
 
-        transactionRows = this.getTransactionRowsByNote(assetLookup, transaction, format)
+        transactionRows = transactionRows.concat(
+          this.getTransactionRowsByNote(
+            assetLookup,
+            accountsByAddress,
+            transaction,
+            output,
+            format,
+          ),
+        )
       } else {
         const assetLookup = await getAssetsByIDs(
           client,
@@ -110,10 +186,14 @@ export class TransactionsCommand extends IronfishCommand {
           account,
           flags.confirmations,
         )
-        transactionRows = this.getTransactionRows(assetLookup, transaction, format)
+        transactionRows = transactionRows.concat(
+          this.getTransactionRows(assetLookup, transaction, output),
+        )
       }
       hasTransactions = true
     }
+
+    const columns = this.getColumns(flags.extended, format, output)
 
     ui.table(transactionRows, columns, {
       printLine: this.log.bind(this),
@@ -125,10 +205,37 @@ export class TransactionsCommand extends IronfishCommand {
     }
   }
 
+  async *getTransactions(
+    client: RpcClient,
+    accounts: string[],
+    hash?: string,
+    sequence?: number,
+    limit?: number,
+    offset?: number,
+    confirmations?: number,
+    notes?: boolean,
+  ): AsyncGenerator<{ account: string; transaction: RpcWalletTransaction }, void> {
+    for (const account of accounts) {
+      const response = client.wallet.getAccountTransactionsStream({
+        account,
+        hash: hash,
+        sequence: sequence,
+        limit: limit,
+        offset: offset,
+        confirmations: confirmations,
+        notes: notes,
+      })
+
+      for await (const transaction of response.contentStream()) {
+        yield { account, transaction }
+      }
+    }
+  }
+
   getTransactionRows(
     assetLookup: { [key: string]: RpcAsset },
     transaction: GetAccountTransactionsResponse,
-    format: Format,
+    output: TableOutput,
   ): PartialRecursive<TransactionRow>[] {
     const nativeAssetId = Asset.nativeId().toString('hex')
 
@@ -153,7 +260,7 @@ export class TransactionsCommand extends IronfishCommand {
 
         // exclude the native asset in cli output if no amount was sent/received
         // and it was not the only asset exchanged
-        if (format === Format.cli && amount === 0n && assetCount > 1) {
+        if (output === TableOutput.cli && amount === 0n && assetCount > 1) {
           assetCount -= 1
           continue
         }
@@ -171,7 +278,7 @@ export class TransactionsCommand extends IronfishCommand {
       }
 
       // include full transaction details in first row or non-cli-formatted output
-      if (transactionRows.length === 0 || format !== Format.cli) {
+      if (transactionRows.length === 0 || output !== TableOutput.cli) {
         transactionRows.push({
           ...transaction,
           ...transactionRow,
@@ -187,8 +294,10 @@ export class TransactionsCommand extends IronfishCommand {
 
   getTransactionRowsByNote(
     assetLookup: { [key: string]: RpcAsset },
+    accountLookup: Map<string, string>,
     transaction: GetAccountTransactionsResponse,
-    format: Format,
+    output: TableOutput,
+    format: 'notes' | 'transactions' | 'transfers',
   ): PartialRecursive<TransactionRow>[] {
     Assert.isNotUndefined(transaction.notes)
     const transactionRows = []
@@ -210,11 +319,21 @@ export class TransactionsCommand extends IronfishCommand {
       const sender = note.sender
       const recipient = note.owner
       const memo = note.memo
+      const senderName = accountLookup.get(note.sender)
+      const recipientName = accountLookup.get(note.owner)
 
-      const group = this.getRowGroup(index, noteCount, transactionRows.length)
+      let group = this.getRowGroup(index, noteCount, transactionRows.length)
+
+      if (format === 'transfers') {
+        if (note.sender === note.owner && !transaction.mints.length) {
+          continue
+        } else {
+          group = ''
+        }
+      }
 
       // include full transaction details in first row or non-cli-formatted output
-      if (transactionRows.length === 0 || format !== Format.cli) {
+      if (transactionRows.length === 0 || output !== TableOutput.cli) {
         transactionRows.push({
           ...transaction,
           group,
@@ -225,7 +344,9 @@ export class TransactionsCommand extends IronfishCommand {
           amount,
           feePaid,
           sender,
+          senderName,
           recipient,
+          recipientName,
           memo,
         })
       } else {
@@ -237,7 +358,9 @@ export class TransactionsCommand extends IronfishCommand {
           assetSymbol,
           amount,
           sender,
+          senderName,
           recipient,
+          recipientName,
           memo,
         })
       }
@@ -248,8 +371,8 @@ export class TransactionsCommand extends IronfishCommand {
 
   getColumns(
     extended: boolean,
-    notes: boolean,
-    format: Format,
+    output: 'notes' | 'transactions' | 'transfers',
+    format: TableOutput,
   ): ui.TableColumns<PartialRecursive<TransactionRow>> {
     let columns: ui.TableColumns<PartialRecursive<TransactionRow>> = {
       timestamp: TableCols.timestamp({
@@ -262,7 +385,7 @@ export class TransactionsCommand extends IronfishCommand {
       },
       type: {
         header: 'Type',
-        minWidth: notes ? 18 : 8,
+        minWidth: output === 'notes' || output === 'transfers' ? 18 : 8,
         get: (row) => row.type ?? '',
       },
       hash: {
@@ -321,12 +444,20 @@ export class TransactionsCommand extends IronfishCommand {
       },
     }
 
-    if (notes) {
+    if (output === 'notes' || output === 'transfers') {
       columns = {
         ...columns,
+        senderName: {
+          header: 'Sender',
+          get: (row) => row.senderName ?? '',
+        },
         sender: {
           header: 'Sender Address',
           get: (row) => row.sender ?? '',
+        },
+        recipientName: {
+          header: 'Recipient',
+          get: (row) => row.recipientName ?? '',
         },
         recipient: {
           header: 'Recipient Address',
@@ -339,7 +470,7 @@ export class TransactionsCommand extends IronfishCommand {
       }
     }
 
-    if (format === Format.cli) {
+    if (format === TableOutput.cli) {
       columns = {
         group: {
           header: '',
@@ -387,6 +518,8 @@ type TransactionRow = {
   expiration: number
   submittedSequence: number
   sender: string
+  senderName?: string
   recipient: string
+  recipientName?: string
   memo?: string
 }

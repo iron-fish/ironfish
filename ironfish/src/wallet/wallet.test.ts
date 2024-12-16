@@ -1,13 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey, MEMO_LENGTH } from '@ironfish/rust-nodejs'
+import { Asset, generateKey, MEMO_LENGTH, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
-import { VerificationResultReason } from '../consensus'
-import { RawTransaction } from '../primitives'
+import { VerificationResultReason, Verifier } from '../consensus'
+import { Note, RawTransaction } from '../primitives'
 import { TransactionVersion } from '../primitives/transaction'
 import {
   createNodeTest,
@@ -28,6 +28,7 @@ import {
   DuplicateAccountNameError,
   DuplicateSpendingKeyError,
   MaxMemoLengthError,
+  MaxTransactionSizeError,
 } from './errors'
 import { toAccountImport } from './exporter'
 import { AssetStatus, Wallet } from './wallet'
@@ -258,7 +259,7 @@ describe('Wallet', () => {
     expect(await accountA.getNoteHash(forkSpendNullifier)).toBeUndefined()
   })
 
-  describe('addSpendsForAsset', () => {
+  describe('fund', () => {
     it('should select notes in order of largest to smallest', async () => {
       const { node } = nodeTest
       const accountA = await useAccountFixture(node.wallet, 'a')
@@ -274,20 +275,55 @@ describe('Wallet', () => {
       await node.wallet.scan()
 
       const rawTransaction = new RawTransaction(TransactionVersion.V2)
-
-      await node.wallet.addSpendsForAsset(
-        rawTransaction,
-        accountA,
-        Asset.nativeId(),
+      const note = new NativeNote(
+        accountA.publicAddress,
         BigInt(ORE_TO_IRON * 10),
-        0n,
-        new BufferSet(),
-        0,
+        Buffer.alloc(0),
+        Asset.nativeId(),
+        accountA.publicAddress,
       )
+
+      rawTransaction.outputs.push({ note: new Note(note.serialize()) })
+
+      await node.wallet.fund(rawTransaction, {
+        account: accountA,
+        confirmations: 0,
+      })
 
       // if this fails, it means that the notes were not sorted in descending order
       // multiple smaller notes were used to fund the transaction
       expect(rawTransaction.spends).toHaveLength(1)
+    })
+
+    it('should throw error if transaction exceeds maximum size', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet, 'a')
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await expect(node.chain).toAddBlock(block1)
+      await node.wallet.scan()
+
+      // Mock verifier to only allow transactions of size 0
+      jest.spyOn(Verifier, 'getMaxTransactionBytes').mockImplementationOnce((_) => 0)
+
+      const rawTransaction = new RawTransaction(TransactionVersion.V2)
+      const note = new NativeNote(
+        account.publicAddress,
+        1n,
+        Buffer.alloc(0),
+        Asset.nativeId(),
+        account.publicAddress,
+      )
+
+      rawTransaction.outputs.push({ note: new Note(note.serialize()) })
+
+      const promise = node.wallet.fund(rawTransaction, {
+        account: account,
+        confirmations: 0,
+      })
+
+      await expect(promise).rejects.toThrow(MaxTransactionSizeError)
     })
   })
 
@@ -1066,8 +1102,8 @@ describe('Wallet', () => {
 
       const masterKey = node.wallet['masterKey']
       Assert.isNotNull(masterKey)
-      const key = await masterKey.unlock(passphrase)
-      const decryptedAccount = encryptedAccount.decrypt(key)
+      await masterKey.unlock(passphrase)
+      const decryptedAccount = encryptedAccount.decrypt(masterKey)
       await node.wallet.lock()
 
       expect(decryptedAccount.spendingKey).toEqual(account.spendingKey)
@@ -1458,6 +1494,33 @@ describe('Wallet', () => {
 
       // no spends needed
       expect(rawTransaction.spends.length).toBe(0)
+    })
+
+    it('should throw error if transaction exceeds maximum size', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet, 'a')
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await expect(node.chain).toAddBlock(block1)
+      await node.wallet.scan()
+
+      // Mock verifier to only allow transactions of size 0
+      jest.spyOn(Verifier, 'getMaxTransactionBytes').mockImplementationOnce((_) => 0)
+
+      const promise = nodeTest.wallet.createTransaction({
+        account: account,
+        fee: 0n,
+        outputs: [
+          {
+            publicAddress: account.publicAddress,
+            amount: 1n,
+            memo: Buffer.alloc(0),
+            assetId: Asset.nativeId(),
+          },
+        ],
+      })
+      await expect(promise).rejects.toThrow(MaxTransactionSizeError)
     })
   })
 
@@ -2470,8 +2533,8 @@ describe('Wallet', () => {
 
       const masterKey = node.wallet['masterKey']
       Assert.isNotNull(masterKey)
-      const key = await masterKey.unlock(passphrase)
-      const decryptedAccount = encryptedAccount.decrypt(key)
+      await masterKey.unlock(passphrase)
+      const decryptedAccount = encryptedAccount.decrypt(masterKey)
       await node.wallet.lock()
 
       expect(decryptedAccount.name).toEqual(account.name)
@@ -2694,16 +2757,16 @@ describe('Wallet', () => {
 
       const masterKey = node.wallet['masterKey']
       Assert.isNotNull(masterKey)
-      const key = await masterKey.unlock(passphrase)
+      await masterKey.unlock(passphrase)
 
       const encryptedAccountA = node.wallet.encryptedAccountById.get(accountA.id)
       Assert.isNotUndefined(encryptedAccountA)
-      const decryptedAccountA = encryptedAccountA.decrypt(key)
+      const decryptedAccountA = encryptedAccountA.decrypt(masterKey)
       expect(accountA.serialize()).toMatchObject(decryptedAccountA.serialize())
 
       const encryptedAccountB = node.wallet.encryptedAccountById.get(accountB.id)
       Assert.isNotUndefined(encryptedAccountB)
-      const decryptedAccountB = encryptedAccountB.decrypt(key)
+      const decryptedAccountB = encryptedAccountB.decrypt(masterKey)
       expect(accountB.serialize()).toMatchObject(decryptedAccountB.serialize())
     })
   })
@@ -2840,12 +2903,12 @@ describe('Wallet', () => {
 
       const masterKey = node.wallet['masterKey']
       Assert.isNotNull(masterKey)
-      const key = await masterKey.unlock(passphrase)
+      await masterKey.unlock(passphrase)
 
       for (const [id, account] of node.wallet.accountById.entries()) {
         const encryptedAccount = node.wallet.encryptedAccountById.get(id)
         Assert.isNotUndefined(encryptedAccount)
-        const decryptedAccount = encryptedAccount.decrypt(key)
+        const decryptedAccount = encryptedAccount.decrypt(masterKey)
 
         expect(account.serialize()).toMatchObject(decryptedAccount.serialize())
       }
