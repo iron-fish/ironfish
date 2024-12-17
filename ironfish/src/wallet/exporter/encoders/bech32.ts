@@ -126,6 +126,7 @@ export class Bech32Encoder implements AccountEncoder {
     size += 1 // proofAuthorizingKey byte
     if (value.proofAuthorizingKey) {
       size += KEY_LENGTH
+      size += 1 // ledger
     }
 
     return size
@@ -153,6 +154,7 @@ function decoderV1(
     const sequence = reader.readU32()
     createdAt = { hash, sequence }
   }
+  const ledger = reader.readU8() === 1
 
   return {
     version: ACCOUNT_SCHEMA_VERSION,
@@ -164,6 +166,7 @@ function decoderV1(
     publicAddress,
     createdAt,
     proofAuthorizingKey: null,
+    ledger,
   }
 }
 

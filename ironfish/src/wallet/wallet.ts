@@ -1555,6 +1555,7 @@ export class Wallet {
         multisigKeys,
         scanningEnabled: true,
         encrypted: false,
+        ledger: false,
       },
       walletDb: this.walletDb,
     })
@@ -1587,6 +1588,7 @@ export class Wallet {
             {
               name: account.name,
               secret,
+              ledger: accountValue.ledger,
             },
             tx,
           )
@@ -1945,7 +1947,7 @@ export class Wallet {
     }
   }
 
-  async createMultisigSecret(name: string): Promise<Buffer> {
+  async createMultisigSecret(name: string, ledger: boolean): Promise<Buffer> {
     return this.walletDb.db.transaction(async (tx) => {
       if (await this.walletDb.hasMultisigSecretName(name, tx)) {
         throw new DuplicateMultisigSecretNameError(name)
@@ -1963,6 +1965,7 @@ export class Wallet {
         {
           name,
           secret: secret.serialize(),
+          ledger,
         },
         tx,
       )

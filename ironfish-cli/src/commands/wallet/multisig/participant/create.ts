@@ -32,7 +32,10 @@ export class MultisigIdentityCreate extends IronfishCommand {
     let response
     while (!response) {
       try {
-        response = await client.wallet.multisig.createParticipant({ name })
+        response = await client.wallet.multisig.createParticipant({
+          name,
+          ledger: false,
+        })
       } catch (e) {
         if (
           e instanceof RpcRequestError &&

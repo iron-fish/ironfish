@@ -1340,6 +1340,7 @@ export class WalletDB {
     identity: Buffer,
     value: MultisigIdentityValue,
     tx?: IDatabaseTransaction,
+    
   ): Promise<void> {
     await this.multisigIdentities.put(identity, value, tx)
   }
