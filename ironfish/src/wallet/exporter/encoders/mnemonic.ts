@@ -61,7 +61,7 @@ export class MnemonicEncoder implements AccountEncoder {
       createdAt: null,
       version: ACCOUNT_SCHEMA_VERSION,
       proofAuthorizingKey: key.proofAuthorizingKey,
-      ledger: key.ledger
+      ledger: false
     }
   }
 }
