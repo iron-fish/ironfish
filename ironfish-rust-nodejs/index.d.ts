@@ -300,6 +300,7 @@ export namespace multisig {
     outgoingViewKey: string
     proofAuthorizingKey: string
     keyPackages: Array<ParticipantKeyPackage>
+    ledger: boolean
   }
   export function dkgRound1(selfIdentity: string, minSigners: number, participantIdentities: Array<string>): DkgRound1Packages
   export interface DkgRound1Packages {
@@ -320,6 +321,7 @@ export namespace multisig {
     incomingViewKey: string
     outgoingViewKey: string
     proofAuthorizingKey: string
+    ledger: boolean
   }
   export function aggregateSignatureShares(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
   export type NativeSignatureShare = SignatureShare

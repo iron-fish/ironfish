@@ -70,6 +70,7 @@ routes.register<typeof DkgRound3RequestSchema, DkgRound3Response>(
       incomingViewKey,
       outgoingViewKey,
       proofAuthorizingKey,
+      ledger,
     } = multisig.dkgRound3(
       secret,
       request.data.round2SecretPackage,
@@ -92,6 +93,7 @@ routes.register<typeof DkgRound3RequestSchema, DkgRound3Response>(
         keyPackage,
         publicKeyPackage,
       },
+      ledger,
     }
 
     const account = await node.wallet.importAccount(accountImport, {

@@ -24,6 +24,7 @@ export type CreateTrustedDealerKeyPackageResponse = {
   outgoingViewKey: string
   proofAuthorizingKey: string
   participantAccounts: Array<{ identity: string; account: string }>
+  ledger: boolean
 }
 
 export const CreateTrustedDealerKeyPackageRequestSchema: yup.ObjectSchema<CreateTrustedDealerKeyPackageRequest> =
@@ -56,6 +57,7 @@ export const CreateTrustedDealerKeyPackageResponseSchema: yup.ObjectSchema<Creat
             .defined(),
         )
         .defined(),
+      ledger: yup.boolean().defined(),
     })
     .defined()
 
@@ -78,6 +80,7 @@ routes.register<
       outgoingViewKey,
       proofAuthorizingKey,
       keyPackages,
+      ledger,
     } = multisig.generateAndSplitKey(request.data.minSigners, identities)
 
     const createdAt = {
@@ -101,6 +104,7 @@ routes.register<
           keyPackage,
           publicKeyPackage,
         },
+        ledger,
       }
 
       const encoder = new JsonEncoder()
@@ -127,6 +131,7 @@ routes.register<
       outgoingViewKey,
       proofAuthorizingKey,
       participantAccounts: participants,
+      ledger,
     })
   },
 )
