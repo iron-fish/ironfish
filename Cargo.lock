@@ -1653,6 +1653,7 @@ dependencies = [
  "ironfish_zkp",
  "rand",
  "rayon",
+ "tiny-bip39",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
