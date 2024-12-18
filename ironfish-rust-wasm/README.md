@@ -10,6 +10,16 @@ wasm-pack build --target web --release
 
 ## Building on Mac
 
+### Using `wasm-pack`
+
+```bash
+AR=/opt/homebrew/opt/llvm/bin/llvm-ar CC=/opt/homebrew/opt/llvm/bin/clang wasm-pack build --release --target web
+```
+
+### Using `cargo` and `wasm-bindgen`
+
+In case building with `wasm-pack` fails, you can try building with `cargo` and `wasm-bindgen`:
+
 ```bash
 AR=/opt/homebrew/opt/llvm/bin/llvm-ar CC=/opt/homebrew/opt/llvm/bin/clang cargo build --release --target wasm32-unknown-unknown
 ```
