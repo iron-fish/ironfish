@@ -12,6 +12,8 @@ wasm-pack build --target web --release
 
 ### Using `wasm-pack`
 
+Reference: https://mikeder.net/blog/m1-mac-wasm/
+
 ```bash
 AR=/opt/homebrew/opt/llvm/bin/llvm-ar CC=/opt/homebrew/opt/llvm/bin/clang wasm-pack build --release --target web
 ```
