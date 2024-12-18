@@ -57,10 +57,10 @@ impl IncomingViewKey {
     }
 
     /// Load a key from a string of words to be decoded into bytes.
-    pub fn from_words(language_code: &str, value: String) -> Result<Self, IronfishError> {
+    pub fn from_words(language_code: &str, value: &str) -> Result<Self, IronfishError> {
         let language = Language::from_language_code(language_code)
             .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidLanguageEncoding))?;
-        let mnemonic = Mnemonic::from_phrase(&value, language)
+        let mnemonic = Mnemonic::from_phrase(value, language)
             .map_err(|_| IronfishError::new(IronfishErrorKind::InvalidPaymentAddress))?;
         let bytes = mnemonic.entropy();
         let mut byte_arr = [0; 32];
@@ -227,10 +227,10 @@ impl OutgoingViewKey {
     }
 
     /// Load a key from a string of words to be decoded into bytes.
-    pub fn from_words(language_code: &str, value: String) -> Result<Self, IronfishError> {
+    pub fn from_words(language_code: &str, value: &str) -> Result<Self, IronfishError> {
         let language = Language::from_language_code(language_code)
             .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidLanguageEncoding))?;
-        let mnemonic = Mnemonic::from_phrase(&value, language)
+        let mnemonic = Mnemonic::from_phrase(value, language)
             .map_err(|_| IronfishError::new(IronfishErrorKind::InvalidPaymentAddress))?;
         let bytes = mnemonic.entropy();
         let mut view_key = [0; 32];

@@ -127,6 +127,6 @@ fn test_from_and_to_words() {
 
     // Convert from words
     let key =
-        SaplingKey::from_words(words, bip39::Language::English).expect("key should be created");
+        SaplingKey::from_words(&words, bip39::Language::English).expect("key should be created");
     assert_eq!(key.spending_key, key_bytes);
 }

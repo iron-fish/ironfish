@@ -4,7 +4,7 @@
 
 use crate::{
     errors::IronfishError,
-    keys::PublicAddress,
+    keys::{Language, PublicAddress},
     primitives::{Fr, PublicKey},
     wasm_bindgen_wrapper,
 };
@@ -39,7 +39,21 @@ impl IncomingViewKey {
         self.0.hex_key()
     }
 
-    // TODO: to/fromWords
+    #[wasm_bindgen(js_name = fromWords)]
+    pub fn from_words(lang: Language, words: &str) -> Result<Self, IronfishError> {
+        ironfish::keys::IncomingViewKey::from_words(lang.language_code().as_ref(), words)
+            .map(|key| key.into())
+            .map_err(|err| err.into())
+    }
+
+    #[wasm_bindgen(js_name = toWords)]
+    pub fn to_words(&self, lang: Language) -> String {
+        // `words_key()` may fail only if the language code is invalid, but here we're accepting
+        // `Language`, not an arbitrary input, so the language code is guaranteed to be valid.
+        self.0
+            .words_key(lang.language_code().as_ref())
+            .expect("conversion to words failed")
+    }
 
     #[wasm_bindgen(getter, js_name = publicAddress)]
     pub fn public_address(&self) -> PublicAddress {
@@ -74,7 +88,21 @@ impl OutgoingViewKey {
         self.0.hex_key()
     }
 
-    // TODO: to/fromWords
+    #[wasm_bindgen(js_name = fromWords)]
+    pub fn from_words(lang: Language, words: &str) -> Result<Self, IronfishError> {
+        ironfish::keys::OutgoingViewKey::from_words(lang.language_code().as_ref(), words)
+            .map(|key| key.into())
+            .map_err(|err| err.into())
+    }
+
+    #[wasm_bindgen(js_name = toWords)]
+    pub fn to_words(&self, lang: Language) -> String {
+        // `words_key()` may fail only if the language code is invalid, but here we're accepting
+        // `Language`, not an arbitrary input, so the language code is guaranteed to be valid.
+        self.0
+            .words_key(lang.language_code().as_ref())
+            .expect("conversion to words failed")
+    }
 }
 
 wasm_bindgen_wrapper! {
