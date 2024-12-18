@@ -101,6 +101,7 @@ routes.register<
           keyPackage,
           publicKeyPackage,
         },
+        isLedger: false,
       }
 
       const encoder = new JsonEncoder()

@@ -30,6 +30,7 @@ describe('AccountValueEncoding', () => {
       },
       scanningEnabled: true,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      isLedger: false,
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)
@@ -59,6 +60,7 @@ describe('AccountValueEncoding', () => {
         keyPackage: 'beef',
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
+      isLedger: false,
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)
@@ -87,6 +89,7 @@ describe('AccountValueEncoding', () => {
         keyPackage: 'beef',
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
+      isLedger: true,
     }
 
     const passphrase = 'foobarbaz'

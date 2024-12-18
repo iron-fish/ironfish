@@ -87,10 +87,6 @@ This will destroy tokens and decrease supply for a given asset.`
       default: false,
       description: 'Wait for the transaction to be confirmed',
     }),
-    ledger: Flags.boolean({
-      default: false,
-      description: 'Burn a transaction using a Ledger device',
-    }),
   }
 
   async start(): Promise<void> {
@@ -109,6 +105,7 @@ This will destroy tokens and decrease supply for a given asset.`
     }
 
     const account = await useAccount(client, flags.account)
+    const accountStatus = (await client.wallet.getAccountStatus({ account })).content.account
 
     let assetId = flags.assetId
 
@@ -225,7 +222,7 @@ This will destroy tokens and decrease supply for a given asset.`
 
     await this.confirm(assetData, amount, raw.fee, account, flags.confirm)
 
-    if (flags.ledger) {
+    if (accountStatus.isLedger) {
       await ui.sendTransactionWithLedger(
         client,
         raw,

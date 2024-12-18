@@ -53,6 +53,7 @@ export class AccountsCommand extends IronfishCommand {
         Scanning: response.content.account.scanningEnabled ? chalk.green('✓') : '',
         Sequence: response.content.account.head?.sequence,
         Head: response.content.account.head?.hash,
+        Ledger: response.content.account.isLedger ? chalk.green('✓') : '',
       }
 
       this.log(ui.card(status))

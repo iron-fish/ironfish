@@ -73,6 +73,11 @@ export class AccountsCommand extends IronfishCommand {
           header: 'Head',
           extended: true,
         },
+        isLedger: {
+          get: (row) => (row.isLedger ? chalk.green('✓') : ''),
+          header: 'Ledger',
+          extended: true,
+        },
       },
       {
         ...flags,
