@@ -17,6 +17,7 @@ describe('multisigKeys encoder', () => {
         publicKeyPackage: 'aaaaaa',
         secret: 'aaaaaa',
         keyPackage: 'bbbb',
+        identity: 'cccc',
       }
       const buffer = encoder.serialize(value)
       const deserializedValue = encoder.deserialize(buffer)

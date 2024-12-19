@@ -56,6 +56,7 @@ describe('AccountValueEncoding', () => {
       multisigKeys: {
         publicKeyPackage: 'cccc',
         secret: 'deaf',
+        identity: 'c0ffee',
         keyPackage: 'beef',
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
@@ -84,6 +85,7 @@ describe('AccountValueEncoding', () => {
       multisigKeys: {
         publicKeyPackage: 'cccc',
         secret: 'deaf',
+        identity: 'c0ffee',
         keyPackage: 'beef',
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
