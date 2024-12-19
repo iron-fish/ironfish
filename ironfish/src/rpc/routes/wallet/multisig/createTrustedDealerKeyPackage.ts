@@ -80,7 +80,6 @@ routes.register<
       outgoingViewKey,
       proofAuthorizingKey,
       keyPackages,
-      ledger,
     } = multisig.generateAndSplitKey(request.data.minSigners, identities)
 
     const createdAt = {
@@ -104,7 +103,7 @@ routes.register<
           keyPackage,
           publicKeyPackage,
         },
-        ledger,
+        ledger: false,
       }
 
       const encoder = new JsonEncoder()
@@ -131,7 +130,7 @@ routes.register<
       outgoingViewKey,
       proofAuthorizingKey,
       participantAccounts: participants,
-      ledger,
+      ledger: false,
     })
   },
 )
