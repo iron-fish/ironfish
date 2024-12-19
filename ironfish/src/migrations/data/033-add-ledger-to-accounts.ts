@@ -11,15 +11,15 @@ import { Database, Migration, MigrationContext } from '../migration'
 import {
   AccountValueEncoding as NewAccountValueEncoding,
   DecryptedAccountValue as NewDecryptedAccountValue,
-} from './000-encrypted-wallet-template/new/accountValue'
+} from './033-add-ledger-to-accounts/new/accountValue'
 import {
   AccountValueEncoding as OldAccountValueEncoding,
   DecryptedAccountValue as OldDecryptedAccountValue,
   EncryptedAccountValue as OldEncryptedAccountValue,
-} from './000-encrypted-wallet-template/old/accountValue'
-import { GetStores } from './000-encrypted-wallet-template/stores'
+} from './033-add-ledger-to-accounts/old/accountValue'
+import { GetStores } from './033-add-ledger-to-accounts/stores'
 
-export class Migration000 extends Migration {
+export class Migration033 extends Migration {
   path = __filename
   database = Database.WALLET
 
@@ -89,7 +89,10 @@ export class Migration000 extends Migration {
 
   // Implement logic to migrate (decrypted) account data to the new schema
   accountForward(oldValue: OldDecryptedAccountValue): NewDecryptedAccountValue {
-    const newValue = oldValue
+    const newValue = {
+      ...oldValue,
+      ledger: false,
+    }
     return newValue
   }
 
@@ -159,7 +162,7 @@ export class Migration000 extends Migration {
 
   // Implement logic to rever (decrypted) account data to the old schema
   accountBackward(newValue: NewDecryptedAccountValue): OldDecryptedAccountValue {
-    const oldValue = newValue
+    const { ledger, ...oldValue } = newValue
     return oldValue
   }
 }
