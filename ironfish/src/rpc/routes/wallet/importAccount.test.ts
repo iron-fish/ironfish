@@ -43,6 +43,7 @@ describe('Route wallet/importAccount', () => {
       proofAuthorizingKey: null,
       version: 1,
       createdAt: null,
+      isLedger: false,
     }
 
     const response = await routeTest.client.wallet.importAccount({
@@ -69,6 +70,7 @@ describe('Route wallet/importAccount', () => {
       publicAddress: trustedDealerPackages.publicAddress,
       spendingKey: null,
       createdAt: null,
+      isLedger: false,
       proofAuthorizingKey: trustedDealerPackages.proofAuthorizingKey,
       multisigKeys: {
         publicKeyPackage: trustedDealerPackages.publicKeyPackage,
@@ -102,6 +104,7 @@ describe('Route wallet/importAccount', () => {
         proofAuthorizingKey: null,
         version: 1,
         createdAt: null,
+        isLedger: false,
       }),
       rescan: false,
     })
@@ -129,6 +132,7 @@ describe('Route wallet/importAccount', () => {
         proofAuthorizingKey: null,
         version: 1,
         createdAt: null,
+        isLedger: false,
       }),
       name: overriddenAccountName,
       rescan: false,
@@ -172,6 +176,7 @@ describe('Route wallet/importAccount', () => {
         proofAuthorizingKey: null,
         version: 1,
         createdAt: null,
+        isLedger: false,
       }
 
       const response = await routeTest.client.wallet.importAccount({
@@ -203,6 +208,7 @@ describe('Route wallet/importAccount', () => {
         version: 1,
         createdAt: null,
         proofAuthorizingKey: key.proofAuthorizingKey,
+        isLedger: false,
       }
     }
 
@@ -500,6 +506,7 @@ describe('Route wallet/importAccount', () => {
         keyPackage: trustedDealerPackages.keyPackages[1].keyPackage.toString(),
         secret: secrets[1].serialize().toString('hex'),
       },
+      isLedger: false,
     }
 
     try {
@@ -582,6 +589,7 @@ describe('Route wallet/importAccount', () => {
         publicKeyPackage: trustedDealerPackages.publicKeyPackage,
         identity: nextIdentity,
       },
+      isLedger: false,
     }
 
     try {
@@ -625,6 +633,7 @@ describe('Route wallet/importAccount', () => {
         publicKeyPackage: trustedDealerPackages.publicKeyPackage,
         identity: identity,
       },
+      isLedger: false,
     }
 
     const response = await routeTest.client.wallet.importAccount({

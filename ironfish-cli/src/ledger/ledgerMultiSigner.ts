@@ -178,6 +178,7 @@ export class LedgerMultiSigner extends Ledger {
         publicKeyPackage: publicKeyPackage.toString('hex'),
         identity: identity.toString('hex'),
       },
+      isLedger: true,
       version: ACCOUNT_SCHEMA_VERSION,
       spendingKey: null,
       createdAt: null,

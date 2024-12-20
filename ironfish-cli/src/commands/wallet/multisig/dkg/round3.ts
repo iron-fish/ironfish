@@ -235,6 +235,7 @@ export class DkgRound3Command extends IronfishCommand {
       },
       version: ACCOUNT_SCHEMA_VERSION,
       name: participantName,
+      isLedger: true,
       spendingKey: null,
       createdAt: null,
     }
