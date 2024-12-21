@@ -274,9 +274,7 @@ export class DkgCreateCommand extends IronfishCommand {
       return foundIdentity
     }
 
-    const created = await client.wallet.multisig.createParticipant({
-      name,
-    })
+    const created = await client.wallet.multisig.createParticipant({ name })
     return { name, identity: created.content.identity }
   }
 

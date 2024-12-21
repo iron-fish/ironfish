@@ -43,5 +43,5 @@ export const MIGRATIONS = [
   Migration030,
   Migration031,
   Migration032,
-  Migration032,
+  Migration033,
 ]

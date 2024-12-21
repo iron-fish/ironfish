@@ -36,7 +36,6 @@ export class MultisigIdentityCreate extends IronfishCommand {
     }
 
     let identity
-  
     if (flags.ledger) {
       identity = await this.getIdentityFromLedger()
     }
@@ -50,9 +49,7 @@ export class MultisigIdentityCreate extends IronfishCommand {
             identity: identity.toString('hex'),
           })
         } else {
-          response = await client.wallet.multisig.createParticipant({
-            name,
-          })
+          response = await client.wallet.multisig.createParticipant({ name })
         }
       } catch (e) {
         if (
