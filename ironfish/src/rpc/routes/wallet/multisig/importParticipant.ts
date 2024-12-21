@@ -11,7 +11,6 @@ export type ImportParticipantRequest = {
   name: string
   identity: string
   secret?: string
-  ledger: boolean
 }
 
 export type ImportParticipantResponse = {
@@ -23,7 +22,6 @@ export const ImportParticipantRequestSchema: yup.ObjectSchema<ImportParticipantR
     name: yup.string().defined(),
     identity: yup.string().defined(),
     secret: yup.string().optional(),
-    ledger: yup.boolean().defined(),
   })
   .defined()
 
@@ -65,13 +63,12 @@ routes.register<typeof ImportParticipantRequestSchema, ImportParticipantResponse
       )
     }
 
-    //is it better to add the ledger flag here or pass it through from the frontend?
     await context.wallet.walletDb.putMultisigIdentity(
       Buffer.from(request.data.identity, 'hex'),
       {
         name: request.data.name,
         secret: request.data.secret ? Buffer.from(request.data.secret, 'hex') : undefined,
-        ledger: request.data.ledger,
+        ledger: true,
       },
     )
 

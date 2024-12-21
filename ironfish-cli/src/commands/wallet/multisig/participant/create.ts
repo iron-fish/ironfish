@@ -36,7 +36,7 @@ export class MultisigIdentityCreate extends IronfishCommand {
     }
 
     let identity
-    //should ledger flag be required? if it's not passed in by user, importParticipant won't be invoked and ledger:false would incorrectly be added to the wallet
+  
     if (flags.ledger) {
       identity = await this.getIdentityFromLedger()
     }
@@ -48,12 +48,10 @@ export class MultisigIdentityCreate extends IronfishCommand {
           response = await client.wallet.multisig.importParticipant({
             name,
             identity: identity.toString('hex'),
-            ledger: true,
           })
         } else {
           response = await client.wallet.multisig.createParticipant({
             name,
-            ledger: false,
           })
         }
       } catch (e) {

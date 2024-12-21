@@ -262,7 +262,6 @@ export class DkgCreateCommand extends IronfishCommand {
       const created = await client.wallet.multisig.importParticipant({
         name,
         identity: ledgerIdentity.toString('hex'),
-        ledger: true,
       })
 
       return { name, identity: created.content.identity }
@@ -277,7 +276,6 @@ export class DkgCreateCommand extends IronfishCommand {
 
     const created = await client.wallet.multisig.createParticipant({
       name,
-      ledger: false,
     })
     return { name, identity: created.content.identity }
   }
