@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { KEY_LENGTH, PUBLIC_ADDRESS_LENGTH, xchacha20poly1305 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabaseEncoding } from '../../storage'
-import { MultisigKeys } from '../interfaces/multisigKeys'
+import { IDatabaseEncoding } from '../../../../storage'
+import { MultisigKeys } from '../../../../wallet/interfaces/multisigKeys'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { MultisigKeysEncoding } from './multisigKeys'
 

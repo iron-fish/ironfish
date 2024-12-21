@@ -51,6 +51,7 @@ export class LedgerSingleSigner extends Ledger {
       proofAuthorizingKey: responsePGK.nsk.toString('hex'),
       spendingKey: null,
       createdAt: null,
+      ledger: true,
     }
 
     return accountImport

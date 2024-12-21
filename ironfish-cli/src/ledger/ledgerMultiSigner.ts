@@ -181,6 +181,7 @@ export class LedgerMultiSigner extends Ledger {
       version: ACCOUNT_SCHEMA_VERSION,
       spendingKey: null,
       createdAt: null,
+      ledger: true,
     }
 
     return accountImport

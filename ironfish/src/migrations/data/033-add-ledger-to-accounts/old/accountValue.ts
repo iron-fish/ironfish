@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { KEY_LENGTH, PUBLIC_ADDRESS_LENGTH, xchacha20poly1305 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabaseEncoding } from '../../storage'
-import { MultisigKeys } from '../interfaces/multisigKeys'
+import { IDatabaseEncoding } from '../../../../storage'
+import { MultisigKeys } from '../../../../wallet/interfaces/multisigKeys'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { MultisigKeysEncoding } from './multisigKeys'
 
@@ -32,7 +32,6 @@ export type DecryptedAccountValue = {
   scanningEnabled: boolean
   multisigKeys?: MultisigKeys
   proofAuthorizingKey: string | null
-  ledger: boolean
 }
 
 export type AccountValue = EncryptedAccountValue | DecryptedAccountValue
@@ -67,7 +66,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     flags |= Number(!!value.proofAuthorizingKey) << 3
     flags |= Number(!!value.scanningEnabled) << 4
     flags |= Number(!!value.encrypted) << 5
-    flags |= Number(!!value.ledger) << 6
 
     bw.writeU8(flags)
     bw.writeU16(value.version)
@@ -139,7 +137,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const hasMultisigKeys = flags & (1 << 2)
     const hasProofAuthorizingKey = flags & (1 << 3)
     const scanningEnabled = Boolean(flags & (1 << 4))
-    const ledger = Boolean(flags & (1 << 6))
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
     const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
@@ -179,7 +176,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       scanningEnabled,
       multisigKeys,
       proofAuthorizingKey,
-      ledger,
     }
   }
 
