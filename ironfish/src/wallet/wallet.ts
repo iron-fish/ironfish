@@ -1555,7 +1555,6 @@ export class Wallet {
         multisigKeys,
         scanningEnabled: true,
         encrypted: false,
-        ledger: false,
       },
       walletDb: this.walletDb,
     })
