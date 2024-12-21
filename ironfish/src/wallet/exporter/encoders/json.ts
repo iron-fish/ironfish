@@ -121,7 +121,7 @@ const serializeAccountEncodedJSON = (accountImport: AccountImport): AccountEncod
     multisigKeys: accountImport.multisigKeys,
     proofAuthorizingKey: accountImport.proofAuthorizingKey,
     createdAt: createdAt,
-    ledger: accountImport.ledger,
+    ledger: accountImport.ledger || false,
   }
 }
 
@@ -153,6 +153,6 @@ function deserializeAccountEncodedJSON(raw: AccountEncodedJSON): AccountImport {
     multisigKeys: raw.multisigKeys
       ? deserializeRpcAccountMultisigKeys(raw.multisigKeys)
       : undefined,
-    ledger: raw.ledger,
+    ledger: raw.ledger || false,
   }
 }
