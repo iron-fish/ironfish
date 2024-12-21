@@ -13,7 +13,6 @@ import { AssertHasRpcContext } from '../../rpcContext'
 
 export type CreateParticipantRequest = {
   name: string
-  ledger: boolean
 }
 
 export type CreateParticipantResponse = {
@@ -23,7 +22,6 @@ export type CreateParticipantResponse = {
 export const CreateParticipantRequestSchema: yup.ObjectSchema<CreateParticipantRequest> = yup
   .object({
     name: yup.string().defined(),
-    ledger: yup.boolean().defined(),
   })
   .defined()
 
@@ -40,7 +38,7 @@ routes.register<typeof CreateParticipantRequestSchema, CreateParticipantResponse
     AssertHasRpcContext(request, context, 'wallet')
 
     try {
-      const identity = await context.wallet.createMultisigSecret(request.data.name, request.data.ledger)
+      const identity = await context.wallet.createMultisigSecret(request.data.name, false)
       request.end({ identity: identity.toString('hex') })
     } catch (e) {
       if (
