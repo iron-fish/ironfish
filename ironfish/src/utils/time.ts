@@ -67,6 +67,7 @@ const renderSpan = (
 
   const parts = []
   let magnitude = 0
+
   if (time >= MS_PER_YEAR && (magnitude <= 8 || options?.forceYear)) {
     const years = Math.floor(time / MS_PER_YEAR)
     time -= years * MS_PER_YEAR
