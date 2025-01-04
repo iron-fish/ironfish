@@ -10,10 +10,10 @@ describe('TimeUtils', () => {
       expect(TimeUtils.renderEstimate(50, 100, 60)).toEqual('soon')
       expect(TimeUtils.renderEstimate(50, 100, 20)).toEqual('2s')
       expect(TimeUtils.renderEstimate(50, 200, 1)).toEqual('2m 30s')
-      expect(TimeUtils.renderEstimate(10, 10000, 1)).toEqual('2h 46m')
+      expect(TimeUtils.renderEstimate(10, 10000, 1)).toEqual('2h 46m 30s')
       expect(TimeUtils.renderEstimate(10, 198010, 1)).toEqual('2d 7h')
       expect(TimeUtils.renderEstimate(10, 7689610, 1)).toEqual('2M 29d')
-      expect(TimeUtils.renderEstimate(10, 73699210, 1)).toEqual('2y 4M 3d')
+      expect(TimeUtils.renderEstimate(10, 73699210, 1)).toEqual('2y 4M 72h')
     })
 
     it('should render time spans', () => {

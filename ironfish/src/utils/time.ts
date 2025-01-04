@@ -31,12 +31,12 @@ const renderEstimate = (done: number, total: number, speed: number): string => {
 
   return renderSpan(estimate, {
     forceMillisecond: false,
-    forceSecond: false,
-    forceMinute: false,
-    forceHour: false,
-    forceDay: true,
-    forceMonth: true,
-    forceYear: true,
+    forceSecond: true,
+    forceMinute: true,
+    forceHour: true,
+    forceDay: false,
+    forceMonth: false,
+    forceYear: false,
     hideMilliseconds: true,
   })
 }
