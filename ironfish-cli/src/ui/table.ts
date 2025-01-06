@@ -10,6 +10,7 @@ import stringWidth from 'string-width'
 import { json } from './json'
 
 const WIDE_DASH = '─'
+const DEFAULT_LIMIT = 500
 
 export interface TableColumn<T extends Record<string, unknown>> {
   // The return type of this function can be extended, it's really just to avoid
@@ -58,7 +59,7 @@ export const TableFlags = {
   }),
   limit: Flags.integer({
     description: 'the number of rows to display, 0 will show all rows',
-    default: 50,
+    default: DEFAULT_LIMIT,
   }),
 }
 
@@ -85,13 +86,14 @@ class Table<T extends Record<string, unknown>> {
         key,
       }
     })
+
     this.options = {
       extended: options.extended || false,
       'no-header': options['no-header'],
       output: options.csv ? 'csv' : options.output,
       printLine: options.printLine ?? ux.stdout.bind(ux),
       sort: options.sort,
-      limit: options.limit ?? 50,
+      limit: 'limit' in options ? options.limit : DEFAULT_LIMIT,
     }
   }
 
