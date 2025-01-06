@@ -220,8 +220,10 @@ class Table<T extends Record<string, unknown>> {
       }
       this.options.printLine(` ${rowValues.join(' ')}`)
     }
-    if (this.options.limit && this.options.limit <= 0 && rows.length >= this.options.limit) {
-      this.options.printLine(`...\n[see more rows by using --limit flag]`)
+    if (this.options.limit && this.options.limit >= 0 && rows.length >= this.options.limit) {
+      this.options.printLine(
+        `...\nsee ${rows.length - slicedRows.length} rows using --limit flag`,
+      )
     }
   }
 }
