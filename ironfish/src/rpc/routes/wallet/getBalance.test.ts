@@ -31,7 +31,6 @@ describe('Route wallet/getBalance', () => {
             assetName: Buffer.from('$IRON', 'utf8'),
             assetCreator: Buffer.from('Iron Fish', 'utf8'),
             assetOwner: Buffer.from('Copper Clam', 'utf8'),
-            assetVerification: { status: 'unknown' },
             confirmed: BigInt(2000000000),
             unconfirmed: BigInt(2000000000),
             pending: BigInt(2000000000),
@@ -52,7 +51,6 @@ describe('Route wallet/getBalance', () => {
       expect(response.content).toEqual({
         account: account.name,
         assetId: Asset.nativeId().toString('hex'),
-        assetVerification: { status: 'unknown' },
         confirmed: '2000000000',
         unconfirmed: '2000000000',
         pending: '2000000000',
@@ -81,7 +79,6 @@ describe('Route wallet/getBalance', () => {
             assetName: asset.name(),
             assetCreator: asset.creator(),
             assetOwner: asset.creator(),
-            assetVerification: { status: 'unknown' },
             confirmed: BigInt(8),
             unconfirmed: BigInt(8),
             pending: BigInt(8),
@@ -103,7 +100,6 @@ describe('Route wallet/getBalance', () => {
       expect(response.content).toEqual({
         account: account.name,
         assetId: asset.id().toString('hex'),
-        assetVerification: { status: 'unknown' },
         confirmed: '8',
         unconfirmed: '8',
         pending: '8',
@@ -131,7 +127,6 @@ describe('Route wallet/getBalance', () => {
             assetName: Buffer.from('$IRON', 'utf8'),
             assetCreator: Buffer.from('Iron Fish', 'utf8'),
             assetOwner: Buffer.from('Copper Clam', 'utf8'),
-            assetVerification: { status: 'unknown' },
             confirmed: BigInt(2000000000),
             unconfirmed: BigInt(2000000000),
             pending: BigInt(2000000000),
@@ -158,7 +153,6 @@ describe('Route wallet/getBalance', () => {
       expect(response.content).toEqual({
         account: account.name,
         assetId: Asset.nativeId().toString('hex'),
-        assetVerification: { status: 'verified' },
         confirmed: '2000000000',
         unconfirmed: '2000000000',
         pending: '2000000000',
