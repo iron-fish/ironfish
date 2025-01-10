@@ -162,6 +162,7 @@ export class Migration034 extends Migration {
 
   // Implement logic to rever (decrypted) account data to the old schema
   accountBackward(newValue: NewDecryptedAccountValue): OldDecryptedAccountValue {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { ledger, ...oldValue } = newValue
     return oldValue
   }

@@ -645,6 +645,7 @@ describe('Wallet', () => {
       incomingViewKey: account.incomingViewKey,
       createdAt: null,
       proofAuthorizingKey: account.proofAuthorizingKey,
+      ledger: true,
     }
     const viewOnlyAccount = await viewOnlyNode.wallet.importAccount(accountValue)
 
@@ -1153,6 +1154,7 @@ describe('Wallet', () => {
           await node.wallet.walletDb.putMultisigIdentity(identity.serialize(), {
             name,
             secret: secret.serialize(),
+            ledger: false,
           })
           return identity.serialize().toString('hex')
         }),
@@ -1352,6 +1354,7 @@ describe('Wallet', () => {
         await node.wallet.walletDb.putMultisigIdentity(identity.serialize(), {
           name,
           secret: secret.serialize(),
+          ledger: false,
         })
         return identity.serialize().toString('hex')
       }),

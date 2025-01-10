@@ -27,6 +27,7 @@ describe('Wallet Export Encryption', () => {
     publicAddress: key.publicAddress,
     createdAt: null,
     proofAuthorizingKey: key.proofAuthorizingKey,
+    ledger: false,
   }
 
   const secret = multisig.ParticipantSecret.random()

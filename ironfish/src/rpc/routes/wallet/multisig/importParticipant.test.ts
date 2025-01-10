@@ -17,6 +17,7 @@ describe('Route wallet/multisig/importParticipant', () => {
     await routeTest.wallet.walletDb.putMultisigIdentity(identity.serialize(), {
       name,
       secret: undefined,
+      ledger: false,
     })
 
     await expect(
@@ -43,6 +44,7 @@ describe('Route wallet/multisig/importParticipant', () => {
     await routeTest.wallet.walletDb.putMultisigIdentity(identity.serialize(), {
       name,
       secret: undefined,
+      ledger: false,
     })
 
     const newSecret = multisig.ParticipantSecret.random()

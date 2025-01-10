@@ -38,7 +38,7 @@ routes.register<typeof CreateParticipantRequestSchema, CreateParticipantResponse
     AssertHasRpcContext(request, context, 'wallet')
 
     try {
-      const identity = await context.wallet.createMultisigSecret(request.data.name, false)
+      const identity = await context.wallet.createMultisigSecret(request.data.name)
       request.end({ identity: identity.toString('hex') })
     } catch (e) {
       if (
