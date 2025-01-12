@@ -66,7 +66,7 @@ type AccountEncodedJSON = {
     publicKeyPackage: string
   }
   proofAuthorizingKey?: string | null
-  ledger: boolean
+  ledger: boolean | undefined
 }
 
 const AccountEncodedJSONSchema: yup.ObjectSchema<AccountEncodedJSON> = yup
@@ -97,7 +97,7 @@ const AccountEncodedJSONSchema: yup.ObjectSchema<AccountEncodedJSON> = yup
       .optional()
       .default(undefined),
     proofAuthorizingKey: yup.string().nullable().optional(),
-    ledger: yup.boolean().defined(),
+    ledger: yup.boolean().optional(),
   })
   .defined()
 
