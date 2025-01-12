@@ -5891,6 +5891,50 @@
           "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAr4bHCB/NbGRdULCYZvEcS5bnyXenQTfvlt9XtZK4O6yZ61OKFSHjFJu5gddHhhv7M4gJmj0nCk4S+FSd1An+ve2AgFVdA+WXN5ML056fWTS3SrY2aPZb5K5u4ices1BCyrgNy6FpLw3rgA7NyQlO1yL6sWBx+J0Bp6YlgaodxW0LGziAAJVuWjQornOXYAKkc1P7JLUqG5PGbmruzvmwL7zOcufA0WMRsHim1PSNn2Osh9p4nFc3cJXImWtrA8HxTVGMJIwsLIwD40+fXdn3i9Zm7CCJszADZwQmuC+0T8ZBGNeR+toG38DI95WIKmJtC31a29/j/GJ25P8R8U/h5WR74l8TuAYAdQYYcuUoEXSNaTgHY579Te9a5YIQMiMDgtj3cYU2XWor9WS781J+uBPtX/Wdv91zeVNFl98p0guh43ezuTMaW75d5ouY/vhvimhfx/XKDL3OaLl/HT/jTgsm4duRuh82NiMLm/YyE0B+x3uu5KSvpSM4+30XxgnImq3EHuGAdYnsEyyl9Qmtl0bj0S+/0XmGvSO8yo7eef0ZzIx4g+7KLw9qBkpQm1Ow01fceNx494ywbdXWymU3ryGLoBHNA5PiHvuu+Lgx3tbosMarqvPhlElyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwSNW2j9L+e/9YD1hwGt5ytA9MSH613kPGPYBwku1YWkb1eb9d4otFQendGCgxw5myxgvqpez9rI/mkXlZQKRUAw=="
         }
       ]
+    },
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "f1269ba1-f82c-4c11-b71a-2a8ba616eac6",
+        "name": "accountA",
+        "spendingKey": "e18593f3716016277e5ce25ae40e019ddabf46a2ba186bc4d8edfb8bf7c55a21",
+        "viewKey": "ea57d801b179b8e863d5b7d37a9314057cab8134535e39ceb65e5521ee8063549e22f3419f9c433b68d42e248ce0d562fc60a95523af04f73e0a91111ca18fe8",
+        "incomingViewKey": "8f651ca1066d0a96e365b42c397191ac65a4aecbc3fc83869c00e49e7dbd1c02",
+        "outgoingViewKey": "73919490796c3dc7a1c284dd12f8c453c439fc8c471ab36f3c6937235695d7ce",
+        "publicAddress": "055c72fb0bcfc8db65a95b87fbc4aeecbe22c1c16c141c6828320c8455833997",
+        "createdAt": null,
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "d8e7f0a586fe226ab15237b868299de6898a131c75c55c4ac6af276d8df11609",
+        "ledger": false
+      },
+      "head": null
+    },
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "4791D7AE9F97DF100EF1558E84772D6A09B43762388283F75C6F20A32A88AA86",
+        "noteCommitment": {
+          "type": "Buffer",
+          "data": "base64:fKyOfjG/lzGoU29mMj2+Jb5gvryXw+lty67YH8HDPR4="
+        },
+        "transactionCommitment": {
+          "type": "Buffer",
+          "data": "base64:3Wy5i+0UpgbPORQlTg6leBHsIk7RHA57lsVUm/gakWQ="
+        },
+        "target": "9282972777491357380673661573939192202192629606981189395159182914949423",
+        "randomness": "0",
+        "timestamp": 1736634373600,
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
+        "noteSize": 4,
+        "work": "0"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAQVuY1HqhR+lya4y6UbnT+bjL2LfunFMI824VYtHuvWeRuMl+S5lNuKERAG470bPHJRf2NPmIkBLgdG3t2jajfXsSj3skk0Z1S4ksRRJywCCTxgmKmA9FHlKPlkK5eWuSww7GYODDxLdUywTrMo2pIuhY2+MjJHErx4ECUf8seGIBFU5O7fEkAe67Vg/XwGdRrapkeRDFNkG47SaC5IttPTwVw5sJ3rfMwVal/LEMfHqGYjJoQg0dGfq1hX/jo9Vb6ABdqQppKChmBc5936irfxUrjNDD1k9RP1dgQdVbYCD8FGwOpE+AhQOApqk1r2lv6yI2byezC2FvNnEZmoJu4EPBjmDN0eCxIaAwXK/9pa+VUOVKJuG4yJsRzEmP0UgcP8JR66Kr9GhFN8E2UCtXbT8gthHkdBH1i/fecI76nl3oovN5wwm8s++iarkO0fLgPRFwuhMDhqSv5nK56hItID3odr+w8bry2DPh/XZpS2BQqTUgKjKEgAlV0s/0Xpv2C/VROfWKrFJZTSj01XWwyNffQAk3hJssBL+YnReic1PH/xgzRkSz8sOar6oIi+RENOSL4nhU5xXz1FMa4DM19l/LpKXF90/y6bsyKBmBw/YYeFiVBIOr0Ulyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwPwT0i7SQNyna++D75rgh5yvSQUgYnJxqbtWBls5cqTdo34DxKJi37LXTEzABHSVRJlo0TSCYE4iI/QInktPQCA=="
+        }
+      ]
     }
   ],
   "Wallet scan should not set account.createdAt if the account has no transaction on the block": [
