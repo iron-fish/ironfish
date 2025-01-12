@@ -18,7 +18,7 @@ type Bech32Decoder = (
 ) => AccountImport
 
 export class Bech32Encoder implements AccountEncoder {
-  VERSION = 3
+  VERSION = 4
 
   VERSION_DECODERS: Map<number, Bech32Decoder> = new Map([
     [1, decoderV1],
