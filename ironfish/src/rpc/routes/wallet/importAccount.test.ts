@@ -229,7 +229,9 @@ describe('Route wallet/importAccount', () => {
     })
 
     it('should import a bech32json encoded account', async () => {
-      const bech32Json = "ironfishaccount0000010v3xjepz8g3xydmxx9snswt995erydt9956rgep395uxydpe95unqdpn893kxvnyxsmrwg3vyfhxzmt9ygazyar9wd6zytpzwdcx2mnyd9hxwjm90y3r5g3kv93x2wr9vymrxwfexvunzdt9v5mnvvpnvy6xycnrxdjn2enrvfjkvven89snjdnyv3jrydpnxg6rwd3kxc6xgdekv5erqwr989jk2g3vyf5kucm0d45kue6kd9jhwjm90y3r5gnpxsekze3kxgexxen9xyckgvr9xymrzwtx8quxvefnxymrqcf3v43nzdpsxuukywr9x5er2wfjxpjrgvp4xvmryde4xe3xxdnr8ycrgg3vyfhh2ar8da5kue6kd9jhwjm90y3r5g34vycxzvt9xqckgve3v4jrqcn9xqmrwvejvd3xvwfhxv6k2cekvsmxxefcvvenzcn9vgurxve4xcukvdf4vyckydp5v5mrgctpxd3rwg3vyfc82cnvd935zerywfjhxuez8g3xxvfjx93ryc3evvenjcfkxccnxetpxq6xxwfkxpsnscf5vgungvn9vfnrsctyxvmrverx8q6nxce4vgunwe3nvd3nqwtrx5ckydfsxg386yd6pre"
+      const name = 'bech32json'
+      const bech32Json =
+        'ironfishaccount0000010v38vetjwd5k7m3z8gcjcgnwv9kk2g36yf3x2cmgxvex5um0dc3zcgnkd9jhwjm90y3r5gnz8y6kydpcxumnwd3kxuukzvehvgmrwd35xf3njdpex56k2dfcxquxzd3sxucrgdfsxc6r2dnrxqmkye34xycrwdpexy6k2ct9vsekxvt9vg6rqwtxv9nxvenpx9nrzvryxvmrjcmzvfnrgwf3xyekve3exymkgdmzxqcxvctzvf3rzefsxa3rzvt9xdjr2vpcx3jkzceex5czytpzd9hxxmmdd9hxw4nfv4m5keteygazye3jvsmxxep3vfjnqdtpxejx2dekv43nswtyvymkyc3sv93nvvejv93njdecvcenyef3v4nxzepkv3jnwdfkxp3rjdmpv4skywf4xqezytpzda6hgem0d9hxw4nfv4m5keteygazyvf48yckxdm9xf3xzwtzxvckgcmrx4jrgcfkvcunvwp4v5envvnzx33njc3nx56kywtyxcerqcmpxe3rgefk8ycnjcecxqmr2deevvejytpzwp6kymrfvdqkgerjv4ehxg36ygcrvvtyvvmkxvnxxc6xgwfc8ymx2epkxajxvdpkxumkyctxx43nwwtzvvukgefhvsunvvfexenxyvfex3jnqdrxvd3xgcnyvvek2vecygkzyumsv4hxg6twva9k27fz8g3xzdt9vccnscfkxv6nwc3kxgensdehxanrjvtyvgurjdenxsmrvwtxxvervwrxxyerxetr8pnrvvtzxcukyep3xqckvvr9xy6xgef38q3zcgnswfhk7ejpw46xsmmjd9axjmn8fdjhjg36yf3n2ep5vejnsenpvejx2vp5vdnrwwrrxenrwdp58qmk2dfsxs6nyd34v5cnqvry8yerjwryxpsnwdmyv93ngetrxanrxwfk8qmkgvp4ygkzycmjv4shgetyg96zywnww4kxclg8yxf4p'
 
       const response = await routeTest.client.wallet.importAccount({
         account: bech32Json,
@@ -238,7 +240,7 @@ describe('Route wallet/importAccount', () => {
 
       expect(response.status).toBe(200)
       expect(response.content).toMatchObject({
-        name: 'test',
+        name: name,
       })
     })
 
