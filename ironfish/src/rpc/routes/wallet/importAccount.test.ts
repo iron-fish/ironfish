@@ -16,7 +16,6 @@ import {
 import { AccountFormat, encodeAccountImport } from '../../../wallet/exporter/account'
 import { AccountImport } from '../../../wallet/exporter/accountImport'
 import { Bech32Encoder } from '../../../wallet/exporter/encoders/bech32'
-import { Bech32JsonEncoder } from '../../../wallet/exporter/encoders/bech32json'
 import { encryptEncodedAccount } from '../../../wallet/exporter/encryption'
 import { RPC_ERROR_CODES } from '../../adapters'
 import { RpcClient, RpcRequestError } from '../../clients'
