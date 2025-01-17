@@ -508,18 +508,6 @@ export class Wallet {
     })
   }
 
-  shouldDecryptForAccount(blockHeader: BlockHeader, account: Account): boolean {
-    if (account.createdAt === null) {
-      return true
-    }
-
-    if (account.createdAt.sequence > blockHeader.sequence) {
-      return false
-    }
-
-    return true
-  }
-
   private async connectBlockTransactions(
     blockHeader: BlockHeader,
     transactions: Array<{ transaction: Transaction; decryptedNotes: Array<DecryptedNote> }>,
