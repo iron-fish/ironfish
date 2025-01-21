@@ -2,13 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { Assert } from '../../assert'
-import { IDatabaseEncoding } from '../../storage'
-import {
-  MultisigHardwareSigner,
-  MultisigKeys,
-  MultisigSigner,
-} from '../interfaces/multisigKeys'
+import { Assert } from '../../../../assert'
+import { IDatabaseEncoding } from '../../../../storage'
+import { MultisigHardwareSigner, MultisigKeys, MultisigSigner } from './interfaces/multisigKeys'
 
 export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
   serialize(value: MultisigKeys): Buffer {
@@ -22,7 +18,6 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
     bw.writeVarBytes(Buffer.from(value.publicKeyPackage, 'hex'))
     if (isSignerMultisig(value)) {
       bw.writeVarBytes(Buffer.from(value.secret, 'hex'))
-      bw.writeVarBytes(Buffer.from(value.identity, 'hex'))
       bw.writeVarBytes(Buffer.from(value.keyPackage, 'hex'))
     } else if (isHardwareSignerMultisig(value)) {
       bw.writeVarBytes(Buffer.from(value.identity, 'hex'))
@@ -41,12 +36,10 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
     const publicKeyPackage = reader.readVarBytes().toString('hex')
     if (isSigner) {
       const secret = reader.readVarBytes().toString('hex')
-      const identity = reader.readVarBytes().toString('hex')
       const keyPackage = reader.readVarBytes().toString('hex')
       return {
         publicKeyPackage,
         secret,
-        identity,
         keyPackage,
       }
     } else if (isHardwareSigner) {
@@ -69,7 +62,6 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
     size += bufio.sizeVarString(value.publicKeyPackage, 'hex')
     if (isSignerMultisig(value)) {
       size += bufio.sizeVarString(value.secret, 'hex')
-      size += bufio.sizeVarString(value.identity, 'hex')
       size += bufio.sizeVarString(value.keyPackage, 'hex')
     } else if (isHardwareSignerMultisig(value)) {
       size += bufio.sizeVarString(value.identity, 'hex')
@@ -80,22 +72,13 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
 }
 
 export function isSignerMultisig(multisigKeys: MultisigKeys): multisigKeys is MultisigSigner {
-  return (
-    'keyPackage' in multisigKeys &&
-    'secret' in multisigKeys &&
-    'identity' in multisigKeys &&
-    'publicKeyPackage' in multisigKeys
-  )
+  return 'keyPackage' in multisigKeys && 'secret' in multisigKeys
 }
 
 export function isHardwareSignerMultisig(
   multisigKeys: MultisigKeys,
 ): multisigKeys is MultisigHardwareSigner {
-  return (
-    'identity' in multisigKeys &&
-    'publicKeyPackage' in multisigKeys &&
-    !('secret' in multisigKeys)
-  )
+  return 'identity' in multisigKeys
 }
 
 export function AssertIsSignerMultisig(
