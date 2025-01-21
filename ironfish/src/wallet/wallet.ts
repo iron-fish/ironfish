@@ -1495,12 +1495,14 @@ export class Wallet {
     accountValue: AccountImport,
     options?: { createdAt?: number },
   ): Promise<Account> {
-    let multisigKeys = accountValue.multisigKeys
+    let multisigKeys = undefined
     let secret: Buffer | undefined
     let identity: Buffer | undefined
     const name = accountValue.name
 
     if (accountValue.multisigKeys) {
+      multisigKeys = accountValue.multisigKeys
+
       if (isMultisigSignerTrustedDealerImport(accountValue.multisigKeys)) {
         const multisigIdentity = await this.walletDb.getMultisigIdentity(
           Buffer.from(accountValue.multisigKeys.identity, 'hex'),
@@ -1510,7 +1512,7 @@ export class Wallet {
         }
 
         multisigKeys = {
-          ...accountValue.multisigKeys,
+          ...multisigKeys,
           secret: multisigIdentity.secret.toString('hex'),
         }
         secret = multisigIdentity.secret
@@ -1521,7 +1523,7 @@ export class Wallet {
         // MultisigKeysImport may not include identity
         identity = new multisig.ParticipantSecret(secret).toIdentity().serialize()
         multisigKeys = {
-          ...accountValue.multisigKeys,
+          ...multisigKeys,
           identity: identity.toString('hex'),
         }
       } else if (isMultisigHardwareSignerImport(accountValue.multisigKeys)) {
