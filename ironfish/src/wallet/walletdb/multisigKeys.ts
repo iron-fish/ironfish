@@ -80,13 +80,22 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
 }
 
 export function isSignerMultisig(multisigKeys: MultisigKeys): multisigKeys is MultisigSigner {
-  return 'keyPackage' in multisigKeys && 'secret' in multisigKeys
+  return (
+    'keyPackage' in multisigKeys &&
+    'secret' in multisigKeys &&
+    'identity' in multisigKeys &&
+    'publicKeyPackage' in multisigKeys
+  )
 }
 
 export function isHardwareSignerMultisig(
   multisigKeys: MultisigKeys,
 ): multisigKeys is MultisigHardwareSigner {
-  return 'identity' in multisigKeys && !('secret' in multisigKeys)
+  return (
+    'identity' in multisigKeys &&
+    'publicKeyPackage' in multisigKeys &&
+    !('secret' in multisigKeys)
+  )
 }
 
 export function AssertIsSignerMultisig(
