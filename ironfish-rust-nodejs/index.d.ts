@@ -320,7 +320,6 @@ export namespace multisig {
     incomingViewKey: string
     outgoingViewKey: string
     proofAuthorizingKey: string
-    ledger: boolean
   }
   export function aggregateSignatureShares(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
   export type NativeSignatureShare = SignatureShare
