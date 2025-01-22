@@ -2,23 +2,25 @@
   "Route wallet/addSignature should return error if signature is not a valid hex": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "0e9f1f07-ee9d-4746-a4e8-131d89d71345",
-        "name": "addSignatureAccount2",
-        "spendingKey": "21557df84c37fa55363c77ffe99a6d01a1c1938f06b805b34a2d2f3442016d3c",
-        "viewKey": "4d8f669c3667195906dcc4e636983d653e6042267fffb3b7ed1a00e8aeacf7011382ac8e43e6f446f3751dca9640eb7d684b88c181feec8f1399863b0e389c95",
-        "incomingViewKey": "9f13a57239aba9daade572166257ae494807e6436a9eaaf5bf312855e225d906",
-        "outgoingViewKey": "5c156963119e3fbdccd84d08622eae4dbbc36ada56e30682188a338fe9be0ed6",
-        "publicAddress": "608569ba934ef7bb6c6bc99e653b7ab18eb17bf02602c8fc489c3286d1065f2c",
+        "id": "22fae8d9-5aa0-4c19-b696-3b838138902a",
+        "name": "addSignatureAccount",
+        "spendingKey": "eac3275f0139940500befb2000ec13cc73f940efcc20bcfb0b2cbc8a409993b9",
+        "viewKey": "0309ad0bdf93e7a71a0fc26a4118b0cf3c8e2f739cb6cc88b4864398af25b56a0d8ebabf704fa720e161f359e8f15704fe7c6b2697b601194c32b3ee8a865470",
+        "incomingViewKey": "ea798bbe77b61e37c1b501b93010d3c35a4023a3a516a62e34c2a8ca83efe402",
+        "outgoingViewKey": "157962f66576b8f4ef0c03803ce993f2822df74ab3dd17a910d6f678b28e2699",
+        "publicAddress": "96378fa4ff390e3ad3051a8e282a529d870196e4f71dacbce6af71669894ad69",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "0b3bcdc835ee3709c9a30cad80c36d0d4f5d5712349d6bbfd34da9ed405bbc02"
+        "proofAuthorizingKey": "1f0d82583a74e33999198f8f3f169af8610d62dc0e45259aa89992c90956b901",
+        "ledger": false
       },
       "head": {
         "hash": {

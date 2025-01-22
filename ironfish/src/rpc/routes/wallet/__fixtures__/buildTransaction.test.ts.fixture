@@ -2,23 +2,25 @@
   "Route wallet/buildTransaction should build a raw transaction": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "33dafa7f-79fc-4b11-afbe-a1012660d039",
+        "id": "9ee46ff6-7414-4ff8-9eac-44597c19c245",
         "name": "existingAccount",
-        "spendingKey": "f5ab9e123aea6d3fd6a330a30831fb6bc13f398461e098d6a64a9a11f49e4f84",
-        "viewKey": "cb5fc2e10e8c12371da5bf9de153f8006c2494e16836f58b4d1a253d6a8d65735bc37f3d7c1dc993d6f7574b95f729dcfb2f7feefea95fe054190e643caeba5e",
-        "incomingViewKey": "849717589844d4e42c9be13d713df837cf97d02ce6ed6f2dfff875ccc4addd04",
-        "outgoingViewKey": "81f131c9386cf723baaa43f8a76f640d2fdd5eac75c851b939865b11b6288dff",
-        "publicAddress": "1177d57efbb7f96700435b3203ec0329d3e45e63dc48c5cc8b3bded938245814",
+        "spendingKey": "57016e1814ca6f0e3612f13033c5791fe83373a5402bdd7b14fc3e55beeaa0ec",
+        "viewKey": "750fa9b3de9b2bb09cf1fef677e9629c7c57f0e47e493b44f86536c60da22ea70730fee37f022ba6299ca39e8a9d6aec3053be9c2384175489d0a8c55d4c595d",
+        "incomingViewKey": "0a06f9310658c0537881c5098a1d13c159d61d3147de5a0a17546edf80e0e605",
+        "outgoingViewKey": "58776480b4b106ee97b2a674ce520c654328980a006b1e42b18300810e2855ba",
+        "publicAddress": "fecc6255d770fcc601f0d2f85b6da70375a9c7e6d729a50ececef7d8063d1382",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "155de11aa23f4ac0a50b6fbd29e07f74ae085ac5bad5e9f6e74094020d756e0d"
+        "proofAuthorizingKey": "9f0f61b202d279a667293d11081bc57befb2d2904c5789fcddb468fc4f2b6609",
+        "ledger": false
       },
       "head": {
         "hash": {
@@ -32,23 +34,25 @@
   "Route wallet/buildTransaction should produce output that can be signed": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "269fc18f-d18f-49ea-ab0f-583cab1fc244",
+        "id": "18cfe7b8-4702-4c19-8a26-8cc42fd2a883",
         "name": "signingAccount",
-        "spendingKey": "bfe07c0b3d2bd9393103ed57ac842bcd6dc4a0a0ff7006cf249a0d3c03deed04",
-        "viewKey": "824d820588971da9eac7973c9622f00f7e67e10309ae631ee36f6dcd2b7626b8a927a861e5d32f85e38d46726da600e974eaf03cc7ee829b756d094a236f5ae8",
-        "incomingViewKey": "5b0868aca4ce720601cb9ce78ef60d7e291908da692b3b687e2be739754e7c06",
-        "outgoingViewKey": "e745b95a7bb3a5bde4c583280f338930cc4c82d0349f265bfb0555f2a6086415",
-        "publicAddress": "b75cb540d8226141ca2a5a91bdc97aaa138999b68c89cec2b0ecc1f14a8a2c66",
+        "spendingKey": "d46edc7918fa4c8023df97aca11a491bfbaaa99ab3887027ed9425dbbc8f042b",
+        "viewKey": "0c5d780656564a5d363e6f9259c65d4cb2321ef6f650157651c2382d95cb5bc7aa8e64ac41202059d625b3771b70c531a9fbf1dd62fa34d318040481cc8840ed",
+        "incomingViewKey": "c50f35cd67d42d4fcc4aa722d98ea4843d446743860c38a95a6fada89bd5d501",
+        "outgoingViewKey": "80f082f3ed2e46c33f4833f8d9bb379c4d2f750121ceb065a270a26f430ee218",
+        "publicAddress": "ab0a62189e2e69198c5b8be00ffc56412914c9e9c39d3d8f1d0d563844bf0587",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "2dd41964382ba2a0c3302cf671c782846c66f86f14c3c53d3da7b8c5c55c1c0e"
+        "proofAuthorizingKey": "38ffaebfaa10552fe92a455b50a2c4b6c83e86c4623f7aba93c91326d947f00a",
+        "ledger": false
       },
       "head": {
         "hash": {
@@ -64,15 +68,15 @@
         "previousBlockHash": "4791D7AE9F97DF100EF1558E84772D6A09B43762388283F75C6F20A32A88AA86",
         "noteCommitment": {
           "type": "Buffer",
-          "data": "base64:Vo8SrRv4TNTuvwIha0umtRTHdn/EfcCeL+JttOcRB0A="
+          "data": "base64:a8c77vUpABIxcqyzf2ban2Ou2BcYutIM1gnfvP4K+ms="
         },
         "transactionCommitment": {
           "type": "Buffer",
-          "data": "base64:9Esy/zvVDQP79weAZPswkKUxTF0YWoRSxNAO5qePLA0="
+          "data": "base64:4CoSObIRfSvE2bOYOE7dc6pzXXAtyFDLmGOyfN+t/YI="
         },
         "target": "9282972777491357380673661573939192202192629606981189395159182914949423",
         "randomness": "0",
-        "timestamp": 1717538742072,
+        "timestamp": 1736552008003,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
         "work": "0"
@@ -80,7 +84,7 @@
       "transactions": [
         {
           "type": "Buffer",
-          "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAATba0obAO9OOEo/EyhiL59b25/u0Qs2BZDCNTnWe+R0apAHjVPZvRAFw4uzyEwLXBEwoxPWDFKusHI2FgwzAXFsBgsmvolyeufIM/bGr59GC0BI9yXeN+yKJOdT2ENgVAvwF3PJeMbc9IWyqlGnV7jQ6qh2ooKLjvlPEO5WOvR4gA2ahfl5Cv+hbPkAk+oUrEjqFtqDBplutFNm/mHy4QtKWx/K/vIhXVZAAnL5KxbG+N9ag/HNxNVa7ICkirco3CUkCtWLzVD9HfoK6f0eRxBJDd2N2z8jPhMaPvz4nH/LLpykaYI/8OZU7cTHo5PlUHNkB0TcGcLGE+scJR18NV6A2ysc7joXYduKS+QI0kuOJJ6/FKyecieIxHj/t2new6WIks1sgJPahDXux+6KD8PPTzL2gQK3YPPy+8ayzEWZIJm4mAs8YWJyjxD6kPku2RnLznU1VulzH9FjU6AQifsf6bn0HlSEx/q0+86WoGYEErzOWkkb7mcS01fx8Q4YfOsll52uJX8E87V2FHJR/WwHDaW3Wm3POeK0EjYahuo4gsW+Ix37psUwaB1N1WyLo+fUFQGcjmsksx4ziBPnhG6v/zV5GnWaGFM5UeG6YrXMw/1kAh30Ko1Ulyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwKSwKyLvDmvM1jgKrl9jTfoD1xEBN6seZEbwEXBsapZK4xd1Izm8V0sqchwmVZ6zdaYsDL4aG0fBN0vU0f4DPDQ=="
+          "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAatGsoFtg0E5K1TLehkfijOuYJF0s/o7HA8Y3WAfx7TaQz8j5IR/jGNCWhVi3JcyMPPMPDlpSjnPUWmCfqqn8HOn6BQchhxMNJwLRNkdlt+i07zxrqROrNzsqqN0lY6MfW1z+jWz8zgVPIgQWz0dDxmL3g4+Wr3IX9SxjDYvvkpYNSt3HHJsQbuDzRFIOdSKhvorac4b65ATcv5ut11L0SHMZ2Vw/5AkirfNsxiN9Seqz3R4/NqTyuNW69nhsHd7s+5Hfr82dSeg9f+zsYdcp57tEmNZQ6833mdaa9ruJ5P1RlazNYcaz1ipGm+SzkVTO7JPGsEPBul+zQvZa+2TCaoiGZNyfV43GNNOL9NoZq63tNrRN8D1bVxgbutMEzyQUgTGxkY7tfNArCTL+Wf98A/X93o64Wt8AzLog3kElj09MurJXP3RbLmPnD7sW/QXuN/pI0bbznVoDkZHlD6OmjAhhSjHzgiBUEyEMjasmjfcYp0XH3b1V5YN6tYsJ1ESwS5XjoWBBeP7EDOqP2RRJ0inEW2FrdVhk/CeQ2rZqxaEjBGSXCk+IE/Zi322EvFBjiZP2WMBEaoCmiHJYTF8iB1F0Lz4C0Wmeki4uiguMDFBv62oa6lcK20lyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwScgbNcXDLWsvXJ6yHNJeFnFUF+4JYuTR8eFYXH7suhZwjROCwH6bMe5CmmRK3s7ULDImsKOoDxfrXuG57Cc0CA=="
         }
       ]
     }
@@ -88,28 +92,30 @@
   "Route wallet/buildTransaction should return an error if the transaction won't deserialize": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "0ad03267-3a2b-4835-a280-07e4f4a66065",
+        "id": "a8ec62ab-0246-4154-92cc-96f66dbc95fb",
         "name": "accountB",
-        "spendingKey": "9e8120a6bab2fb9907472a7efdc25466b1a11ab2672c68b9e08d2bdb9c150874",
-        "viewKey": "0cbcf853c4312bfa0af623b3c111a4bb6264ffa87bd35f7d80bcbd6055952a9d49acd72bdcd559b414727a0021fb43ace1fc3e6954d4e1264efcc02779dbda51",
-        "incomingViewKey": "b355667fc634bc7d180c5537414a791e9bc9470a26e94b4d8646ee5d3e432501",
-        "outgoingViewKey": "c5e8362fd2f9e59ba132d90954f4ae35ac21299925002a4848034864f52aa2f1",
-        "publicAddress": "46317c39273f2703ae32946c4c1da6c5014e363aeb3429813da569788bcc7710",
+        "spendingKey": "5d76dabb4a498b0ed0344d91aff516108df384ec692cbe87db1835b4fae9cd94",
+        "viewKey": "a8233ff411acee791b92409abefda743b7d112d64aab09be3e2d14c27fe63ea7cf0d2388371bc6e27f387a2040ab1e7409bd3651d8b15e4ed71926ce28932f19",
+        "incomingViewKey": "01d08a21053e352f80d58c595438a234f7af4d3720dbc152d03fd6f141410102",
+        "outgoingViewKey": "5a9eafaed89739a0a7a5d7afd46499179af93188255f7ee338c3dcdcd4ab1329",
+        "publicAddress": "bf7a1d39a6cd79fdbdd4a4c00b90ae9c09c6ec22fa35a09249374d0d90871b59",
         "createdAt": {
+          "sequence": 2,
           "hash": {
             "type": "Buffer",
-            "data": "base64:w0CZimMp/grNx4WBQ130MuO0VZJ/mzDO8F0h3CWo40A="
-          },
-          "sequence": 2
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "928e3bcc1edcaf60a089e5ca0ba5dac0b41f08cabca30bf8af3a9d61681fc806"
+        "proofAuthorizingKey": "b27872bb20409390ce5d41bced9f2100e661fc4ae6d6f183420b9b85cff40203",
+        "ledger": false
       },
       "head": {
         "hash": {
           "type": "Buffer",
-          "data": "base64:w0CZimMp/grNx4WBQ130MuO0VZJ/mzDO8F0h3CWo40A="
+          "data": "base64:TzYs3pNEVBKCyJDV3vng6uwPys+w4SLJsckhoXTN9Zw="
         },
         "sequence": 2
       }

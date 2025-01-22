@@ -2,23 +2,25 @@
   "Route wallet/getBalances with a valid account streams balances for all assets owned by the account": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "ecf877cf-5443-4f6c-b030-66a3157e7c49",
+        "id": "25694a4c-29ea-48b2-a182-f67b277b9709",
         "name": "accountA",
-        "spendingKey": "df83ba0bc5fb90317ac046394bf72d6be9042405e9ca67cb5b7d528cfbf3839a",
-        "viewKey": "311614bfd0ee7bf330e19a747f99f594c0de9788544926d849b328b5f457ef91eae33020dae54bed2784776c72235517999a77e5cf84dc0181bbbf1a928f366a",
-        "incomingViewKey": "5d9c521dd432ded4be81720d26cf4385e307cd9a5b894ca2b1b48b6056989800",
-        "outgoingViewKey": "6041f88161055038d01ef544af85980ff343ced5c0f7a33c279cfb29638f6b8c",
-        "publicAddress": "be1031271305adff62bfce6445df249c2b64aa436018971a036602eec012e41f",
+        "spendingKey": "2b2bca165f13053d0422cb688d45e43ba8c8f231ca5c861f982291be2e692cda",
+        "viewKey": "eef13441e9b85f879759f374384b5d309ea56b498db54f939b664a12ed3160b2d8169b98f9c7ffc3457f26631425002802156bc5ef75115261a2433025b76ebe",
+        "incomingViewKey": "3293ec7b6a52b4b0f72359b3a4c08c7458807897f598acafc45f4d605ed8dd03",
+        "outgoingViewKey": "8c872f2dd0a30c84373abdaba774d34567511a0ac5b8d0d11519f6d457ec01fc",
+        "publicAddress": "2f36ba6b0c6019a0b8d3b2ad6dad1f7b5029b3d408f0719e47115f6351774f99",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "ef0a09efaf897fbdfa425a47dbb16fbf4ed2f02b1edb2a827c6d2efa84b8460d"
+        "proofAuthorizingKey": "199c4eba4df3c30fb620c660c3a8d103020535a3a29a43d79b888cb5acdfdd0b",
+        "ledger": false
       },
       "head": {
         "hash": {
@@ -32,23 +34,25 @@
   "Route wallet/getBalances with a valid account returns asset verification information": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "230fe457-6642-451c-9616-faf0df085f3f",
+        "id": "d5b58f51-6a61-4c94-9f00-c50bcc94fe59",
         "name": "accountB",
-        "spendingKey": "1451dc555bae5e54deb72eb07b03948fda52cfda3d6e9e493699bfd16e78f0d6",
-        "viewKey": "87f75f4ffaeabe6f715910884883e441b41fdf425af0bb8f790f1e3ea410100a48294d6d8ece934b97a31980de250c201190671723de965324bc1ad21595bfd0",
-        "incomingViewKey": "7f6bf359f56c9240214835fe2081b8c23b630019bd417ddc6114de03fd26e103",
-        "outgoingViewKey": "f35936d612a39113f8340295fd5d7a5e41f61dc14810e6f3736be2ea821f8ecf",
-        "publicAddress": "481bdc39b4258810c23bc9b15f440a4a73e579cab95fb704d50fae8e26994bb4",
+        "spendingKey": "6d4302f54cd5504629cc7c02dbfc8ce972c652d0ed909813ee337d80f608d3ab",
+        "viewKey": "e0d98223638bef262ea99ff0006b7412640a4f66e48833b56f400522381e201292fbabf00ba78c8dccae8d42bcea6592cf62cbe70e36cf7f95412001662d5fa5",
+        "incomingViewKey": "e6d3bc00445c092e3876d69a5976caa36d9d57624ae13dc083124213706adb01",
+        "outgoingViewKey": "5be982814ac973a0980e19ce57190de909f894849a40feb31e8a4ddc586f1013",
+        "publicAddress": "063bb36963aa5a32ee3344af1f67d719644dfba989f3e58fbdcb5fc457eb202d",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "0903e10284135d4b2fb1327889ffe99e6b97685586dc9fdae61cc2a1ca8e8309"
+        "proofAuthorizingKey": "725a3112696df22e995faac5e1a729eb1226e4e577f345e3c895d5b3eea9020b",
+        "ledger": false
       },
       "head": {
         "hash": {

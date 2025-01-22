@@ -2,23 +2,25 @@
   "Route wallet/postTransaction should post a raw transaction and not broadcast": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "1bcf2af4-fb37-4124-b984-0f4249d49972",
+        "id": "fa53e063-b454-410c-b491-7d8062a52e4d",
         "name": "accountA",
-        "spendingKey": "a9d5453e5d5b6c2defabab2f34ba1ee66a537121965b489fcf3ea6f917e0f40c",
-        "viewKey": "225df5aa07ed042c94a5712cfb326935b77df9bf65e908281038f3df2ea9050b33368397e99e698bfa96d276db56d42cc03b72bef197608f0b4671b2cf39b4b4",
-        "incomingViewKey": "835449d5721253096be408f89d8a7e1a1a440fb65d7f9b82ed525f2eed703c04",
-        "outgoingViewKey": "a1e656b8aece5eb2be32bc2d54bf87d29a0e68c354368a78897025cc346750c6",
-        "publicAddress": "90b44771984afa2b97bd70d59ae89c25ca018d2903e95db669cfe585b935f907",
+        "spendingKey": "54a9f5a1bd95409f264e7d9901049333fdf734ffc6c66377d5f3311235deeafd",
+        "viewKey": "c74d931ef4badc538713ae9a9b83a015a566a5bb482ae1f47d7f6e37d254950b6cf7f8192a50269fdb0573e868984329818d689134db320e13177a76ba07a480",
+        "incomingViewKey": "a2636089b3a6513c4e53def72b9755da95de5e8a84cc5645db0ebb2ba52a8400",
+        "outgoingViewKey": "38798cf5f541e7c72db74593f8478cc2e21a544dcf99c9719fdba9b670cfa7e9",
+        "publicAddress": "46f67668a618b4ec9b0574b1ebefdae5d9f8fc4a12eabbfb04750d818d9735a4",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "2de9491efcb8ca23572eee0866049b7d38525f6da4bd0403fa159aaa49b41b0b"
+        "proofAuthorizingKey": "f275a2ee8e7f1b7a00cbef6d14668a4b16d8165b543aa980c2caea1d5d74bc09",
+        "ledger": false
       },
       "head": {
         "hash": {
@@ -32,23 +34,25 @@
   "Route wallet/postTransaction should post a raw transaction": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "d489d3b6-447f-42ba-b90b-a1dacdc27fb5",
+        "id": "477295e9-5ec3-4621-8ef4-2d3db1abb61f",
         "name": "accountA",
-        "spendingKey": "1d8caad48387c6cf6966af96bc5c806900a845e911f43b8efc7bb4fd22786416",
-        "viewKey": "6edb5d7c38147dd606954821b15a063f1f5676759230ca00166eb5ebf64b2f2502144b5f3d120dacd4fbd6451301e64226ed59b87cac044aa221558a7213e6aa",
-        "incomingViewKey": "605e8dec543130288a5e40e3a0d81e4da2962bd97e20d86e7e0e50d5574b0300",
-        "outgoingViewKey": "53bd186e30b1c0438e2f6348fc73197eacb9587fe0f4a26dc7512d59ca520a9f",
-        "publicAddress": "004f5a65ce2aed82df88ecf6ba62f7df951a83251cd2f28cdd05f10b3a0035ab",
+        "spendingKey": "c4acb9f65962d37c98504373cd8bbbe9507c8436389b158ccdbbe00d542ada6e",
+        "viewKey": "e07d18ee4c74b74bcfde02b7bcf95345a60163d81de5bb52c72afcb2b5d03aa91f06b0b10805f571b9724e8675f6b4eecc86576bddc5d322c45344cfe2b4614e",
+        "incomingViewKey": "ca363762f8106867c6a9036c5f4c5ab0682a05e7dbc2c76a990e4b8ec849c201",
+        "outgoingViewKey": "6f7749306dfa61794ffd55007b75b91b0663cf5c869fb27b26bad3c3c4a68566",
+        "publicAddress": "6e867c1082a06f85f2574f54b10f6b289d834c1f27a241533f29629f6d8553dd",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "ff3bd380b2977ead25e330da99838692f2812307c1d07c7b19ba13c51ee6040a"
+        "proofAuthorizingKey": "0d7c26323f17920c2d5e8ab27ce57a2d53a79893e197dbe7056892f01847b30d",
+        "ledger": false
       },
       "head": {
         "hash": {
@@ -62,23 +66,25 @@
   "Route wallet/postTransaction should return an error if the transaction won't deserialize": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "4581116b-54b5-4610-bea2-429b07517c05",
+        "id": "f994c647-68f2-41ed-805a-4b099538e50e",
         "name": "accountC",
-        "spendingKey": "c4c70ac0e4f77f8fb271c7061e3f355d77eaf317519f3e98632694569cb1c979",
-        "viewKey": "591d93fcc675ff600afb34f314a0d0b0e66b42e2c93569d598c8f6287ae514c29d51fe0eed55d6227aad48e71821d0f9b932b980248126de18a5348985861170",
-        "incomingViewKey": "ae4bc1deedad3be5b5a4047265e5234aecfd969166954786d45fbe8b99e5ab04",
-        "outgoingViewKey": "bcf9c2370625608975f43186dfa1b5933bfc4bc860c0da1052aae6d5e9bf62b7",
-        "publicAddress": "d772dbc9d3faba19e1aaddc5d92d7bd829a7079601bfe3a3de5229ac8238a590",
+        "spendingKey": "f026f96095d74167e1881fe619ce78d2c00520288939dbdba80f0aa49b02c2a1",
+        "viewKey": "e51acfd016535eae132f1eb2d0d0a7b61172b9597ca8faed63c76bd786046ed5f2b584562bee29940c3f70c2563be7bfce0ac6b7bfb4e523770391beddfd88ea",
+        "incomingViewKey": "35be374370484beea094bfbcf423635e9ae4cf24a402f7ecf60d577943125a03",
+        "outgoingViewKey": "0490350abdc44f002b2d2e0c135ac7d3254478a94bc41e85f614ea5715c4210f",
+        "publicAddress": "2c8efc0dbf72e19b8059a4484ed71dbf5804962e8cdb737d795111745697ba8f",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "389c732ca113bed77d50ca0c546c6e80de4e33c185f9a844e79b9c58de93f707"
+        "proofAuthorizingKey": "f5cd53cca7a3abfe024842aa4a721e394de0176416fe08f3d210d022d8661301",
+        "ledger": false
       },
       "head": {
         "hash": {

@@ -2,23 +2,25 @@
   "AssetValueEncoding serializes the value into a buffer and deserializes to the original value": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "4d8c726f-13db-4183-b162-2429c5a9d168",
+        "id": "a700bb49-152c-402e-8b5a-c23b4423a5b9",
         "name": "test",
-        "spendingKey": "1da8558c03615f1f506c570287842d28c95b657044001bdbf3ab62651243786c",
-        "viewKey": "03e3f297fa579aebab4a91380e809dad2164d8fb4b8cfbc44346ff56a0119d03f8d5fb04a80c825dd46427f1a372991b080b0d02d82635abfa8a3df19653b89c",
-        "incomingViewKey": "30ff684b10d7de8b9f23280f8fbfa272d8da46efea6759949fa62faa6d706902",
-        "outgoingViewKey": "83dddfcb9c47a43f6a463a6ddd558ef9bc971cd139295a00c3183528db778456",
-        "publicAddress": "137ba12fb2999890c0096c9f6f975f7034eb29bc83f994b913c9d54106e41c62",
+        "spendingKey": "4286b0a9b11d8e50367b2df6dfe0a12048a1d8843a8bac95972a4cce98ce7525",
+        "viewKey": "3a9a7840c2d9e20fc5a046cad2214ea91e8b9d37d56709262c386273097f6018bb812eaec663e8d8eae0bd68f47a042641452af19b15d102e68d398c62d23848",
+        "incomingViewKey": "21bd69f6fc9f2d86da3ebaa83bdd853bc90ee7170a5b405dcbc0485ef0239307",
+        "outgoingViewKey": "45f7d7ba01a9395523c5fb70cb5b03c3f49af3f88a39a80d9450a565a9847380",
+        "publicAddress": "f69b2772a35edcd16b15435d15009020a43bf9657964f525803dfc8a46fef372",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "eac1f7f1215358bdc134227170ac5026e95a190f373e64d25402b8c24f603e0b"
+        "proofAuthorizingKey": "08e559c400edd66677a18c206d41db90444b8efc1c28a7974fa0a40860584200",
+        "ledger": false
       },
       "head": {
         "hash": {

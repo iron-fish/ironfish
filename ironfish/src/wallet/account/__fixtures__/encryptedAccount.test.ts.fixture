@@ -4,22 +4,23 @@
       "value": {
         "encrypted": false,
         "version": 4,
-        "id": "0332daf1-4ba3-42b3-9d72-6803529df295",
+        "id": "d5b842f1-7505-498e-b170-c30a918fe92e",
         "name": "test",
-        "spendingKey": "f7bff5aabef137c1231d16fdaee2c0b7da61e81cebd08e8be35d0cd0dea1f015",
-        "viewKey": "c8ee06884cc6aa31002c058a511aeea219059579350cbe6deb07416ad049e7cfef7877b730dd1e4d982d5228e8badf0c7020b1d07ff0eb23b298d9c97b0d5e1c",
-        "incomingViewKey": "d9753f22ba723bdc381cd3dba675ef36247a6807e5c0d082f88948496f687601",
-        "outgoingViewKey": "03268cd3770209e043742554a83f6944a768980309ba2beec2bc8995fe446130",
-        "publicAddress": "7742fa58b9e1efc337b05d54dea06d1dabd89c78cd98c7656f667314da865d04",
+        "spendingKey": "8b2687cf1718da6de25be6298c38549419597e76c7fdbc5ca78cc64f623850f2",
+        "viewKey": "8547fb995a027c625912cb915227ff708eba8508e64b9f33d0f13745dc73be8b14bd3a994ac626721c5560cd533551e947137b51e0ac4af97eb8e030ab7f176f",
+        "incomingViewKey": "b2b6c32dee660ba866b97515079794a4d13309ad4af8a2d62efee715bccb5b00",
+        "outgoingViewKey": "c0c4389902329e51214067f38c7c3118d848d8753a2d0bf95393be30ffb06841",
+        "publicAddress": "aa3acab6d08074968f6bfa551c6c9285d743479253b3ed8d5399777fa4388ae1",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "67e962ba0d98e71f351534ad8d9bb8cfe01c76f291b06933b694b57b7808c10a"
+        "proofAuthorizingKey": "652333ed80ced367f41586333cae9f9555dba23242fbe6b65730928f0fec2101",
+        "ledger": false
       },
       "head": {
         "hash": {
@@ -35,22 +36,23 @@
       "value": {
         "encrypted": false,
         "version": 4,
-        "id": "2710f42e-f848-4d67-b0a2-9e4eac56df7d",
+        "id": "e897f6a8-bed1-4e91-b29c-99c08a36c290",
         "name": "test",
-        "spendingKey": "eb527038b1b452c2abb13c1c7135309d6acd9e4737a7f18aa75bb4363141e077",
-        "viewKey": "b05272abd89b4eb48435b336d638771e69854fd36947971d22b3bd9cde7a2a5c0d83d88ccc8ef8259693c1391eedc1a25e5fccdf554ff605b593c15a619aa851",
-        "incomingViewKey": "fd48d3ddf807a6d1a881af440f2b3b23fc670b70323ecbb08f8dd54ff9220401",
-        "outgoingViewKey": "62603f4717d3a7f7ab00887ad77c1567b103f06fc885aa4a000625cf4b278f81",
-        "publicAddress": "40fd3b67d0abeacda175781f1bb97d5a08dff7b3850cc94ce0b3c3dfee742a41",
+        "spendingKey": "f7a5fe7c64fc2270c6168d9a3697ad36774675f87ce0b2c797e0634f7f81ecf6",
+        "viewKey": "75a67a770183e2e4d88420fdb4e90879ba566f0f94805486808de9939b23e71efa0990815c2ce05e65a846e42c8f4864db5035679b11444568d055dbd2be9458",
+        "incomingViewKey": "8ec5f593d3e1e411bc0065e895618839ccd69e602902e13223f50c734a242305",
+        "outgoingViewKey": "213a3bfd9786ef400b3e6e431fa594306d8b97dca721853dd6ecaa6929247ff7",
+        "publicAddress": "49027d3a3f7bd5ad0af0f891f8f782ebe048924315b783337ba2ce5934617073",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "c0159378c279f74958da06b63f3db79a85e84abf4919b1c9b321392de5be9a06"
+        "proofAuthorizingKey": "8140ef8a3452f9f32d0f8473d4d293aa066d4ed853571df24a30dda6494c7405",
+        "ledger": false
       },
       "head": {
         "hash": {
