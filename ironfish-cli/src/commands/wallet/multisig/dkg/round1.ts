@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { RpcClient } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
@@ -72,7 +71,7 @@ export class DkgRound1Command extends IronfishCommand {
     }
 
     if (flags.ledger) {
-      await this.performRound1WithLedger(client, participantName, identities, minSigners)
+      await this.performRound1WithLedger(identities, minSigners)
       return
     }
 
@@ -94,16 +93,10 @@ export class DkgRound1Command extends IronfishCommand {
     this.log('Send the round 1 public package to each participant')
   }
 
-  async performRound1WithLedger(
-    client: RpcClient,
-    participantName: string,
-    identities: string[],
-    minSigners: number,
-  ): Promise<void> {
+  async performRound1WithLedger(identities: string[], minSigners: number): Promise<void> {
     const ledger = new LedgerMultiSigner()
 
-    const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
-    const identity = identityResponse.content.identity
+    const identity = (await ledger.dkgGetIdentity(0, false)).toString('hex')
 
     if (!identities.includes(identity)) {
       identities.push(identity)
