@@ -22,6 +22,7 @@ import { Migration030 } from './030-value-to-unspent-note'
 import { Migration031 } from './031-add-pak-to-account'
 import { Migration032 } from './032-add-account-scanning'
 import { Migration033 } from './033-multisig-keys-identity'
+import { Migration034 } from './034-add-ledger-to-accounts'
 
 export const MIGRATIONS = [
   Migration014,
@@ -44,4 +45,5 @@ export const MIGRATIONS = [
   Migration031,
   Migration032,
   Migration033,
+  Migration034,
 ]

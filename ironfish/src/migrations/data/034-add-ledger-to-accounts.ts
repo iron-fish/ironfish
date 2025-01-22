@@ -11,15 +11,15 @@ import { Database, Migration, MigrationContext } from '../migration'
 import {
   AccountValueEncoding as NewAccountValueEncoding,
   DecryptedAccountValue as NewDecryptedAccountValue,
-} from './033-add-ledger-to-accounts/new/accountValue'
+} from './034-add-ledger-to-accounts/new/accountValue'
 import {
   AccountValueEncoding as OldAccountValueEncoding,
   DecryptedAccountValue as OldDecryptedAccountValue,
   EncryptedAccountValue as OldEncryptedAccountValue,
-} from './033-add-ledger-to-accounts/old/accountValue'
-import { GetStores } from './033-add-ledger-to-accounts/stores'
+} from './034-add-ledger-to-accounts/old/accountValue'
+import { GetStores } from './034-add-ledger-to-accounts/stores'
 
-export class Migration033 extends Migration {
+export class Migration034 extends Migration {
   path = __filename
   database = Database.WALLET
 
