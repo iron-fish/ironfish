@@ -4,13 +4,13 @@
       "value": {
         "encrypted": false,
         "version": 4,
-        "id": "daacaf39-3f2c-4551-89ce-4fc6b4576744",
+        "id": "d3fbbd1c-354f-4b6d-a4e8-57d3c667e6ca",
         "name": "test",
-        "spendingKey": "b9392eef60e44fba3da8dac592e272127754b27603b504c894f359888e8a2033",
-        "viewKey": "db2609cc86b1b387b83085acb2821d35f1206857e19f8dec4dcf899764520098e65957e35031f0c441823c617b2b7e929339a026aef6e2ecc8998c11f1843c80",
-        "incomingViewKey": "970d21669e3f32310cc9ca37fa080cc3145e1ab2fcd6487cc0483dc097ab3c00",
-        "outgoingViewKey": "168bb58178b72b7dd805f23d39027cdcac9854844e6c487453486bf3089ea5e5",
-        "publicAddress": "5dd5fe66571e1aafe540ba8fb1bd77766e527de1127456338bdc5f3c7453d358",
+        "spendingKey": "4c115debe78b6dc43fbd596302dabc3d430ff7620a839b87e4fac41fe5023bd1",
+        "viewKey": "aa71720998f8d1e364de75ab1a4d801ca0a10f41963fd234f42467ce119968d41a59da613b4b13d9e2d2d3f2430e2a10fd8f183acefb260352d7ee7b3e638484",
+        "incomingViewKey": "c99b3d0dedccb629afc4cfad919de3df5943d4a3c6e86f9925d6f9860e2ed203",
+        "outgoingViewKey": "d7242f193599c0373123b5e19fa6ce916fad08f91fe54cd9cd147d397b1d827e",
+        "publicAddress": "f738cffbc900927655e58a262d1d2907bda8619b0a08030eaec2e99b0b8042bb",
         "createdAt": {
           "sequence": 1,
           "hash": {
@@ -19,7 +19,7 @@
           }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "7a0447124adba44c578e7ede93cae2183883319090ecb20135606d63e140de02",
+        "proofAuthorizingKey": "dc00c6bc3af178f7fde72d4718f4ace8036d6cc46d44bf9560738e5f186d3106",
         "ledger": false
       },
       "head": {

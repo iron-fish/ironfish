@@ -1,0 +1,78 @@
+{
+  "Create genesis block Can generate a valid genesis block": [
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "9bfe6281-718c-4094-9eb2-ce34830e383d",
+        "name": "test",
+        "spendingKey": "f0166912dd708e199a871dadea3e2feb2eb92e3c752bfb1156bde40004e82572",
+        "viewKey": "2585a4ffaf781c1245ecc5bc3157091998e6b0d6cd2ac36b8cd1e701b371b55f73b908a9163638f1c6b9c939706700a27b41ed9aee4abc59ec692ab33b1c4a47",
+        "incomingViewKey": "aeeef8459ce5c28032371902c1e7fc8fa604e8b27b5025dd77d3c50742d78103",
+        "outgoingViewKey": "42c3130ec6497fe47e304396c619760a4e888a3baf37baa13525e42196a87011",
+        "publicAddress": "a92aeea4386a3a7c1ab8455633e1a34bc243dc6de1bec3f0b00d2b4566b83571",
+        "createdAt": null,
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "e837cd2f2c134d92d4f208e547b4aba939a210ecaba4fa974c0feb6809fd390e",
+        "ledger": false
+      },
+      "head": null
+    }
+  ],
+  "addGenesisTransaction Can create a new genesis block with an added transaction": [
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "368be934-5ba1-45e3-bd8a-bd98c9a4198e",
+        "name": "account1",
+        "spendingKey": "bf217913594c7b55cb6c90cf5f43aae05555f5a62a6a93afaced2071d84e259b",
+        "viewKey": "787c08819ecec62dc999e1d7249126b82351941938641b90528d73c130e6a4cc9ca3c282dee82c076863b318bb9d1af7ef2647470127c7043ea9c61fc3ca1f5e",
+        "incomingViewKey": "6e62d4447f40c05e4659c5bcacee23c96f9b6539286040d497eb3870225dd406",
+        "outgoingViewKey": "76ebe3e1f5ea0c293e71cfc8f279f62eed6f3eb59a91886e7935a4efb13b3f8f",
+        "publicAddress": "dc315d60f04fad803cdb34fa6d742c1f981df7fdd3428ec739eac3f2ee9b9f87",
+        "createdAt": null,
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "b8e1d7e1b9259dbee3ec61d077790a7e065c30dc4421c1f408bfea128fe0fc02",
+        "ledger": false
+      },
+      "head": null
+    },
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "3b153078-2ea4-4b63-8fe1-81029b55d1c9",
+        "name": "account2",
+        "spendingKey": "1c72ac2bc032c72e5da6182be393dbe0ed1a53118b18b4c62130be3b3e3132ae",
+        "viewKey": "8b01c999b6f3fe2776d4206d2013af15a68070079691ae67b795327444beac0984f549f2642a6d2226905d6e651669f1101c195f4b2b45365755166854db47e8",
+        "incomingViewKey": "49597c27de4c8a93b025400fe78f2cd5c04cadef335cf9cb752f083b00daa405",
+        "outgoingViewKey": "b1222931fdc46c6c17320738b0a86e9b030571e24157d48fdc32158b5f68469b",
+        "publicAddress": "4c35b13991f30d6a99ce53f8586c0d9168760adb86ad3262d06a2bad1ccf6e3b",
+        "createdAt": null,
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "5a186f66ca05c94e80e8d0b76a4162ee5a119d7e3fa8b64f04b243b868847b01",
+        "ledger": false
+      },
+      "head": null
+    },
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "6f915451-d430-4a1d-9bcf-d9a5fdf4614a",
+        "name": "account3",
+        "spendingKey": "2ddbcdcb12f4028ea5c8570c7913f7742bab69fa63de80ea92ee00530ec84c4f",
+        "viewKey": "f50caacc0991e18d88789bfcd9530921429694c6cf1557345b1d4a9a3ed1c0937c2060d9ab01d4e787475d6501855d9700884eeb8aeb9b8512021ccb8ce2ff09",
+        "incomingViewKey": "aa59bc75b2155621c8b923e88fd8dcc1a4c550f04f2263ec1a775428306c0a00",
+        "outgoingViewKey": "187f19aa456d1c68c230a4b466ed1002e168e7a91bfca15b5635051bf921f30a",
+        "publicAddress": "94f548fe159c7913ea10ea909aa8c311fe6f52b3301246bfc6bb040148841bce",
+        "createdAt": null,
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "3ca17454db39a12b9273a4f920e86c84902c01742ce685fc9efa8baf24771200",
+        "ledger": false
+      },
+      "head": null
+    }
+  ]
+}
