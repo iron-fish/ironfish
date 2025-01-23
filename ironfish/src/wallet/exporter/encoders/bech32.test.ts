@@ -165,13 +165,15 @@ describe('Bech32AccountEncoder', () => {
   it('throws an error if it cannot decode the bech32 string', () => {
     const encoded = Bech32m.encode('incorrect serialization', BECH32_ACCOUNT_PREFIX)
 
-    expect(() => encoder.decode(encoded)).toThrow()
+    expect(() => encoder.decode(encoded)).toThrow(
+      'Bufio decoding failed while using bech32 encoder',
+    )
   })
 
   it('throws an error when decoding non-bech32 strings', () => {
     const encoded = 'not bech32'
 
-    expect(() => encoder.decode(encoded)).toThrow()
+    expect(() => encoder.decode(encoded)).toThrow('Could not decode account')
   })
 
   it('throws an error when decoding if the version is not supported', () => {
@@ -192,6 +194,6 @@ describe('Bech32AccountEncoder', () => {
     const encoded = encoder.encode(accountImport)
     expect(encoded.startsWith(BECH32_ACCOUNT_PREFIX)).toBe(true)
 
-    expect(() => encoder.decode(encoded)).toThrow()
+    expect(() => encoder.decode(encoded)).toThrow('Encoded account version 0 not supported')
   })
 })

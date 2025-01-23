@@ -15,10 +15,13 @@ describe('SpendingKeyEncoder', () => {
       const encoded = encoder.encode(decoded)
       expect(encoded).toEqual(spendingKey)
     })
+
     it('should throw with invalid spending key', () => {
       const invalidSpendingKey = 'foo'
       const encoder = new SpendingKeyEncoder()
-      expect(() => encoder.decode(invalidSpendingKey, { name: 'key' })).toThrow()
+      expect(() => encoder.decode(invalidSpendingKey, { name: 'key' })).toThrow(
+        'Invalid spending key',
+      )
     })
   })
 })

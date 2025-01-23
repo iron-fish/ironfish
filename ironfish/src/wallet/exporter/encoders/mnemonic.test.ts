@@ -16,10 +16,11 @@ describe('MnemonicEncoder', () => {
       const encoded = encoder.encode(decoded, { language: 'English' })
       expect(encoded).toEqual(mnemonic)
     })
+
     it('should throw with invalid mnemonic', () => {
       const mnemonic = 'invalid mnemonic'
       const encoder = new MnemonicEncoder()
-      expect(() => encoder.decode(mnemonic, { name: 'foo' })).toThrow()
+      expect(() => encoder.decode(mnemonic, { name: 'foo' })).toThrow('Invalid mnemonic')
     })
   })
 })

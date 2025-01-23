@@ -51,7 +51,7 @@ describe('JsonEncoder', () => {
     it('throws when json is not a valid account', () => {
       const invalidJson = '{}'
       const encoder = new JsonEncoder()
-      expect(() => encoder.decode(invalidJson)).toThrow()
+      expect(() => encoder.decode(invalidJson)).toThrow('Invalid Schema')
     })
 
     it('derives missing viewKeys from the spendingKey', () => {

@@ -184,12 +184,12 @@ describe('Base64JsonEncoder', () => {
   it('throws an error when decoding strings without the prefix', () => {
     const encoded = 'not base64'
 
-    expect(() => encoder.decode(encoded)).toThrow()
+    expect(() => encoder.decode(encoded)).toThrow('Invalid prefix for base64 encoded account')
   })
 
   it('throws an error when decoding non-base64 strings', () => {
     const encoded = 'ifaccountnot base64'
 
-    expect(() => encoder.decode(encoded)).toThrow()
+    expect(() => encoder.decode(encoded)).toThrow('Invalid JSON')
   })
 })
