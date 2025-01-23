@@ -1649,6 +1649,7 @@ dependencies = [
  "group 0.12.1",
  "hex-literal",
  "ironfish",
+ "ironfish-bellperson",
  "ironfish-jubjub",
  "ironfish_zkp",
  "rand",

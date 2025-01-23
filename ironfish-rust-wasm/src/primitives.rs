@@ -196,3 +196,24 @@ impl Signature {
         buf
     }
 }
+
+wasm_bindgen_wrapper! {
+    #[derive(Clone, PartialEq, Debug)]
+    pub struct Proof(ironfish_bellperson::groth16::Proof<blstrs::Bls12>);
+}
+
+#[wasm_bindgen]
+impl Proof {
+    #[wasm_bindgen(constructor)]
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, IronfishError> {
+        let s = ironfish_bellperson::groth16::Proof::read(bytes)?;
+        Ok(Self::from(s))
+    }
+
+    #[wasm_bindgen]
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut buf = Vec::new();
+        self.0.write(&mut buf).expect("serialization failed");
+        buf
+    }
+}
