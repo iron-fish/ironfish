@@ -301,15 +301,18 @@ export class DkgCreateCommand extends IronfishCommand {
 
   async performRound1WithLedger(
     ledger: LedgerMultiSigner,
-    client: RpcClient,
-    participantName: string,
     identities: string[],
     minSigners: number,
   ): Promise<{
     round1: { secretPackage: string; publicPackage: string }
   }> {
-    const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
-    const identity = identityResponse.content.identity
+    const identity = (
+      await ui.ledger({
+        ledger,
+        message: 'Getting Ledger Identity',
+        action: () => ledger.dkgGetIdentity(0),
+      })
+    ).toString('hex')
 
     if (!identities.includes(identity)) {
       identities.push(identity)
@@ -351,13 +354,7 @@ export class DkgCreateCommand extends IronfishCommand {
     })
 
     if (ledger) {
-      return await this.performRound1WithLedger(
-        ledger,
-        client,
-        participantName,
-        identities,
-        minSigners,
-      )
+      return await this.performRound1WithLedger(ledger, identities, minSigners)
     }
 
     this.log('\nPerforming DKG Round 1...')
