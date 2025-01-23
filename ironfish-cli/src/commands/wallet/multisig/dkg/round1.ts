@@ -96,7 +96,13 @@ export class DkgRound1Command extends IronfishCommand {
   async performRound1WithLedger(identities: string[], minSigners: number): Promise<void> {
     const ledger = new LedgerMultiSigner()
 
-    const identity = (await ledger.dkgGetIdentity(0, false)).toString('hex')
+    const identity = (
+      await ui.ledger({
+        ledger,
+        message: 'Getting Ledger Identity',
+        action: () => ledger.dkgGetIdentity(0),
+      })
+    ).toString('hex')
 
     if (!identities.includes(identity)) {
       identities.push(identity)

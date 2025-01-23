@@ -306,7 +306,13 @@ export class DkgCreateCommand extends IronfishCommand {
   ): Promise<{
     round1: { secretPackage: string; publicPackage: string }
   }> {
-    const identity = (await ledger.dkgGetIdentity(0, false)).toString('hex')
+    const identity = (
+      await ui.ledger({
+        ledger,
+        message: 'Getting Ledger Identity',
+        action: () => ledger.dkgGetIdentity(0),
+      })
+    ).toString('hex')
 
     if (!identities.includes(identity)) {
       identities.push(identity)
