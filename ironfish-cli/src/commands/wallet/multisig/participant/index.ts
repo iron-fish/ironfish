@@ -5,16 +5,22 @@ import { Flags } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
+import { LedgerMultiSigner } from '../../../../ledger'
 import * as ui from '../../../../ui'
 
 export class MultisigIdentity extends IronfishCommand {
-  static description = `Retrieve a multisig participant identity from a name`
+  static description = `Retrieve a multisig participant identity`
 
   static flags = {
     ...RemoteFlags,
     name: Flags.string({
       char: 'n',
       description: 'Name of the participant identity',
+    }),
+    ledger: Flags.boolean({
+      default: false,
+      description: 'Retrieve participant identity from a ledger device',
+      exclusive: ['name'],
     }),
   }
 
@@ -29,6 +35,19 @@ export class MultisigIdentity extends IronfishCommand {
 
       this.log('Identity:')
       this.log(response.content.identity)
+    } else if (flags.ledger) {
+      const ledger = new LedgerMultiSigner()
+
+      const identity = (
+        await ui.ledger({
+          ledger,
+          message: 'Getting Ledger Identity',
+          action: () => ledger.dkgGetIdentity(0),
+        })
+      ).toString('hex')
+
+      this.log('Identity:')
+      this.log(identity)
     } else {
       const response = await client.wallet.multisig.getIdentities()
 
