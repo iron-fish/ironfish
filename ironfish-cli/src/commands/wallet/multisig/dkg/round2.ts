@@ -30,7 +30,6 @@ export class DkgRound2Command extends IronfishCommand {
     ledger: Flags.boolean({
       default: false,
       description: 'Perform operation with a ledger device',
-      hidden: true,
     }),
   }
 
