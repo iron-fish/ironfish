@@ -20,7 +20,6 @@ export class MultisigIdentityCreate extends IronfishCommand {
     ledger: Flags.boolean({
       default: false,
       description: 'Perform operation with a ledger device',
-      hidden: true,
     }),
   }
 
