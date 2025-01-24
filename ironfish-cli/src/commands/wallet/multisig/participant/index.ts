@@ -27,15 +27,7 @@ export class MultisigIdentity extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(MultisigIdentity)
 
-    const client = await this.connectRpc()
-    await ui.checkWalletUnlocked(client)
-
-    if (flags.name) {
-      const response = await client.wallet.multisig.getIdentity({ name: flags.name })
-
-      this.log('Identity:')
-      this.log(response.content.identity)
-    } else if (flags.ledger) {
+    if (flags.ledger) {
       const ledger = new LedgerMultiSigner()
 
       const identity = (
@@ -49,32 +41,42 @@ export class MultisigIdentity extends IronfishCommand {
       this.log('Identity:')
       this.log(identity)
     } else {
-      const response = await client.wallet.multisig.getIdentities()
+      const client = await this.connectRpc()
+      await ui.checkWalletUnlocked(client)
 
-      const choices = []
-      for (const { name, identity } of response.content.identities) {
-        choices.push({
-          name,
-          value: identity,
-        })
+      if (flags.name) {
+        const response = await client.wallet.multisig.getIdentity({ name: flags.name })
+
+        this.log('Identity:')
+        this.log(response.content.identity)
+      } else {
+        const response = await client.wallet.multisig.getIdentities()
+
+        const choices = []
+        for (const { name, identity } of response.content.identities) {
+          choices.push({
+            name,
+            value: identity,
+          })
+        }
+
+        // sort identities by name
+        choices.sort((a, b) => a.name.localeCompare(b.name))
+
+        const selection = await inquirer.prompt<{
+          identity: string
+        }>([
+          {
+            name: 'identity',
+            message: 'Select participant name to view identity',
+            type: 'list',
+            choices,
+          },
+        ])
+
+        this.log('Identity:')
+        this.log(selection.identity)
       }
-
-      // sort identities by name
-      choices.sort((a, b) => a.name.localeCompare(b.name))
-
-      const selection = await inquirer.prompt<{
-        identity: string
-      }>([
-        {
-          name: 'identity',
-          message: 'Select participant name to view identity',
-          type: 'list',
-          choices,
-        },
-      ])
-
-      this.log('Identity:')
-      this.log(selection.identity)
     }
   }
 }
