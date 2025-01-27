@@ -59,6 +59,8 @@ import type {
   FollowChainStreamResponse,
   GetAccountIdentitiesRequest,
   GetAccountIdentitiesResponse,
+  GetAccountIdentityRequest,
+  GetAccountIdentityResponse,
   GetAccountNotesStreamRequest,
   GetAccountNotesStreamResponse,
   GetAccountsRequest,
@@ -309,6 +311,15 @@ export abstract class RpcClient {
       ): Promise<RpcResponseEnded<GetAccountIdentitiesResponse>> => {
         return this.request<GetAccountIdentitiesResponse>(
           `${ApiNamespace.wallet}/multisig/getAccountIdentities`,
+          params,
+        ).waitForEnd()
+      },
+
+      getAccountIdentity: (
+        params: GetAccountIdentityRequest,
+      ): Promise<RpcResponseEnded<GetAccountIdentityResponse>> => {
+        return this.request<GetAccountIdentityResponse>(
+          `${ApiNamespace.wallet}/multisig/getAccountIdentity`,
           params,
         ).waitForEnd()
       },

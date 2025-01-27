@@ -1,0 +1,33 @@
+{
+  "Route multisig/getAccountIdentity throws an error if the account is not a multisig account": [
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "7481f108-9a5f-442b-9281-383084698d23",
+        "name": "test",
+        "spendingKey": "f9b5b5e38073cf7429dff092832748e39a38e82736f6107ae80f1f6a3a20f1f0",
+        "viewKey": "945f43341b4b2ce2c18c48b146222bda226de0301db715b398f1285b552914941e732c78e4cb4296213bd71d85e75cf3142968d42e0dfdae0d2e4293a505f849",
+        "incomingViewKey": "5a102178f7479d00d4a5ae7e4c067e9e1e57fb2cc9a039cf92e4e6b43098a905",
+        "outgoingViewKey": "52b6c3b9716133406a5292585d34c8fb4f64e3f051662c7db76f4bd35681e922",
+        "publicAddress": "ec93a7a17f2991a3638804711c527eee8bec696d9fce1de7bb55e3c035cfbd6a",
+        "createdAt": {
+          "sequence": 1,
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "e738313bc11134cc4821ee7f8bd1dab37129f60c577c981421ee8099ace29801"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ]
+}
