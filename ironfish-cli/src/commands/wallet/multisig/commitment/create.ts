@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { multisig } from '@ironfish/rust-nodejs'
-import { RpcClient, UnsignedTransaction } from '@ironfish/sdk'
+import { UnsignedTransaction } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
@@ -95,12 +95,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     await ui.confirmOrQuit('Confirm signing commitment creation', flags.confirm)
 
     if (flags.ledger) {
-      await this.createSigningCommitmentWithLedger(
-        client,
-        participantName,
-        unsignedTransaction,
-        identities,
-      )
+      await this.createSigningCommitmentWithLedger(unsignedTransaction, identities)
       return
     }
 
@@ -119,15 +114,18 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
   }
 
   async createSigningCommitmentWithLedger(
-    client: RpcClient,
-    participantName: string,
     unsignedTransaction: UnsignedTransaction,
     signers: string[],
   ): Promise<void> {
     const ledger = new LedgerMultiSigner()
 
-    const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
-    const identity = identityResponse.content.identity
+    const identity = (
+      await ui.ledger({
+        ledger,
+        message: 'Getting Ledger Identity',
+        action: () => ledger.dkgGetIdentity(0),
+      })
+    ).toString('hex')
 
     const rawCommitments = await ui.ledger({
       ledger,
