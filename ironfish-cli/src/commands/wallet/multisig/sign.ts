@@ -86,7 +86,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
     let multisigAccountName: string
     if (!flags.account) {
-      multisigAccountName = await ui.accountPrompt(client)
+      multisigAccountName = await ui.multisigAccountPrompt(client)
     } else {
       multisigAccountName = flags.account
       const account = (await client.wallet.getAccounts()).content.accounts.find(
