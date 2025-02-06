@@ -1,6 +1,7 @@
 [package]
 name = "ironfish-wasm"
 version = "0.1.0"
+description = "Iron Fish WASM package that compiles native Iron Fish code to WebAssembly with TypeScript bindings."
 license = "MPL-2.0"
 
 authors.workspace = true
