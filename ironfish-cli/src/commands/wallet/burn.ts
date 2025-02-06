@@ -182,11 +182,11 @@ This will destroy tokens and decrease supply for a given asset.`
       burns: [
         {
           assetId,
-          value: CurrencyUtils.encode(amount),
+          value: amount.toString(),
         },
       ],
-      fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
-      feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
+      fee: flags.fee ? flags.fee.toString() : null,
+      feeRate: flags.feeRate ? flags.feeRate.toString() : null,
       expiration: flags.expiration,
       confirmations: flags.confirmations,
     }

@@ -5,7 +5,6 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../../../assert'
 import { useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { CurrencyUtils } from '../../../utils'
 import { serializeRpcWalletTransaction } from './serializers'
 
 describe('Route wallet/mintAsset', () => {
@@ -112,7 +111,7 @@ describe('Route wallet/mintAsset', () => {
         fee: '1',
         metadata: asset.metadata().toString('utf8'),
         name: asset.name().toString('utf8'),
-        value: CurrencyUtils.encode(mintData.value),
+        value: mintData.value.toString(),
         transferOwnershipTo: newOwner,
       })
 

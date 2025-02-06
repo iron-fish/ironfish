@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { CurrencyUtils } from '../../../utils'
 import { RpcNotFoundError, RpcValidationError } from '../../adapters'
 import { RpcAsset, RpcAssetSchema } from '../chain/types'
 import { ApiNamespace } from '../namespaces'
@@ -62,7 +61,7 @@ routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
       status: await node.wallet.getAssetStatus(account, asset, {
         confirmations: request.data.confirmations,
       }),
-      supply: asset.supply ? CurrencyUtils.encode(asset.supply) : undefined,
+      supply: asset.supply ? asset.supply.toString() : undefined,
       verification: node.assetsVerifier.verify(asset.id),
     })
   },
