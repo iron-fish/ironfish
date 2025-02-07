@@ -33,7 +33,7 @@ jobs:
 
       - name: Generate package
         working-directory: ./ironfish-rust-wasm
-        run: wasm-pack build --release --target=web
+        run: wasm-pack build --release --target=web --scope=ironfish
 
       - name: Test in Firefox
         working-directory: ./ironfish-rust-wasm
