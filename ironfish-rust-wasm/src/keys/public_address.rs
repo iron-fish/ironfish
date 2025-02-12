@@ -22,17 +22,17 @@ impl PublicAddress {
         self.0.public_address().to_vec()
     }
 
-    #[wasm_bindgen(js_name = "fromHex")]
+    #[wasm_bindgen(js_name = fromHex)]
     pub fn from_hex(hex: &str) -> Result<Self, IronfishError> {
         Ok(Self(ironfish::PublicAddress::from_hex(hex)?))
     }
 
-    #[wasm_bindgen(getter)]
-    pub fn hex(&self) -> String {
+    #[wasm_bindgen(js_name = toHex)]
+    pub fn to_hex(&self) -> String {
         self.0.hex_public_address()
     }
 
-    #[wasm_bindgen(js_name = "isValid")]
+    #[wasm_bindgen(js_name = isValid)]
     pub fn is_valid(hex: &str) -> bool {
         Self::from_hex(hex).is_ok()
     }
@@ -52,7 +52,7 @@ mod tests {
             .expect("valid address deserialization should have succeeded");
         assert_eq!(addr.serialize(), bytes);
         assert_eq!(
-            addr.hex(),
+            addr.to_hex(),
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0"
         );
     }
@@ -71,9 +71,9 @@ mod tests {
         let hex = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0";
         let addr = PublicAddress::from_hex(hex)
             .expect("valid address deserialization should have succeeded");
-        assert_eq!(addr.hex(), hex);
+        assert_eq!(addr.to_hex(), hex);
         assert_eq!(
-            addr.hex(),
+            addr.to_hex(),
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0"
         );
     }
