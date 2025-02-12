@@ -5,7 +5,6 @@ import { RPC_ERROR_CODES, RpcRequestError } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { LedgerMultiSigner } from '../../../../ledger'
 import * as ui from '../../../../ui'
 
 export class MultisigIdentityCreate extends IronfishCommand {
@@ -16,10 +15,6 @@ export class MultisigIdentityCreate extends IronfishCommand {
     name: Flags.string({
       char: 'n',
       description: 'Name to associate with the identity',
-    }),
-    ledger: Flags.boolean({
-      default: false,
-      description: 'Perform operation with a ledger device',
     }),
   }
 
@@ -34,22 +29,10 @@ export class MultisigIdentityCreate extends IronfishCommand {
       name = await ui.inputPrompt('Enter a name for the identity', true)
     }
 
-    let identity
-    if (flags.ledger) {
-      identity = await this.getIdentityFromLedger()
-    }
-
     let response
     while (!response) {
       try {
-        if (identity) {
-          response = await client.wallet.multisig.importParticipant({
-            name,
-            identity: identity.toString('hex'),
-          })
-        } else {
-          response = await client.wallet.multisig.createParticipant({ name })
-        }
+        response = await client.wallet.multisig.createParticipant({ name })
       } catch (e) {
         if (
           e instanceof RpcRequestError &&
@@ -67,15 +50,5 @@ export class MultisigIdentityCreate extends IronfishCommand {
 
     this.log('Identity:')
     this.log(response.content.identity)
-  }
-
-  async getIdentityFromLedger(): Promise<Buffer> {
-    const ledger = new LedgerMultiSigner()
-
-    return ui.ledger({
-      ledger,
-      message: 'Getting Ledger Identity',
-      action: () => ledger.dkgGetIdentity(0),
-    })
   }
 }
