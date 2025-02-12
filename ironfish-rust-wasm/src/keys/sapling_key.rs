@@ -7,6 +7,7 @@ use crate::{
     keys::{
         IncomingViewKey, Language, OutgoingViewKey, ProofGenerationKey, PublicAddress, ViewKey,
     },
+    primitives::Fr,
     wasm_bindgen_wrapper,
 };
 use wasm_bindgen::prelude::*;
@@ -71,6 +72,16 @@ impl SaplingKey {
     #[wasm_bindgen(getter, js_name = spendingKey)]
     pub fn spending_key(&self) -> Vec<u8> {
         self.0.spending_key().to_vec()
+    }
+
+    #[wasm_bindgen(getter, js_name = spendAuthorizingKey)]
+    pub fn spend_authorizing_key(&self) -> Fr {
+        self.0.spend_authorizing_key().to_owned().into()
+    }
+
+    #[wasm_bindgen(getter, js_name = proofAuthorizingKey)]
+    pub fn proof_authorizing_key(&self) -> Fr {
+        self.0.proof_authorizing_key().to_owned().into()
     }
 
     #[wasm_bindgen(getter, js_name = incomingViewKey)]
