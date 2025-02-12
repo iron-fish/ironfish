@@ -9,15 +9,14 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Language {
-    // These are the same language codes used by `bip39`
-    English = "en",
-    ChineseSimplified = "zh-hans",
-    ChineseTraditional = "zh-hant",
-    French = "fr",
-    Italian = "it",
-    Japanese = "ja",
-    Korean = "ko",
-    Spanish = "es",
+    English,
+    ChineseSimplified,
+    ChineseTraditional,
+    French,
+    Italian,
+    Japanese,
+    Korean,
+    Spanish,
 }
 
 impl From<bip39::Language> for Language {
@@ -46,20 +45,38 @@ impl From<Language> for bip39::Language {
             Language::Japanese => Self::Japanese,
             Language::Korean => Self::Korean,
             Language::Spanish => Self::Spanish,
-            Language::__Invalid => unreachable!(),
         }
     }
 }
 
-#[wasm_bindgen]
 impl Language {
-    #[wasm_bindgen(js_name = "fromLanguageCode")]
     pub fn from_language_code(code: &str) -> Result<Self, IronfishError> {
-        Self::from_str(code).ok_or_else(|| IronfishErrorKind::InvalidLanguageEncoding.into())
+        // These are the same language codes used by `bip39`
+        match code {
+            "en" => Ok(Self::English),
+            "zh-hans" => Ok(Self::ChineseSimplified),
+            "zh-hant" => Ok(Self::ChineseTraditional),
+            "fr" => Ok(Self::French),
+            "it" => Ok(Self::Italian),
+            "ja" => Ok(Self::Japanese),
+            "ko" => Ok(Self::Korean),
+            "es" => Ok(Self::Spanish),
+            _ => Err(IronfishErrorKind::InvalidLanguageEncoding.into()),
+        }
     }
 
-    #[wasm_bindgen(getter, js_name = "languageCode")]
     pub fn language_code(self) -> String {
-        self.to_str().to_string()
+        // These are the same language codes used by `bip39`
+        match self {
+            Self::English => "en",
+            Self::ChineseSimplified => "zh-hans",
+            Self::ChineseTraditional => "zh-hant",
+            Self::French => "fr",
+            Self::Italian => "it",
+            Self::Japanese => "ja",
+            Self::Korean => "ko",
+            Self::Spanish => "es",
+        }
+        .to_string()
     }
 }
