@@ -150,7 +150,7 @@ impl ViewKey {
         self.0.nullifier_deriving_key.into()
     }
 
-    #[wasm_bindgen(js_name = randomizedPublicKey)]
+    #[wasm_bindgen(js_name = randomizedPublicKeyPair)]
     pub fn randomized_public_key_pair(&self) -> RandomizedPublicKeyPair {
         let (r, s) = self.0.randomized_public_key(thread_rng());
         RandomizedPublicKeyPair::new(r.into(), s.into())
