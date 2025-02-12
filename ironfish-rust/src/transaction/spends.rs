@@ -68,7 +68,7 @@ impl SpendBuilder {
     /// This is the only time this API thinks about the merkle tree. The witness
     /// contains the root-hash at the time the witness was created and the path
     /// to verify the location of that note in the tree.
-    pub(crate) fn new<W: WitnessTrait + ?Sized>(note: Note, witness: &W) -> Self {
+    pub fn new<W: WitnessTrait + ?Sized>(note: Note, witness: &W) -> Self {
         let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         SpendBuilder {
@@ -89,21 +89,12 @@ impl SpendBuilder {
         ExtendedPoint::from(self.value_commitment.commitment())
     }
 
-    /// Sign this spend with the private key, and return a [`SpendDescription`]
-    /// suitable for serialization.
-    ///
-    /// Verifies the proof before returning to prevent posting broken
-    /// transactions
-    pub(crate) fn build(
+    pub fn build_circuit(
         &self,
         proof_generation_key: &ProofGenerationKey,
-        view_key: &ViewKey,
         public_key_randomness: &Fr,
-        randomized_public_key: &redjubjub::PublicKey,
-    ) -> Result<UnsignedSpendDescription, IronfishError> {
-        let value_commitment_point = self.value_commitment_point();
-
-        let circuit = Spend {
+    ) -> Spend {
+        Spend {
             value_commitment: Some(self.value_commitment.clone()),
             proof_generation_key: Some(proof_generation_key.clone()),
             payment_address: Some(self.note.owner.0),
@@ -112,7 +103,24 @@ impl SpendBuilder {
             anchor: Some(self.root_hash),
             ar: Some(*public_key_randomness),
             sender_address: Some(self.note.sender.0),
-        };
+        }
+    }
+
+    /// Sign this spend with the private key, and return a [`SpendDescription`]
+    /// suitable for serialization.
+    ///
+    /// Verifies the proof before returning to prevent posting broken
+    /// transactions
+    pub fn build(
+        &self,
+        proof_generation_key: &ProofGenerationKey,
+        view_key: &ViewKey,
+        public_key_randomness: &Fr,
+        randomized_public_key: &redjubjub::PublicKey,
+    ) -> Result<UnsignedSpendDescription, IronfishError> {
+        let value_commitment_point = self.value_commitment_point();
+
+        let circuit = self.build_circuit(proof_generation_key, public_key_randomness);
 
         // Proof that the spend was valid and successful for the provided owner
         // and note.
