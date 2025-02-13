@@ -1587,7 +1587,6 @@ export class Wallet {
             {
               name: account.name,
               secret,
-              ledger: accountValue.ledger,
             },
             tx,
           )
@@ -1964,7 +1963,6 @@ export class Wallet {
         {
           name,
           secret: secret.serialize(),
-          ledger: false,
         },
         tx,
       )

@@ -403,7 +403,6 @@ describe('Route wallet/importAccount', () => {
         await routeTest.node.wallet.walletDb.putMultisigIdentity(identity.serialize(), {
           secret: secret.serialize(),
           name: testCaseFile,
-          ledger: false,
         })
 
         const name = 'new-account-name'
@@ -485,7 +484,6 @@ describe('Route wallet/importAccount', () => {
       {
         secret: secrets[0].serialize(),
         name,
-        ledger: false,
       },
     )
 
@@ -574,7 +572,6 @@ describe('Route wallet/importAccount', () => {
     await routeTest.node.wallet.walletDb.putMultisigIdentity(Buffer.from(identity, 'hex'), {
       secret: secrets[0].serialize(),
       name,
-      ledger: false,
     })
 
     const account: AccountImport = {
@@ -619,7 +616,6 @@ describe('Route wallet/importAccount', () => {
 
     await routeTest.node.wallet.walletDb.putMultisigIdentity(Buffer.from(identity, 'hex'), {
       name: 'existingIdentity',
-      ledger: false,
     })
 
     const account: AccountImport = {

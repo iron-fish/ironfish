@@ -1154,7 +1154,6 @@ describe('Wallet', () => {
           await node.wallet.walletDb.putMultisigIdentity(identity.serialize(), {
             name,
             secret: secret.serialize(),
-            ledger: false,
           })
           return identity.serialize().toString('hex')
         }),
@@ -1358,7 +1357,6 @@ describe('Wallet', () => {
         await node.wallet.walletDb.putMultisigIdentity(identity.serialize(), {
           name,
           secret: secret.serialize(),
-          ledger: false,
         })
         return identity.serialize().toString('hex')
       }),

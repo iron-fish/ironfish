@@ -19,7 +19,6 @@ export interface MultisigIdentityValue {
    * while allowing distinction between undefined and actual secrets during deserialization.
    */
   secret?: Buffer
-  ledger: boolean
 }
 
 export class MultisigIdentityValueEncoder implements IDatabaseEncoding<MultisigIdentityValue> {
@@ -32,7 +31,6 @@ export class MultisigIdentityValueEncoder implements IDatabaseEncoding<MultisigI
       // Write a zero buffer of the same length as the secret
       bw.writeBytes(Buffer.alloc(multisig.SECRET_LEN))
     }
-    bw.writeU8(value.ledger ? 1 : 0)
     return bw.render()
   }
 
@@ -40,19 +38,17 @@ export class MultisigIdentityValueEncoder implements IDatabaseEncoding<MultisigI
     const reader = bufio.read(buffer, true)
     const name = reader.readVarString('utf-8')
     const secret = reader.readBytes(multisig.SECRET_LEN)
-    const ledger = reader.readU8() === 1
     // Check if the secret is all zeros
     if (Buffer.compare(secret, Buffer.alloc(multisig.SECRET_LEN)) === 0) {
-      return { name, secret: undefined, ledger }
+      return { name, secret: undefined }
     }
-    return { name, secret, ledger }
+    return { name, secret }
   }
 
   getSize(value: MultisigIdentityValue): number {
     let size = 0
     size += bufio.sizeVarString(value.name, 'utf8')
     size += multisig.SECRET_LEN
-    size += 1 // for ledger
     return size
   }
 }

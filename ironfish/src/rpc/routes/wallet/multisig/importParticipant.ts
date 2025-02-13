@@ -68,7 +68,6 @@ routes.register<typeof ImportParticipantRequestSchema, ImportParticipantResponse
       {
         name: request.data.name,
         secret: request.data.secret ? Buffer.from(request.data.secret, 'hex') : undefined,
-        ledger: true,
       },
     )
 

@@ -454,7 +454,6 @@ describe('WalletDB', () => {
       await walletDb.putMultisigIdentity(secret.toIdentity().serialize(), {
         secret: serializedSecret,
         name,
-        ledger: false,
       })
 
       const storedSecret = await walletDb.getMultisigSecretByName(name)
