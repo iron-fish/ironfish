@@ -5,6 +5,7 @@
 mod burns;
 mod mints;
 mod outputs;
+mod proposed;
 mod spends;
 mod unsigned;
 
