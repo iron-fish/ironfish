@@ -18,6 +18,11 @@ wasm_bindgen_wrapper! {
 #[wasm_bindgen]
 impl Scalar {
     #[wasm_bindgen]
+    pub fn zero() -> Self {
+        Self(blstrs::Scalar::zero())
+    }
+
+    #[wasm_bindgen]
     pub fn random() -> Self {
         Self(blstrs::Scalar::random(thread_rng()))
     }
@@ -43,6 +48,13 @@ impl Fr {
     #[wasm_bindgen]
     pub fn random() -> Self {
         Self(ironfish_jubjub::Fr::random(thread_rng()))
+    }
+
+    #[wasm_bindgen(js_name = fromBytes)]
+    pub fn from_bytes(&self, bytes: &[u8]) -> Option<Self> {
+        let bytes: &[u8; 32] = bytes.try_into().ok()?;
+        let fr = Option::from(ironfish_jubjub::Fr::from_bytes(bytes))?;
+        Some(Self(fr))
     }
 
     #[wasm_bindgen(js_name = toBytes)]
