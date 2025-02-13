@@ -26,6 +26,7 @@ use ironfish_proofs::{
 
 /// This is a circuit instance inspired from ZCash's `Spend` circuit in the Sapling protocol
 /// https://github.com/zcash/librustzcash/blob/main/zcash_proofs/src/circuit/sapling.rs#L31-L55
+#[derive(Clone, Debug)]
 pub struct Spend {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,

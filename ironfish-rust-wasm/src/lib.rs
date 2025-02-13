@@ -16,6 +16,7 @@ use getrandom as _;
 use rayon as _;
 
 pub mod assets;
+pub mod circuits;
 pub mod errors;
 pub mod keys;
 pub mod merkle_note;

@@ -17,6 +17,7 @@ use byteorder::{ReadBytesExt, WriteBytesExt};
 
 use super::util::FromBytes;
 
+#[derive(Clone, Debug)]
 pub struct MintAsset {
     /// Key required to construct proofs for a particular spending key
     pub proof_generation_key: Option<ProofGenerationKey>,
