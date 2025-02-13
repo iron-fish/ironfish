@@ -447,14 +447,18 @@ export class DkgCreateCommand extends IronfishCommand {
     ledger: LedgerMultiSigner,
     client: RpcClient,
     accountName: string,
-    participantName: string,
     round1PublicPackagesStr: string[],
     round2PublicPackagesStr: string[],
     round2SecretPackage: string,
     accountCreatedAt?: number,
   ): Promise<void> {
-    const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
-    const identity = identityResponse.content.identity
+    const identity = (
+      await ui.ledger({
+        ledger,
+        message: 'Getting Ledger Identity',
+        action: () => ledger.dkgGetIdentity(0),
+      })
+    ).toString('hex')
 
     // Sort packages by identity
     const round1PublicPackages = round1PublicPackagesStr
@@ -563,7 +567,6 @@ export class DkgCreateCommand extends IronfishCommand {
         ledger,
         client,
         accountName,
-        participantName,
         round1PublicPackages,
         round2PublicPackages,
         round2Result.secretPackage,

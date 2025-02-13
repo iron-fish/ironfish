@@ -163,8 +163,13 @@ export class DkgRound3Command extends IronfishCommand {
   ): Promise<void> {
     const ledger = new LedgerMultiSigner()
 
-    const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
-    const identity = identityResponse.content.identity
+    const identity = (
+      await ui.ledger({
+        ledger,
+        message: 'Getting Ledger Identity',
+        action: () => ledger.dkgGetIdentity(0),
+      })
+    ).toString('hex')
 
     // Sort packages by identity
     const round1PublicPackages = round1PublicPackagesStr
