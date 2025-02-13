@@ -34,7 +34,6 @@ export class MultisigIdentityCreate extends IronfishCommand {
       try {
         response = await client.wallet.multisig.createParticipant({
           name,
-          ledger: false,
         })
       } catch (e) {
         if (
