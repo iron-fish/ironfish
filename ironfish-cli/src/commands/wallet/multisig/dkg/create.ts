@@ -235,37 +235,19 @@ export class DkgCreateCommand extends IronfishCommand {
     identity: string
     name: string
   }> {
-    const identities = await client.wallet.multisig.getIdentities()
-
     if (ledger) {
-      const ledgerIdentity = await ui.ledger({
-        ledger,
-        message: 'Getting Ledger Identity',
-        action: () => ledger.dkgGetIdentity(0),
-      })
+      const ledgerIdentity = (
+        await ui.ledger({
+          ledger,
+          message: 'Getting Ledger Identity',
+          action: () => ledger.dkgGetIdentity(0),
+        })
+      ).toString('hex')
 
-      const foundIdentity = identities.content.identities.find(
-        (i) => i.identity === ledgerIdentity.toString('hex'),
-      )
-
-      if (foundIdentity) {
-        this.debug('Identity from ledger already exists')
-        return foundIdentity
-      }
-
-      // We must use the ledger's identity
-      while (identities.content.identities.find((i) => i.name === name)) {
-        this.log('An identity with the same name already exists')
-        name = await ui.inputPrompt('Enter a new name for the identity', true)
-      }
-
-      const created = await client.wallet.multisig.importParticipant({
-        name,
-        identity: ledgerIdentity.toString('hex'),
-      })
-
-      return { name, identity: created.content.identity }
+      return { name, identity: ledgerIdentity }
     }
+
+    const identities = await client.wallet.multisig.getIdentities()
 
     const foundIdentity = identities.content.identities.find((i) => i.name === name)
 
