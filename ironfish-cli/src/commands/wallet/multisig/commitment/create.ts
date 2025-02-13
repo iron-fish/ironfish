@@ -53,9 +53,9 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
 
-    let participantName = flags.account
-    if (!participantName) {
-      participantName = await ui.multisigSecretPrompt(client)
+    let accountName = flags.account
+    if (!accountName) {
+      accountName = await ui.multisigAccountPrompt(client)
     }
 
     let identities = options.identity
@@ -88,7 +88,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     await renderUnsignedTransactionDetails(
       client,
       unsignedTransaction,
-      participantName,
+      accountName,
       this.logger,
     )
 
@@ -100,7 +100,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     }
 
     const response = await client.wallet.multisig.createSigningCommitment({
-      account: participantName,
+      account: accountName,
       unsignedTransaction: unsignedTransactionInput,
       signers: identities.map((identity) => ({ identity })),
     })
