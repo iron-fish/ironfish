@@ -14,25 +14,25 @@ wasm_bindgen_wrapper! {
 #[wasm_bindgen]
 impl Witness {
     #[wasm_bindgen(constructor)]
-    pub fn new(tree_size: usize, root_hash: Scalar, auth_path: Vec<WitnessNode>) -> Self {
+    pub fn new(tree_size: usize, root_hash: MerkleNoteHash, auth_path: Vec<WitnessNode>) -> Self {
         Self(ironfish::witness::Witness {
             tree_size,
-            root_hash: root_hash.into(),
+            root_hash: root_hash.value().into(),
             auth_path: auth_path.into_iter().map(WitnessNode::into).collect(),
         })
     }
 
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, js_name = treeSize)]
     pub fn tree_size(&self) -> usize {
         self.0.tree_size
     }
 
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, js_name = rootHash)]
     pub fn root_hash(&self) -> Scalar {
         self.0.root_hash.into()
     }
 
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter, js_name = authPath)]
     pub fn auth_path(&self) -> Vec<WitnessNode> {
         self.0
             .auth_path
@@ -79,12 +79,13 @@ impl WitnessNode {
     }
 
     #[wasm_bindgen(getter)]
-    pub fn hash(&self) -> Scalar {
-        match self.0 {
+    pub fn hash(&self) -> MerkleNoteHash {
+        let value = match self.0 {
             ironfish::witness::WitnessNode::Left(ref hash) => hash,
             ironfish::witness::WitnessNode::Right(ref hash) => hash,
         }
         .to_owned()
-        .into()
+        .into();
+        MerkleNoteHash::from_value(value)
     }
 }
