@@ -6,7 +6,7 @@ use crate::{
     assets::AssetIdentifier,
     errors::IronfishError,
     keys::{IncomingViewKey, PublicAddress, ViewKey},
-    primitives::{ExtendedPoint, Nullifier},
+    primitives::{ExtendedPoint, Nullifier, Scalar},
     wasm_bindgen_wrapper,
 };
 use ironfish::errors::IronfishErrorKind;
@@ -81,6 +81,11 @@ impl Note {
     #[wasm_bindgen(getter)]
     pub fn commitment(&self) -> Vec<u8> {
         self.0.commitment().to_vec()
+    }
+
+    #[wasm_bindgen(getter, js_name = commitmentPoint)]
+    pub fn commitment_point(&self) -> Scalar {
+        self.0.commitment_point().into()
     }
 
     #[wasm_bindgen]
