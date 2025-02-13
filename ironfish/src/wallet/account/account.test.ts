@@ -2598,7 +2598,6 @@ describe('Accounts', () => {
       expect(accountBTx).toHaveLength(2)
 
       // tx1 and tx2 will have the same timestamp for accountB, so ordering should be reverse by hash
-
       const sortedHashes = [tx1.hash(), tx2.hash()].sort((a, b) => b.compare(a))
 
       expect(accountBTx[0].transaction.hash()).toEqualHash(sortedHashes[0])
