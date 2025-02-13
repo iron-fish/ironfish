@@ -12,6 +12,9 @@ use crate::{
 use ironfish::{errors::IronfishErrorKind, transaction::TransactionVersion};
 use wasm_bindgen::prelude::*;
 
+#[cfg(feature = "transaction-builders")]
+use crate::{keys::ProofGenerationKey, primitives::Fr};
+
 wasm_bindgen_wrapper! {
     #[derive(Clone, Debug)]
     pub struct MintDescription(ironfish::transaction::mints::MintDescription);
@@ -124,5 +127,82 @@ impl UnsignedMintDescription {
     #[wasm_bindgen(js_name = addSignature)]
     pub fn add_signature(self, signature: Signature) -> MintDescription {
         self.0.add_signature(signature.into()).into()
+    }
+}
+
+#[cfg(feature = "transaction-builders")]
+wasm_bindgen_wrapper! {
+    #[derive(Clone, Debug)]
+    pub struct MintBuilder(ironfish::transaction::mints::MintBuilder);
+}
+
+#[wasm_bindgen]
+#[cfg(feature = "transaction-builders")]
+impl MintBuilder {
+    #[wasm_bindgen(constructor)]
+    pub fn new(asset: Asset, value: u64) -> Self {
+        Self(ironfish::transaction::mints::MintBuilder::new(
+            asset.into(),
+            value,
+        ))
+    }
+
+    #[wasm_bindgen]
+    pub fn build(
+        self,
+        proof_generation_key: &ProofGenerationKey,
+        public_address: &PublicAddress,
+        public_key_randomness: &Fr,
+        randomized_public_key: &PublicKey,
+    ) -> Result<UnsignedMintDescription, IronfishError> {
+        self.0
+            .build(
+                proof_generation_key.as_ref(),
+                public_address.as_ref(),
+                public_key_randomness.as_ref(),
+                randomized_public_key.as_ref(),
+            )
+            .map(|d| d.into())
+            .map_err(|e| e.into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(feature = "transaction-builders")]
+    mod builder {
+        use crate::{assets::Asset, keys::SaplingKey, transaction::MintBuilder};
+        use rand::{thread_rng, Rng};
+        use wasm_bindgen_test::wasm_bindgen_test;
+
+        #[test]
+        #[wasm_bindgen_test]
+        fn build() {
+            let key = SaplingKey::random();
+            let asset = Asset::from_parts(key.public_address(), "asset name", "asset metadata")
+                .expect("failed to create asset");
+            let randomized_public_key_pair = key.view_key().randomized_public_key_pair();
+
+            let unsigned = MintBuilder::new(asset, 123)
+                .build(
+                    &key.proof_generation_key(),
+                    &key.public_address(),
+                    &randomized_public_key_pair.public_key_randomness(),
+                    &randomized_public_key_pair.randomized_public_key(),
+                )
+                .expect("failed to build mint description");
+
+            let sign_hash: [u8; 32] = thread_rng().gen();
+            let signed = unsigned
+                .sign(&key, &sign_hash)
+                .expect("failed to sign mint description");
+
+            signed
+                .verify_signature(
+                    &sign_hash,
+                    &randomized_public_key_pair.randomized_public_key(),
+                )
+                .expect("signature verification failed");
+        }
     }
 }

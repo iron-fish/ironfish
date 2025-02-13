@@ -19,6 +19,7 @@ default = ["transaction-proofs"]
 
 download-params = ["ironfish/download-params"]
 note-encryption-stats = ["ironfish/note-encryption-stats"]
+transaction-builders = ["transaction-proofs"]
 transaction-proofs = ["ironfish/transaction-proofs"]
 
 [dependencies]
