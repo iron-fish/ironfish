@@ -39,6 +39,7 @@ use ironfish_zkp::{primitives::ValueCommitment, proofs::Spend, ProofGenerationKe
 /// a given value.
 ///
 /// Contains all the working values needed to construct the proof.
+#[derive(Clone, Debug)]
 #[cfg(feature = "transaction-proofs")]
 pub struct SpendBuilder {
     pub(crate) note: Note,

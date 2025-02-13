@@ -28,6 +28,7 @@ use ironfish_bellperson::gadgets::boolean;
 
 /// This is a circuit instance inspired from ZCash's `Output` circuit in the Sapling protocol
 /// https://github.com/zcash/librustzcash/blob/main/zcash_proofs/src/circuit/sapling.rs#L57-L70
+#[derive(Clone, Debug)]
 pub struct Output {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,
