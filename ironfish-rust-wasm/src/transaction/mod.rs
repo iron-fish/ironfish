@@ -5,7 +5,6 @@
 mod burns;
 mod mints;
 mod outputs;
-mod proposed;
 mod spends;
 mod unsigned;
 
@@ -17,6 +16,9 @@ pub use mints::{MintDescription, UnsignedMintDescription};
 pub use outputs::OutputDescription;
 pub use spends::{SpendDescription, UnsignedSpendDescription};
 pub use unsigned::UnsignedTransaction;
+
+#[cfg(feature = "transaction-proofs")]
+mod proposed;
 
 #[cfg(feature = "transaction-builders")]
 pub use self::{mints::MintBuilder, spends::SpendBuilder};
