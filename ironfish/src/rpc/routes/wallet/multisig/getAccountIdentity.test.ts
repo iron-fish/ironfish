@@ -70,6 +70,7 @@ describe('Route multisig/getAccountIdentity', () => {
       multisigKeys: {
         publicKeyPackage: response.content.publicKeyPackage,
       },
+      ledger: false,
     }
 
     await routeTest.client.wallet.importAccount({

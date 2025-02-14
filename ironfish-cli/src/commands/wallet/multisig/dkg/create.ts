@@ -512,6 +512,7 @@ export class DkgCreateCommand extends IronfishCommand {
       name: accountName,
       createdAt: null,
       spendingKey: null,
+      ledger: true,
     }
 
     // Import multisig account

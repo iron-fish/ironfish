@@ -645,6 +645,7 @@ describe('Wallet', () => {
       incomingViewKey: account.incomingViewKey,
       createdAt: null,
       proofAuthorizingKey: account.proofAuthorizingKey,
+      ledger: true,
     }
     const viewOnlyAccount = await viewOnlyNode.wallet.importAccount(accountValue)
 
@@ -1178,6 +1179,7 @@ describe('Wallet', () => {
         createdAt: null,
         multisigKeys: getMultisigKeys(0),
         ...trustedDealerPackage,
+        ledger: false,
       })
       const participantB = await node.wallet.importAccount({
         version: 2,
@@ -1186,6 +1188,7 @@ describe('Wallet', () => {
         createdAt: null,
         multisigKeys: getMultisigKeys(1),
         ...trustedDealerPackage,
+        ledger: false,
       })
       const participantC = await node.wallet.importAccount({
         version: 2,
@@ -1194,6 +1197,7 @@ describe('Wallet', () => {
         createdAt: null,
         multisigKeys: getMultisigKeys(2),
         ...trustedDealerPackage,
+        ledger: false,
       })
 
       const participants = [participantA, participantB, participantC]
@@ -1207,6 +1211,7 @@ describe('Wallet', () => {
           publicKeyPackage: trustedDealerPackage.publicKeyPackage,
         },
         ...trustedDealerPackage,
+        ledger: false,
       })
 
       // When importing an account through the SDK, we need to kick off a scan.
@@ -1370,6 +1375,7 @@ describe('Wallet', () => {
         keyPackage: trustedDealerPackage.keyPackages[0].keyPackage,
       },
       ...trustedDealerPackage,
+      ledger: false,
     })
 
     const storedIdentities = account

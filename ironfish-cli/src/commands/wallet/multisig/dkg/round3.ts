@@ -241,6 +241,7 @@ export class DkgRound3Command extends IronfishCommand {
       name: participantName,
       spendingKey: null,
       createdAt: null,
+      ledger: true,
     }
 
     // Import multisig account

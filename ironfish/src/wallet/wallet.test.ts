@@ -570,6 +570,7 @@ describe('Wallet', () => {
         spendingKey: null,
         createdAt: null,
         ...key,
+        ledger: true,
       }
       const viewonlyAccount = await node.wallet.importAccount(accountValue)
       expect(viewonlyAccount.name).toEqual(accountValue.name)
@@ -591,6 +592,7 @@ describe('Wallet', () => {
         spendingKey: null,
         createdAt: null,
         ...key,
+        ledger: true,
       }
       const accountImport1 = await node.wallet.importAccount(accountValue)
       const clone = { ...accountValue }
@@ -706,6 +708,7 @@ describe('Wallet', () => {
         createdAt: null,
         scanningEnabled: false,
         ...key,
+        ledger: false,
       }
 
       await expect(node.wallet.importAccount(accountValue)).rejects.toThrow()
@@ -727,6 +730,7 @@ describe('Wallet', () => {
         createdAt: null,
         scanningEnabled: false,
         ...key,
+        ledger: false,
       }
 
       await node.wallet.unlock(passphrase)
