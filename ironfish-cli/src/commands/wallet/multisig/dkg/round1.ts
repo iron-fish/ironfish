@@ -30,6 +30,7 @@ export class DkgRound1Command extends IronfishCommand {
     ledger: Flags.boolean({
       default: false,
       description: 'Perform operation with a ledger device',
+      exclusive: ['participantName'],
     }),
   }
 
@@ -38,11 +39,6 @@ export class DkgRound1Command extends IronfishCommand {
 
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
-
-    let participantName = flags.participantName
-    if (!participantName) {
-      participantName = await ui.multisigSecretPrompt(client)
-    }
 
     let identities = flags.identity
     if (!identities || identities.length < 2) {
@@ -72,6 +68,11 @@ export class DkgRound1Command extends IronfishCommand {
     if (flags.ledger) {
       await this.performRound1WithLedger(identities, minSigners)
       return
+    }
+
+    let participantName = flags.participantName
+    if (!participantName) {
+      participantName = await ui.multisigSecretPrompt(client)
     }
 
     const response = await client.wallet.multisig.dkg.round1({
