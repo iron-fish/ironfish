@@ -143,16 +143,11 @@ export type RpcBlockHeader = {
   graffiti: string
   work: string
   noteSize: number | null
-  /**
-   * @deprecated Please use previousBlockHash instead
-   */
-  previous: string
 }
 
 export const RpcBlockHeaderSchema: yup.ObjectSchema<RpcBlockHeader> = yup
   .object({
     hash: yup.string().defined(),
-    previous: yup.string().defined(),
     sequence: yup.number().defined(),
     previousBlockHash: yup.string().defined(),
     timestamp: yup.number().defined(),
