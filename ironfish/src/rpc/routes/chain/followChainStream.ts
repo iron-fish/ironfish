@@ -28,12 +28,7 @@ export type FollowChainStreamResponse = {
   head: {
     sequence: number
   }
-  block: RpcBlock & {
-    /**
-     * @deprecated this can be derived from the type
-     */
-    main: boolean
-  }
+  block: RpcBlock
 }
 
 export const FollowChainStreamRequestSchema: yup.ObjectSchema<FollowChainStreamRequest> = yup
@@ -53,13 +48,7 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
         sequence: yup.number().defined(),
       })
       .defined(),
-    block: RpcBlockSchema.concat(
-      yup
-        .object({
-          main: yup.boolean().defined(),
-        })
-        .defined(),
-    ),
+    block: RpcBlockSchema.defined(),
   })
   .defined()
 
@@ -127,7 +116,6 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
         block: {
           ...blockHeaderResponse,
           size: getBlockSize(block),
-          main: type === 'connected',
           transactions,
         },
       })
