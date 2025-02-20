@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { AssetVerification } from '../../../assets'
 import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -27,22 +26,6 @@ export interface GetBalancesResponse {
     availableNoteCount: number
     blockHash: string | null
     sequence: number | null
-    /**
-     * @deprecated Please use getAsset endpoint to get this information
-     */
-    assetName: string
-    /**
-     * @deprecated Please use getAsset endpoint to get this information
-     */
-    assetCreator: string
-    /**
-     * @deprecated Please use getAsset endpoint to get this information
-     * */
-    assetOwner: string
-    /**
-     * @deprecated Please use getAsset endpoint to get this information
-     * */
-    assetVerification: { status: AssetVerification['status'] }
   }[]
 }
 
@@ -63,14 +46,6 @@ export const GetBalancesResponseSchema: yup.ObjectSchema<GetBalancesResponse> = 
           .object()
           .shape({
             assetId: yup.string().defined(),
-            assetName: yup.string().defined(),
-            assetCreator: yup.string().defined(),
-            assetOwner: yup.string().defined(),
-            assetVerification: yup
-              .object({
-                status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined(),
-              })
-              .defined(),
             unconfirmed: yup.string().defined(),
             unconfirmedCount: yup.number().defined(),
             pending: yup.string().defined(),
@@ -104,14 +79,8 @@ routes.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
         return
       }
 
-      const asset = await account.getAsset(balance.assetId)
-
       balances.push({
         assetId: balance.assetId.toString('hex'),
-        assetName: asset?.name.toString('hex') ?? '',
-        assetCreator: asset?.creator.toString('hex') ?? '',
-        assetOwner: asset?.owner.toString('hex') ?? '',
-        assetVerification: { status: context.assetsVerifier.verify(balance.assetId).status },
         blockHash: balance.blockHash?.toString('hex') ?? null,
         confirmed: CurrencyUtils.encode(balance.confirmed),
         sequence: balance.sequence,
