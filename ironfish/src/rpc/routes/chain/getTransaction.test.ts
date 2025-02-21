@@ -18,11 +18,9 @@ describe('Route chain/getTransaction', () => {
 
     const transaction = block2.transactions[0]
 
-    const notesEncrypted: string[] = []
     const notes: { hash: string; serialized: string }[] = []
 
     for (const note of transaction.notes) {
-      notesEncrypted.push(note.serialize().toString('hex'))
       notes.push({
         hash: note.hash().toString('hex'),
         serialized: note.serialize().toString('hex'),
@@ -44,10 +42,7 @@ describe('Route chain/getTransaction', () => {
     expect(response.content).toMatchObject({
       fee: Number(transaction.fee()),
       expiration: transaction.expiration(),
-      notesCount: 1,
-      spendsCount: 0,
       signature: transaction.transactionSignature().toString('hex'),
-      notesEncrypted,
       spends,
       mints: [],
       burns: [],
@@ -63,11 +58,9 @@ describe('Route chain/getTransaction', () => {
 
     const transaction = block2.transactions[0]
 
-    const notesEncrypted: string[] = []
     const notes: { hash: string; serialized: string }[] = []
 
     for (const note of transaction.notes) {
-      notesEncrypted.push(note.serialize().toString('hex'))
       notes.push({
         hash: note.hash().toString('hex'),
         serialized: note.serialize().toString('hex'),
@@ -90,10 +83,7 @@ describe('Route chain/getTransaction', () => {
     expect(response.content).toMatchObject({
       fee: Number(transaction.fee()),
       expiration: transaction.expiration(),
-      notesCount: 1,
-      spendsCount: 0,
       signature: transaction.transactionSignature().toString('hex'),
-      notesEncrypted,
       spends,
       mints: [],
       burns: [],
