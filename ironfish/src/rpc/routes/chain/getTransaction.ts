@@ -16,18 +16,6 @@ export type GetTransactionRequest = { transactionHash: string; blockHash?: strin
 export type GetTransactionResponse = RpcTransaction & {
   noteSize: number
   blockHash: string
-  /**
-   * @deprecated Please use `notes.length` instead
-   */
-  notesCount: number
-  /**
-   * @deprecated Please use `spends.length` instead
-   */
-  spendsCount: number
-  /**
-   * @deprecated Please use `notes` instead
-   */
-  notesEncrypted: string[]
 }
 
 export const GetTransactionRequestSchema: yup.ObjectSchema<GetTransactionRequest> = yup
@@ -41,9 +29,6 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
   RpcTransactionSchema.concat(
     yup
       .object({
-        notesCount: yup.number().defined(),
-        spendsCount: yup.number().defined(),
-        notesEncrypted: yup.array(yup.string().defined()).defined(),
         noteSize: yup.number().defined(),
         blockHash: yup.string().defined(),
       })
@@ -95,11 +80,6 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       ...serializeRpcTransaction(chainTransaction.transaction, true),
       blockHash: blockHashBuffer.toString('hex'),
       noteSize: chainTransaction.initialNoteIndex + chainTransaction.transaction.notes.length,
-      notesCount: chainTransaction.transaction.notes.length,
-      spendsCount: chainTransaction.transaction.spends.length,
-      notesEncrypted: chainTransaction.transaction.notes.map((note) =>
-        note.serialize().toString('hex'),
-      ),
     })
   },
 )
