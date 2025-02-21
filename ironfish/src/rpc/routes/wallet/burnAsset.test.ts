@@ -94,6 +94,7 @@ describe('Route wallet/burnAsset', () => {
         asset: {
           id: asset.id().toString('hex'),
           metadata: asset.metadata().toString('hex'),
+          name: asset.name().toString('hex'),
           creator: asset.creator().toString('hex'),
           nonce: accountAsset.nonce ?? null,
           owner: accountAsset.owner.toString('hex') ?? '',
