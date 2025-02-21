@@ -38,14 +38,6 @@ export const BurnAssetRequestSchema: yup.ObjectSchema<BurnAssetRequest> = yup
 export type BurnAssetResponse = RpcBurn & {
   asset: RpcAsset
   transaction: RpcWalletTransaction
-  /**
-   * @deprecated Please use `transaction.hash` instead
-   */
-  hash: string
-  /**
-   * @deprecated Please use `asset.name` instead
-   */
-  name: string
 }
 
 export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetResponse> =
@@ -54,8 +46,6 @@ export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetResponse> =
       .object({
         asset: RpcAssetSchema.defined(),
         transaction: RpcWalletTransactionSchema.defined(),
-        name: yup.string().defined(),
-        hash: yup.string().defined(),
       })
       .defined(),
   ).defined()
@@ -120,8 +110,6 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
       ),
       id: burn.assetId.toString('hex'),
       assetId: burn.assetId.toString('hex'),
-      hash: transaction.hash().toString('hex'),
-      name: asset.name.toString('hex'),
       assetName: asset.name.toString('hex'),
       value: CurrencyUtils.encode(burn.value),
     })
