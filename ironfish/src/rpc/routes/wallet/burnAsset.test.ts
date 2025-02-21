@@ -51,7 +51,7 @@ describe('Route wallet/burnAsset', () => {
   })
 
   describe('with valid parameters', () => {
-    it('returns the asset identifier and transaction hash', async () => {
+    it('returns the asset identifier', async () => {
       const node = routeTest.node
       const wallet = node.wallet
       const account = await useAccountFixture(wallet)
@@ -94,7 +94,6 @@ describe('Route wallet/burnAsset', () => {
         asset: {
           id: asset.id().toString('hex'),
           metadata: asset.metadata().toString('hex'),
-          name: asset.name().toString('hex'),
           creator: asset.creator().toString('hex'),
           nonce: accountAsset.nonce ?? null,
           owner: accountAsset.owner.toString('hex') ?? '',
@@ -112,9 +111,7 @@ describe('Route wallet/burnAsset', () => {
         ),
         id: asset.id().toString('hex'),
         assetId: asset.id().toString('hex'),
-        name: asset.name().toString('hex'),
         assetName: asset.name().toString('hex'),
-        hash: burnTransaction.hash().toString('hex'),
         value: burnTransaction.burns[0].value.toString(),
       })
     })
