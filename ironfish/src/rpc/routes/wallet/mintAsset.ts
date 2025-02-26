@@ -51,10 +51,6 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
 export type MintAssetResponse = RpcMint & {
   asset: RpcAsset
   transaction: RpcWalletTransaction
-  /**
-   * @deprecated Please use `transaction.hash` instead
-   */
-  hash: string
 }
 
 export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> =
@@ -63,7 +59,6 @@ export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> =
       .object({
         asset: RpcAssetSchema.defined(),
         transaction: RpcWalletTransactionSchema.defined(),
-        hash: yup.string().defined(),
       })
       .defined(),
   ).defined()
@@ -157,7 +152,6 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         transactionValue,
       ),
       assetId: asset.id.toString('hex'),
-      hash: transaction.hash().toString('hex'),
       name: asset.name.toString('hex'),
       value: mint.value.toString(),
       id: mint.asset.id().toString('hex'),
