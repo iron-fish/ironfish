@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{errors::IronfishError, wasm_bindgen_wrapper};
+use group::ff::Field;
 use group::GroupEncoding;
 use ironfish::errors::IronfishErrorKind;
 use ironfish_zkp::redjubjub;
@@ -16,6 +17,16 @@ wasm_bindgen_wrapper! {
 
 #[wasm_bindgen]
 impl Scalar {
+    #[wasm_bindgen]
+    pub fn zero() -> Self {
+        Self(blstrs::Scalar::zero())
+    }
+
+    #[wasm_bindgen]
+    pub fn random() -> Self {
+        Self(blstrs::Scalar::random(thread_rng()))
+    }
+
     #[wasm_bindgen(js_name = toBytesBe)]
     pub fn to_bytes_be(&self) -> Vec<u8> {
         self.0.to_bytes_be().to_vec()
@@ -34,6 +45,18 @@ wasm_bindgen_wrapper! {
 
 #[wasm_bindgen]
 impl Fr {
+    #[wasm_bindgen]
+    pub fn random() -> Self {
+        Self(ironfish_jubjub::Fr::random(thread_rng()))
+    }
+
+    #[wasm_bindgen(js_name = fromBytes)]
+    pub fn from_bytes(&self, bytes: &[u8]) -> Option<Self> {
+        let bytes: &[u8; 32] = bytes.try_into().ok()?;
+        let fr = Option::from(ironfish_jubjub::Fr::from_bytes(bytes))?;
+        Some(Self(fr))
+    }
+
     #[wasm_bindgen(js_name = toBytes)]
     pub fn to_bytes(&self) -> Vec<u8> {
         self.0.to_bytes().to_vec()
@@ -175,6 +198,27 @@ impl Signature {
     #[wasm_bindgen(constructor)]
     pub fn deserialize(bytes: &[u8]) -> Result<Self, IronfishError> {
         let s = redjubjub::Signature::read(bytes)?;
+        Ok(Self::from(s))
+    }
+
+    #[wasm_bindgen]
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut buf = Vec::new();
+        self.0.write(&mut buf).expect("serialization failed");
+        buf
+    }
+}
+
+wasm_bindgen_wrapper! {
+    #[derive(Clone, PartialEq, Debug)]
+    pub struct Proof(ironfish_bellperson::groth16::Proof<blstrs::Bls12>);
+}
+
+#[wasm_bindgen]
+impl Proof {
+    #[wasm_bindgen(constructor)]
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, IronfishError> {
+        let s = ironfish_bellperson::groth16::Proof::read(bytes)?;
         Ok(Self::from(s))
     }
 

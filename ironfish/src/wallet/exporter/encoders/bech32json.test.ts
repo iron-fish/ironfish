@@ -38,7 +38,7 @@ describe('Bech32JsonEncoder', () => {
     it('throws when bech32 decoded string is not json account', () => {
       const invalidJson = 'ironfishaccount1qqqqqqqqc5n9p2'
       const encoder = new Bech32JsonEncoder()
-      expect(() => encoder.decode(invalidJson)).toThrow()
+      expect(() => encoder.decode(invalidJson)).toThrow('Invalid JSON')
     })
 
     it('derives missing viewKeys from the spendingKey', () => {

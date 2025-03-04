@@ -30,7 +30,7 @@ export class DkgRound2Command extends IronfishCommand {
     ledger: Flags.boolean({
       default: false,
       description: 'Perform operation with a ledger device',
-      hidden: true,
+      exclusive: ['participantName'],
     }),
   }
 
@@ -40,17 +40,9 @@ export class DkgRound2Command extends IronfishCommand {
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
 
-    let participantName = flags.participantName
-    if (!participantName) {
-      participantName = await ui.multisigSecretPrompt(client)
-    }
-
     let round1SecretPackage = flags.round1SecretPackage
     if (!round1SecretPackage) {
-      round1SecretPackage = await ui.inputPrompt(
-        `Enter the round 1 secret package for participant ${participantName}`,
-        true,
-      )
+      round1SecretPackage = await ui.inputPrompt('Enter your round 1 secret package', true)
     }
 
     let round1PublicPackages = flags.round1PublicPackages
@@ -72,6 +64,11 @@ export class DkgRound2Command extends IronfishCommand {
     if (flags.ledger) {
       await this.performRound2WithLedger(round1PublicPackages, round1SecretPackage)
       return
+    }
+
+    let participantName = flags.participantName
+    if (!participantName) {
+      participantName = await ui.multisigSecretPrompt(client)
     }
 
     const response = await client.wallet.multisig.dkg.round2({

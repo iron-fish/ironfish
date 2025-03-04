@@ -74,6 +74,24 @@ impl OutputBuilder {
         ExtendedPoint::from(self.value_commitment.commitment())
     }
 
+    pub fn build_circuit(
+        &self,
+        proof_generation_key: &ProofGenerationKey,
+        public_key_randomness: &ironfish_jubjub::Fr,
+    ) -> (Output, EphemeralKeyPair) {
+        let key_pair = EphemeralKeyPair::new();
+        let circuit = Output {
+            value_commitment: Some(self.value_commitment.clone()),
+            payment_address: Some(self.note.owner.0),
+            commitment_randomness: Some(self.note.randomness),
+            esk: Some(*key_pair.secret()),
+            asset_id: *self.note.asset_id().as_bytes(),
+            proof_generation_key: Some(proof_generation_key.clone()),
+            ar: Some(*public_key_randomness),
+        };
+        (circuit, key_pair)
+    }
+
     /// Construct and return the committed [`OutputDescription`] for this receiving calculation.
     ///
     /// The [`OutputDescription`] is the publicly visible form of the new note, not
@@ -81,24 +99,15 @@ impl OutputBuilder {
     ///
     /// Verifies the proof before returning to prevent posting broken
     /// transactions.
-    pub(crate) fn build(
+    pub fn build(
         &self,
         proof_generation_key: &ProofGenerationKey,
         outgoing_view_key: &OutgoingViewKey,
         public_key_randomness: &ironfish_jubjub::Fr,
         randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<OutputDescription, IronfishError> {
-        let diffie_hellman_keys = EphemeralKeyPair::new();
-
-        let circuit = Output {
-            value_commitment: Some(self.value_commitment.clone()),
-            payment_address: Some(self.note.owner.0),
-            commitment_randomness: Some(self.note.randomness),
-            esk: Some(*diffie_hellman_keys.secret()),
-            asset_id: *self.note.asset_id().as_bytes(),
-            proof_generation_key: Some(proof_generation_key.clone()),
-            ar: Some(*public_key_randomness),
-        };
+        let (circuit, diffie_hellman_keys) =
+            self.build_circuit(proof_generation_key, public_key_randomness);
 
         let proof =
             groth16::create_random_proof(circuit, &SAPLING.output_params, &mut thread_rng())?;

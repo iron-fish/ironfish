@@ -1,6 +1,7 @@
 [package]
 name = "ironfish-wasm"
-version = "0.1.0"
+version = "0.3.0"
+description = "Iron Fish WASM package that compiles native Iron Fish code to WebAssembly with TypeScript bindings."
 license = "MPL-2.0"
 
 authors.workspace = true
@@ -18,6 +19,7 @@ default = ["transaction-proofs"]
 
 download-params = ["ironfish/download-params"]
 note-encryption-stats = ["ironfish/note-encryption-stats"]
+transaction-builders = ["transaction-proofs"]
 transaction-proofs = ["ironfish/transaction-proofs"]
 
 [dependencies]
@@ -25,10 +27,12 @@ blstrs = "0.6.0"
 getrandom = { version = "0.2.8", features = ["js"] } # need to explicitly enable the `js` feature in order to run in a browser
 group = "0.12.0"
 ironfish = { version = "0.3.0", path = "../ironfish-rust", default-features = false }
+ironfish-bellperson = { version = "0.1.0", features = ["groth16"] }
 ironfish-jubjub = "0.1.0"
 ironfish_zkp = { version = "0.2.0", path = "../ironfish-zkp" }
 rand = "0.8.5"
 rayon = { version = "1.8.1", features = ["web_spin_lock"] } # need to explicitly enable the `web_spin_lock` in order to run in a browser
+tiny-bip39 = "1.0"
 wasm-bindgen = "0.2.95"
 
 [dev-dependencies]

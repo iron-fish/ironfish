@@ -51,7 +51,7 @@ export class DkgRound3Command extends IronfishCommand {
     ledger: Flags.boolean({
       default: false,
       description: 'Perform operation with a ledger device',
-      hidden: true,
+      exclusive: ['participantName'],
     }),
     createdAt: Flags.integer({
       description:
@@ -65,15 +65,10 @@ export class DkgRound3Command extends IronfishCommand {
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
 
-    let participantName = flags.participantName
-    if (!participantName) {
-      participantName = await ui.multisigSecretPrompt(client)
-    }
-
     let round2SecretPackage = flags.round2SecretPackage
     if (!round2SecretPackage) {
       round2SecretPackage = await ui.inputPrompt(
-        `Enter the round 2 encrypted secret package for participant ${participantName}`,
+        'Enter your round 2 encrypted secret package',
         true,
       )
     }
@@ -128,15 +123,25 @@ export class DkgRound3Command extends IronfishCommand {
     }
 
     if (flags.ledger) {
+      let accountName = flags.accountName
+      if (!accountName) {
+        accountName = await ui.inputPrompt('Enter a name for the account', true)
+      }
+
       await this.performRound3WithLedger(
         client,
-        participantName,
+        accountName,
         round1PublicPackages,
         round2PublicPackages,
         round2SecretPackage,
         accountCreatedAt,
       )
       return
+    }
+
+    let participantName = flags.participantName
+    if (!participantName) {
+      participantName = await ui.multisigSecretPrompt(client)
     }
 
     const response = await client.wallet.multisig.dkg.round3({
@@ -156,7 +161,7 @@ export class DkgRound3Command extends IronfishCommand {
 
   async performRound3WithLedger(
     client: RpcClient,
-    participantName: string,
+    accountName: string,
     round1PublicPackagesStr: string[],
     round2PublicPackagesStr: string[],
     round2SecretPackage: string,
@@ -164,8 +169,13 @@ export class DkgRound3Command extends IronfishCommand {
   ): Promise<void> {
     const ledger = new LedgerMultiSigner()
 
-    const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
-    const identity = identityResponse.content.identity
+    const identity = (
+      await ui.ledger({
+        ledger,
+        message: 'Getting Ledger Identity',
+        action: () => ledger.dkgGetIdentity(0),
+      })
+    ).toString('hex')
 
     // Sort packages by identity
     const round1PublicPackages = round1PublicPackagesStr
@@ -234,9 +244,10 @@ export class DkgRound3Command extends IronfishCommand {
         identity,
       },
       version: ACCOUNT_SCHEMA_VERSION,
-      name: participantName,
+      name: accountName,
       spendingKey: null,
       createdAt: null,
+      ledger: true,
     }
 
     // Import multisig account
@@ -244,7 +255,7 @@ export class DkgRound3Command extends IronfishCommand {
       client,
       encodeAccountImport(accountImport, AccountFormat.Base64Json),
       this.logger,
-      participantName,
+      accountName,
       accountCreatedAt,
     )
 

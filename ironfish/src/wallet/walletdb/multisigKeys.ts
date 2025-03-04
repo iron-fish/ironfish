@@ -22,6 +22,7 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
     bw.writeVarBytes(Buffer.from(value.publicKeyPackage, 'hex'))
     if (isSignerMultisig(value)) {
       bw.writeVarBytes(Buffer.from(value.secret, 'hex'))
+      bw.writeVarBytes(Buffer.from(value.identity, 'hex'))
       bw.writeVarBytes(Buffer.from(value.keyPackage, 'hex'))
     } else if (isHardwareSignerMultisig(value)) {
       bw.writeVarBytes(Buffer.from(value.identity, 'hex'))
@@ -40,10 +41,12 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
     const publicKeyPackage = reader.readVarBytes().toString('hex')
     if (isSigner) {
       const secret = reader.readVarBytes().toString('hex')
+      const identity = reader.readVarBytes().toString('hex')
       const keyPackage = reader.readVarBytes().toString('hex')
       return {
         publicKeyPackage,
         secret,
+        identity,
         keyPackage,
       }
     } else if (isHardwareSigner) {
@@ -66,6 +69,7 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
     size += bufio.sizeVarString(value.publicKeyPackage, 'hex')
     if (isSignerMultisig(value)) {
       size += bufio.sizeVarString(value.secret, 'hex')
+      size += bufio.sizeVarString(value.identity, 'hex')
       size += bufio.sizeVarString(value.keyPackage, 'hex')
     } else if (isHardwareSignerMultisig(value)) {
       size += bufio.sizeVarString(value.identity, 'hex')
@@ -76,13 +80,22 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
 }
 
 export function isSignerMultisig(multisigKeys: MultisigKeys): multisigKeys is MultisigSigner {
-  return 'keyPackage' in multisigKeys && 'secret' in multisigKeys
+  return (
+    'keyPackage' in multisigKeys &&
+    'secret' in multisigKeys &&
+    'identity' in multisigKeys &&
+    'publicKeyPackage' in multisigKeys
+  )
 }
 
 export function isHardwareSignerMultisig(
   multisigKeys: MultisigKeys,
 ): multisigKeys is MultisigHardwareSigner {
-  return 'identity' in multisigKeys
+  return (
+    'identity' in multisigKeys &&
+    'publicKeyPackage' in multisigKeys &&
+    !('secret' in multisigKeys)
+  )
 }
 
 export function AssertIsSignerMultisig(

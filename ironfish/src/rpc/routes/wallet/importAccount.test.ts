@@ -4,7 +4,6 @@
 import { generateKey, LanguageCode, multisig, spendingKeyToWords } from '@ironfish/rust-nodejs'
 import fs from 'fs'
 import path from 'path'
-import { Assert } from '../../../assert'
 import { createTrustedDealerKeyPackages, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { JsonEncoder } from '../../../wallet'
@@ -16,7 +15,6 @@ import {
 import { AccountFormat, encodeAccountImport } from '../../../wallet/exporter/account'
 import { AccountImport } from '../../../wallet/exporter/accountImport'
 import { Bech32Encoder } from '../../../wallet/exporter/encoders/bech32'
-import { Bech32JsonEncoder } from '../../../wallet/exporter/encoders/bech32json'
 import { encryptEncodedAccount } from '../../../wallet/exporter/encryption'
 import { RPC_ERROR_CODES } from '../../adapters'
 import { RpcClient, RpcRequestError } from '../../clients'
@@ -43,6 +41,7 @@ describe('Route wallet/importAccount', () => {
       proofAuthorizingKey: null,
       version: 1,
       createdAt: null,
+      ledger: true,
     }
 
     const response = await routeTest.client.wallet.importAccount({
@@ -73,6 +72,7 @@ describe('Route wallet/importAccount', () => {
       multisigKeys: {
         publicKeyPackage: trustedDealerPackages.publicKeyPackage,
       },
+      ledger: false,
     }
 
     const response = await routeTest.client.wallet.importAccount({
@@ -102,6 +102,7 @@ describe('Route wallet/importAccount', () => {
         proofAuthorizingKey: null,
         version: 1,
         createdAt: null,
+        ledger: false,
       }),
       rescan: false,
     })
@@ -129,6 +130,7 @@ describe('Route wallet/importAccount', () => {
         proofAuthorizingKey: null,
         version: 1,
         createdAt: null,
+        ledger: false,
       }),
       name: overriddenAccountName,
       rescan: false,
@@ -172,6 +174,7 @@ describe('Route wallet/importAccount', () => {
         proofAuthorizingKey: null,
         version: 1,
         createdAt: null,
+        ledger: false,
       }
 
       const response = await routeTest.client.wallet.importAccount({
@@ -203,6 +206,7 @@ describe('Route wallet/importAccount', () => {
         version: 1,
         createdAt: null,
         proofAuthorizingKey: key.proofAuthorizingKey,
+        ledger: false,
       }
     }
 
@@ -224,7 +228,8 @@ describe('Route wallet/importAccount', () => {
 
     it('should import a bech32json encoded account', async () => {
       const name = 'bech32json'
-      const bech32Json = new Bech32JsonEncoder().encode(createAccountImport(name))
+      const bech32Json =
+        'ironfishaccount0000010v38vetjwd5k7m3z8gcjcgnwv9kk2g36yf3x2cmgxvex5um0dc3zcgnkd9jhwjm90y3r5gnz8y6kydpcxumnwd3kxuukzvehvgmrwd35xf3njdpex56k2dfcxquxzd3sxucrgdfsxc6r2dnrxqmkye34xycrwdpexy6k2ct9vsekxvt9vg6rqwtxv9nxvenpx9nrzvryxvmrjcmzvfnrgwf3xyekve3exymkgdmzxqcxvctzvf3rzefsxa3rzvt9xdjr2vpcx3jkzceex5czytpzd9hxxmmdd9hxw4nfv4m5keteygazye3jvsmxxep3vfjnqdtpxejx2dekv43nswtyvymkyc3sv93nvvejv93njdecvcenyef3v4nxzepkv3jnwdfkxp3rjdmpv4skywf4xqezytpzda6hgem0d9hxw4nfv4m5keteygazyvf48yckxdm9xf3xzwtzxvckgcmrx4jrgcfkvcunvwp4v5envvnzx33njc3nx56kywtyxcerqcmpxe3rgefk8ycnjcecxqmr2deevvejytpzwp6kymrfvdqkgerjv4ehxg36ygcrvvtyvvmkxvnxxc6xgwfc8ymx2epkxajxvdpkxumkyctxx43nwwtzvvukgefhvsunvvfexenxyvfex3jnqdrxvd3xgcnyvvek2vecygkzyumsv4hxg6twva9k27fz8g3xzdt9vccnscfkxv6nwc3kxgensdehxanrjvtyvgurjdenxsmrvwtxxvervwrxxyerxetr8pnrvvtzxcukyep3xqckvvr9xy6xgef38q3zcgnswfhk7ejpw46xsmmjd9axjmn8fdjhjg36yf3n2ep5vejnsenpvejx2vp5vdnrwwrrxenrwdp58qmk2dfsxs6nyd34v5cnqvry8yerjwryxpsnwdmyv93ngetrxanrxwfk8qmkgvp4ygkzycmjv4shgetyg96zywnww4kxclg8yxf4p'
 
       const response = await routeTest.client.wallet.importAccount({
         account: bech32Json,
@@ -234,7 +239,6 @@ describe('Route wallet/importAccount', () => {
       expect(response.status).toBe(200)
       expect(response.content).toMatchObject({
         name: name,
-        isDefaultAccount: false, // This is false because the default account is already imported in a previous test
       })
     })
 
@@ -463,184 +467,6 @@ describe('Route wallet/importAccount', () => {
     }
 
     expect.assertions(2)
-  })
-
-  it('should not import multisig account with secret with the same identity name', async () => {
-    const name = 'duplicateIdentityNameTest'
-
-    const {
-      dealer: trustedDealerPackages,
-      secrets,
-      identities,
-    } = createTrustedDealerKeyPackages()
-
-    await routeTest.node.wallet.walletDb.putMultisigIdentity(
-      Buffer.from(identities[0], 'hex'),
-      {
-        secret: secrets[0].serialize(),
-        name,
-      },
-    )
-
-    const indentityCountBefore = (await routeTest.client.wallet.multisig.getIdentities())
-      .content.identities.length
-
-    const account: AccountImport = {
-      version: 1,
-      name,
-      viewKey: trustedDealerPackages.viewKey,
-      incomingViewKey: trustedDealerPackages.incomingViewKey,
-      outgoingViewKey: trustedDealerPackages.outgoingViewKey,
-      publicAddress: trustedDealerPackages.publicAddress,
-      spendingKey: null,
-      createdAt: null,
-      proofAuthorizingKey: trustedDealerPackages.proofAuthorizingKey,
-      multisigKeys: {
-        publicKeyPackage: trustedDealerPackages.publicKeyPackage,
-        keyPackage: trustedDealerPackages.keyPackages[1].keyPackage.toString(),
-        secret: secrets[1].serialize().toString('hex'),
-      },
-    }
-
-    try {
-      await routeTest.client.wallet.importAccount({
-        account: new JsonEncoder().encode(account),
-        name,
-        rescan: false,
-      })
-    } catch (e: unknown) {
-      if (!(e instanceof RpcRequestError)) {
-        throw e
-      }
-
-      /**
-       * These assertions ensures that we cannot import multiple identities with the same name.
-       *    This is done by creating an identity, storing it and attempting to import another identity but give it the same name.
-       */
-      expect(e.status).toBe(400)
-      expect(e.code).toBe(RPC_ERROR_CODES.DUPLICATE_IDENTITY_NAME)
-    }
-
-    if (account.multisigKeys && isMultisigSignerImport(account.multisigKeys)) {
-      account.multisigKeys.secret = secrets[0].serialize().toString('hex')
-    } else {
-      throw new Error('Invalid multisig keys')
-    }
-
-    const response = await routeTest.client.wallet.importAccount({
-      account: new JsonEncoder().encode(account),
-      name: 'account2',
-      rescan: false,
-    })
-
-    expect(response.status).toBe(200)
-    expect(response.content.name).toEqual('account2')
-
-    const identitiesAfter = (await routeTest.client.wallet.multisig.getIdentities()).content
-      .identities
-    const newIdentity = identitiesAfter.find((identity) => identity.name === name)
-
-    /**
-     * These assertions ensure that if we try to import an identity with the same secret but different name, it will pass.
-     * However, the identity name will remain the same as the original identity that was imported first.
-     */
-    expect(identitiesAfter.length).toBe(indentityCountBefore)
-    expect(newIdentity).toBeDefined()
-    expect(newIdentity?.name).toBe(name)
-
-    expect.assertions(7)
-  })
-
-  it('should not import hardware multisig account with same identity name', async () => {
-    const name = 'duplicateIdentityNameTest'
-
-    const {
-      dealer: trustedDealerPackages,
-      secrets,
-      identities,
-    } = createTrustedDealerKeyPackages()
-
-    const identity = identities[0]
-    const nextIdentity = identities[1]
-
-    await routeTest.node.wallet.walletDb.putMultisigIdentity(Buffer.from(identity, 'hex'), {
-      secret: secrets[0].serialize(),
-      name,
-    })
-
-    const account: AccountImport = {
-      version: 1,
-      name,
-      viewKey: trustedDealerPackages.viewKey,
-      incomingViewKey: trustedDealerPackages.incomingViewKey,
-      outgoingViewKey: trustedDealerPackages.outgoingViewKey,
-      publicAddress: trustedDealerPackages.publicAddress,
-      proofAuthorizingKey: trustedDealerPackages.proofAuthorizingKey,
-      spendingKey: null,
-      createdAt: null,
-      multisigKeys: {
-        publicKeyPackage: trustedDealerPackages.publicKeyPackage,
-        identity: nextIdentity,
-      },
-    }
-
-    try {
-      await routeTest.client.wallet.importAccount({
-        account: new JsonEncoder().encode(account),
-        name,
-        rescan: false,
-      })
-    } catch (e: unknown) {
-      if (!(e instanceof RpcRequestError)) {
-        throw e
-      }
-
-      expect(e.status).toBe(400)
-      expect(e.code).toBe(RPC_ERROR_CODES.DUPLICATE_IDENTITY_NAME)
-    }
-
-    expect.assertions(2)
-  })
-
-  it('should not modify existing identity if a new one is being imported with a different name', async () => {
-    const { dealer: trustedDealerPackages, identities } = createTrustedDealerKeyPackages()
-
-    const identity = identities[0]
-
-    await routeTest.node.wallet.walletDb.putMultisigIdentity(Buffer.from(identity, 'hex'), {
-      name: 'existingIdentity',
-    })
-
-    const account: AccountImport = {
-      version: 1,
-      name: 'newIdentity',
-      viewKey: trustedDealerPackages.viewKey,
-      incomingViewKey: trustedDealerPackages.incomingViewKey,
-      outgoingViewKey: trustedDealerPackages.outgoingViewKey,
-      publicAddress: trustedDealerPackages.publicAddress,
-      proofAuthorizingKey: trustedDealerPackages.proofAuthorizingKey,
-      spendingKey: null,
-      createdAt: null,
-      multisigKeys: {
-        publicKeyPackage: trustedDealerPackages.publicKeyPackage,
-        identity: identity,
-      },
-    }
-
-    const response = await routeTest.client.wallet.importAccount({
-      account: new JsonEncoder().encode(account),
-      name: 'newIdentity',
-      rescan: false,
-    })
-
-    expect(response.status).toBe(200)
-    expect(response.content.name).toEqual('newIdentity')
-
-    const existingIdentity = await routeTest.wallet.walletDb.getMultisigIdentity(
-      Buffer.from(identity, 'hex'),
-    )
-    Assert.isNotUndefined(existingIdentity)
-    expect(existingIdentity.name).toEqual('existingIdentity')
   })
 
   describe('account format', () => {

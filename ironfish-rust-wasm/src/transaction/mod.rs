@@ -17,6 +17,12 @@ pub use outputs::OutputDescription;
 pub use spends::{SpendDescription, UnsignedSpendDescription};
 pub use unsigned::UnsignedTransaction;
 
+#[cfg(feature = "transaction-proofs")]
+mod proposed;
+
+#[cfg(feature = "transaction-builders")]
+pub use self::{mints::MintBuilder, spends::SpendBuilder};
+
 wasm_bindgen_wrapper! {
     #[derive(Clone, Debug)]
     pub struct Transaction(ironfish::Transaction);

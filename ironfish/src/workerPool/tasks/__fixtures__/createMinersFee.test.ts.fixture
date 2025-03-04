@@ -2,23 +2,25 @@
   "CreateMinersFeeTask execute posts a v1 miners fee transaction": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "e50dfb0c-2e95-478b-96bf-35d57bdf8031",
+        "id": "5043289c-76aa-4387-92c7-0733a850fb63",
         "name": "test",
-        "spendingKey": "ea3c83686414c28ebbe38a37a4c32214450937b077a760bab1e20e49d7d35284",
-        "viewKey": "bf483804e931086aeb43918ad173c7ac8dc38a631a8fe2924bad53b6e26253bea35d01834112e331fbb05be477fa4d16dba1a01e017c4e2534186f1fdafc5591",
-        "incomingViewKey": "a5869707993c17bde08e7ee001f34580d661f3784d0868e49e3bbc4ef7177901",
-        "outgoingViewKey": "454bbb0bb377f5b47789bdf67dbe02dd82638837d09f6f94e189e44a217f2298",
-        "publicAddress": "8e682b65721c34bff195424374c376dfa23ec736a118b2d1b9febdf89dd9b9dc",
+        "spendingKey": "65783d88b79fe5ea1aa6a84ca68f3fc4ad7bdf2c528a5bbd6ea45b18fe507d37",
+        "viewKey": "5c9fe0290b1098897a445c3e44409626f71934e9b1fc649502d00691d4f86fe4d3fd79ae22cb363b457062e4e26575d40e8ecd1542666bb070e690cceee299a7",
+        "incomingViewKey": "0a4a3931e805b824decdb4dafc7a09356525cd8b30ecca259384755418ca7605",
+        "outgoingViewKey": "56126cb65aee411bc19ebf39a8c4f512d6a58d834862580906268c00b8c6ee4f",
+        "publicAddress": "8e8a7737cc4875ff23f5e5493be365af59246907e1c06255bfb69964d1aad860",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "873f3b30ab6dc060f7ef791c2f2eda3540b9b19f514bfd7c84e5eb6fe1732102"
+        "proofAuthorizingKey": "88d116cd383fe980e7d7f20a9460b791fa2ca2af032d8e6eb0b7de105feb4a0c",
+        "ledger": false
       },
       "head": {
         "hash": {
@@ -32,23 +34,25 @@
   "CreateMinersFeeTask execute posts a v2 miners fee transaction": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "b6618c82-0084-4d87-a5e9-ddccc9ad0bc9",
+        "id": "23a4e679-b165-413f-98f2-7d9ffcba6de6",
         "name": "test",
-        "spendingKey": "224edddb2726cb19036fdaa317ac8202d1858ea08d6044f1e01c5f768acda942",
-        "viewKey": "5423ee7942ca3dc5a5ec36002f3e868081026c82ac06942aa9009a92201581cb38b883fbe25683d38e37d2f40d946292d5af34a6523e707817e6a2645dea696c",
-        "incomingViewKey": "40c120be9cc2df52fd80ffd8e5dce581af849b82b0eb17dd1085f9ebeef53102",
-        "outgoingViewKey": "912a3af11e929016fbdfa097b9d9f43adc51fa9338797fc07864d57ba582e9cb",
-        "publicAddress": "eae823d3859e9ac3eb5f5cab0511045925200a0f6912e4d39d863639ab831b62",
+        "spendingKey": "5bd00724f8da875ba583b7e1599051d47e8177a3958c4c6a0cf94ac1d86484b4",
+        "viewKey": "60dfc86d4881ca36e69eee3564efaf1fa81dc1bc42e200c0c196a9bfca21f6a085867168c02ccb8a7d4028d0a7351336482d88da7cf0e26206855db241535e64",
+        "incomingViewKey": "dfbf4def6afc07918523c107d1c7419f9c6686c67abb06ea41d3d07c2eaf7505",
+        "outgoingViewKey": "ba64a57e4a8f2952a54cc63c1a7dcd1603098bd40a5b091a9b32bf7598aa3f63",
+        "publicAddress": "be5fb19c9a9a0b4fe844df74a7987fb1effbff663474900b6e267bdee055de71",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "03cd048ea145f76b9c000bed18a64150670d80cae6378ae0917fddaa0fdd300c"
+        "proofAuthorizingKey": "2766569515dcc82c1be2bdc6bba1f8fc2ac188e2b33380e6c86a1a826b113c02",
+        "ledger": false
       },
       "head": {
         "hash": {

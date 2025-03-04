@@ -1,0 +1,55 @@
+name: Deploy NPM Ironfish Rust Wasm
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Run the publish command in dry-run mode'
+        required: false
+        default: 'false'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+          cache: yarn
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: wasm
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Generate package
+        working-directory: ./ironfish-rust-wasm
+        run: wasm-pack build --release --target=web --scope=ironfish
+
+      - name: Test in Firefox
+        working-directory: ./ironfish-rust-wasm
+        run: wasm-pack test --headless --firefox
+
+      - name: Test in Chrome
+        working-directory: ./ironfish-rust-wasm
+        run: wasm-pack test --headless --chrome
+
+      - name: Publish
+        working-directory: ./ironfish-rust-wasm/pkg
+        run: |
+          if [ ${{ github.event.inputs.dry-run }} = "true" ]; then
+            npm publish --access public --dry-run
+          else
+            npm publish --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

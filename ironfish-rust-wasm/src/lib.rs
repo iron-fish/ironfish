@@ -16,12 +16,14 @@ use getrandom as _;
 use rayon as _;
 
 pub mod assets;
+pub mod circuits;
 pub mod errors;
 pub mod keys;
 pub mod merkle_note;
 pub mod note;
 pub mod primitives;
 pub mod transaction;
+pub mod witness;
 
 /// Creates a [`wasm_bindgen`] wrapper for an existing type.
 ///

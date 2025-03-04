@@ -30,6 +30,7 @@ describe('AccountValueEncoding', () => {
       },
       scanningEnabled: true,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      ledger: false,
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)
@@ -56,9 +57,11 @@ describe('AccountValueEncoding', () => {
       multisigKeys: {
         publicKeyPackage: 'cccc',
         secret: 'deaf',
+        identity: 'c0ffee',
         keyPackage: 'beef',
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
+      ledger: false,
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)
@@ -84,9 +87,11 @@ describe('AccountValueEncoding', () => {
       multisigKeys: {
         publicKeyPackage: 'cccc',
         secret: 'deaf',
+        identity: 'c0ffee',
         keyPackage: 'beef',
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
+      ledger: false,
     }
 
     const passphrase = 'foobarbaz'

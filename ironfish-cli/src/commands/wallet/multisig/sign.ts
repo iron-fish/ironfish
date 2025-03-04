@@ -3,13 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { multisig } from '@ironfish/rust-nodejs'
-import {
-  CurrencyUtils,
-  Identity,
-  RpcClient,
-  Transaction,
-  UnsignedTransaction,
-} from '@ironfish/sdk'
+import { CurrencyUtils, RpcClient, Transaction, UnsignedTransaction } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
@@ -21,15 +15,6 @@ import {
   SigningSessionManager,
 } from '../../../utils/multisig/sessionManagers'
 import { renderUnsignedTransactionDetails, watchTransaction } from '../../../utils/transaction'
-
-// todo(patnir): this command does not differentiate between a participant and an account.
-// there is a possibility that the account and participant have different names.
-
-type MultisigParticipant = {
-  name: string
-  identity: Identity
-  hasSecret: boolean
-}
 
 export class SignMultisigTransactionCommand extends IronfishCommand {
   static description = 'Interactive command sign a transaction with a multisig account'
@@ -86,7 +71,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
     let multisigAccountName: string
     if (!flags.account) {
-      multisigAccountName = await ui.accountPrompt(client)
+      multisigAccountName = await ui.multisigAccountPrompt(client)
     } else {
       multisigAccountName = flags.account
       const account = (await client.wallet.getAccounts()).content.accounts.find(
@@ -97,30 +82,13 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
       }
     }
 
+    const identity = (
+      await client.wallet.multisig.getAccountIdentity({ account: multisigAccountName })
+    ).content.identity
+
     const accountIdentities = (
       await client.wallet.multisig.getAccountIdentities({ account: multisigAccountName })
     ).content.identities
-    const participants = (await client.wallet.multisig.getIdentities()).content.identities
-
-    const matchingIdentities = participants.filter((identity) =>
-      accountIdentities.includes(identity.identity),
-    )
-
-    if (matchingIdentities.length === 0) {
-      this.error(`No matching identities found for account ${multisigAccountName}`)
-    }
-
-    let participant: MultisigParticipant
-
-    if (matchingIdentities.length === 1) {
-      participant = matchingIdentities[0]
-    } else {
-      participant = await ui.listPrompt(
-        'Select identity for signing',
-        matchingIdentities,
-        (i) => i.name,
-      )
-    }
 
     const sessionManager = createSigningSessionManager({
       logger: this.logger,
@@ -136,7 +104,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     const { numSigners, unsignedTransaction } = await ui.retryStep(async () => {
       return sessionManager.startSession({
         unsignedTransaction: flags.unsignedTransaction,
-        identity: participant.identity,
+        identity: identity,
         allowedIdentities: accountIdentities,
       })
     }, this.logger)
@@ -159,7 +127,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
           client,
           sessionManager,
           multisigAccountName,
-          participant,
+          identity,
           numSigners,
           unsignedTransaction,
           ledger,
@@ -175,7 +143,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         sessionManager,
         multisigAccountName,
         commitment,
-        identities,
         numSigners,
         unsignedTransaction,
       )
@@ -186,7 +153,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
         this.performCreateSignatureShare(
           client,
           multisigAccountName,
-          participant,
+          identity,
           signingPackage,
           unsignedTransaction,
           ledger,
@@ -271,7 +238,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
   private async performCreateSignatureShare(
     client: RpcClient,
     accountName: string,
-    identity: MultisigParticipant,
+    identity: string,
     signingPackageString: string,
     unsignedTransaction: UnsignedTransaction,
     ledger: LedgerMultiSigner | undefined,
@@ -299,7 +266,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
       signatureShare = multisig.SignatureShare.fromFrost(
         frostSignatureShare,
-        Buffer.from(identity.identity, 'hex'),
+        Buffer.from(identity, 'hex'),
       )
         .serialize()
         .toString('hex')
@@ -320,7 +287,6 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     sessionManager: SigningSessionManager,
     accountName: string,
     commitment: string,
-    identities: string[],
     numSigners: number,
     unsignedTransaction: UnsignedTransaction,
   ) {
@@ -342,14 +308,14 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     client: RpcClient,
     sessionManager: SigningSessionManager,
     accountName: string,
-    participant: MultisigParticipant,
+    identity: string,
     numSigners: number,
     unsignedTransaction: UnsignedTransaction,
     ledger: LedgerMultiSigner | undefined,
   ) {
     const identities = await sessionManager.getIdentities({
       accountName,
-      identity: participant.identity,
+      identity,
       numSigners,
     })
 
@@ -359,7 +325,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     if (ledger) {
       commitment = await this.createSigningCommitmentWithLedger(
         ledger,
-        participant,
+        identity,
         unsignedTransaction,
         identities,
       )
@@ -381,7 +347,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
 
   async createSigningCommitmentWithLedger(
     ledger: LedgerMultiSigner,
-    participant: MultisigParticipant,
+    identity: string,
     unsignedTransaction: UnsignedTransaction,
     signers: string[],
   ): Promise<string> {
@@ -393,7 +359,7 @@ export class SignMultisigTransactionCommand extends IronfishCommand {
     })
 
     const sigingCommitment = multisig.SigningCommitment.fromRaw(
-      participant.identity,
+      identity,
       rawCommitments,
       unsignedTransaction.hash(),
       signers,

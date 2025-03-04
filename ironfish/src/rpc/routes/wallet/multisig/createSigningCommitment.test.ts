@@ -53,6 +53,7 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
         publicKeyPackage: trustedDealerPackage.publicKeyPackage,
       },
       proofAuthorizingKey: null,
+      ledger: false,
     }
 
     const importAccountRequest = {

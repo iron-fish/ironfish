@@ -40,7 +40,6 @@ export async function decryptEncodedAccount(
 
       const secret = new multisig.ParticipantSecret(secretBuffer)
       const decrypted = decryptEncodedAccountWithMultisigSecret(encoded, secret)
-
       if (decrypted) {
         return decrypted
       }

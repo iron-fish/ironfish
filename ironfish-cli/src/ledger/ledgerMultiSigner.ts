@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ACCOUNT_SCHEMA_VERSION, UnsignedTransaction } from '@ironfish/sdk'
+import { ACCOUNT_SCHEMA_VERSION, AccountImport, UnsignedTransaction } from '@ironfish/sdk'
 import {
   IronfishKeys,
   KeyResponse,
@@ -166,12 +166,12 @@ export class LedgerMultiSigner extends Ledger {
     await this.tryInstruction((app) => app.dkgRestoreKeys(encryptedKeys))
   }
 
-  importAccount = async () => {
+  importAccount = async (): Promise<AccountImport> => {
     const identity = await this.dkgGetIdentity(0)
     const dkgKeys = await this.dkgRetrieveKeys()
     const publicKeyPackage = await this.dkgGetPublicPackage()
 
-    const accountImport = {
+    const accountImport: AccountImport = {
       ...dkgKeys,
       name: 'ledger-multisig',
       multisigKeys: {
@@ -181,6 +181,7 @@ export class LedgerMultiSigner extends Ledger {
       version: ACCOUNT_SCHEMA_VERSION,
       spendingKey: null,
       createdAt: null,
+      ledger: true,
     }
 
     return accountImport

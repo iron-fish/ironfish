@@ -182,13 +182,21 @@ impl SaplingKey {
     }
 
     /// Takes a bip-39 phrase as a string and turns it into a SaplingKey instance
-    pub fn from_words(words: String, language: Language) -> Result<Self, IronfishError> {
-        let mnemonic = Mnemonic::from_phrase(&words, language)
+    pub fn from_words(words: &str, language: Language) -> Result<Self, IronfishError> {
+        let mnemonic = Mnemonic::from_phrase(words, language)
             .map_err(|_| IronfishError::new(IronfishErrorKind::InvalidMnemonicString))?;
         let bytes = mnemonic.entropy();
         let mut byte_arr = [0; SPEND_KEY_SIZE];
         byte_arr.clone_from_slice(&bytes[0..SPEND_KEY_SIZE]);
         Self::new(byte_arr)
+    }
+
+    pub fn spend_authorizing_key(&self) -> &ironfish_jubjub::Fr {
+        &self.spend_authorizing_key
+    }
+
+    pub fn proof_authorizing_key(&self) -> &ironfish_jubjub::Fr {
+        &self.proof_authorizing_key
     }
 
     /// Retrieve the publicly visible outgoing viewing key

@@ -16,6 +16,25 @@ export async function accountPrompt(
   return listPrompt(message, accountsResponse.content.accounts, (a) => a)
 }
 
+export async function multisigAccountPrompt(
+  client: Pick<RpcClient, 'wallet'>,
+  message: string = 'Select multisig account',
+): Promise<string> {
+  const accountsResponse = await client.wallet.getAccounts()
+
+  const accountIdentityPromises = accountsResponse.content.accounts.map((accountName) =>
+    client.wallet.multisig
+      .getAccountIdentity({ account: accountName })
+      .then(() => accountName)
+      .catch(() => undefined),
+  )
+
+  const multisigAccounts = (await Promise.all(accountIdentityPromises)).filter(
+    (accountName): accountName is string => accountName !== undefined,
+  )
+  return listPrompt(message, multisigAccounts, (a) => a)
+}
+
 export async function multisigSecretPrompt(client: Pick<RpcClient, 'wallet'>): Promise<string> {
   const identitiesResponse = await client.wallet.multisig.getIdentities()
 

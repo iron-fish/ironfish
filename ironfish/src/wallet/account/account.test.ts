@@ -2598,7 +2598,7 @@ describe('Accounts', () => {
       expect(accountBTx).toHaveLength(2)
 
       // tx1 and tx2 will have the same timestamp for accountB, so ordering should be reverse by hash
-      const sortedHashes = [tx1.hash(), tx2.hash()].sort().reverse()
+      const sortedHashes = [tx1.hash(), tx2.hash()].sort((a, b) => b.compare(a))
 
       expect(accountBTx[0].transaction.hash()).toEqualHash(sortedHashes[0])
       expect(accountBTx[1].transaction.hash()).toEqualHash(sortedHashes[1])
@@ -2616,7 +2616,7 @@ describe('Accounts', () => {
       expect(accountATxChronological).toHaveLength(5)
 
       // tx1 and tx2 will have the same timestamp for accountB, so ordering should be reverse by hash
-      const sortedHashesChron = [tx1.hash(), tx2.hash()].sort()
+      const sortedHashesChron = [tx1.hash(), tx2.hash()].sort((a, b) => a.compare(b))
 
       expect(accountBTxChronological[0].transaction.hash()).toEqualHash(sortedHashesChron[0])
       expect(accountBTxChronological[1].transaction.hash()).toEqualHash(sortedHashesChron[1])

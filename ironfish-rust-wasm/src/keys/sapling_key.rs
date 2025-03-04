@@ -4,7 +4,10 @@
 
 use crate::{
     errors::IronfishError,
-    keys::{IncomingViewKey, OutgoingViewKey, ProofGenerationKey, PublicAddress, ViewKey},
+    keys::{
+        IncomingViewKey, Language, OutgoingViewKey, ProofGenerationKey, PublicAddress, ViewKey,
+    },
+    primitives::Fr,
     wasm_bindgen_wrapper,
 };
 use wasm_bindgen::prelude::*;
@@ -45,7 +48,21 @@ impl SaplingKey {
         self.0.hex_spending_key()
     }
 
-    // TODO: to/fromWords
+    #[wasm_bindgen(js_name = fromWords)]
+    pub fn from_words(lang: Language, words: &str) -> Result<Self, IronfishError> {
+        ironfish::keys::SaplingKey::from_words(words, lang.into())
+            .map(|key| key.into())
+            .map_err(|err| err.into())
+    }
+
+    #[wasm_bindgen(js_name = toWords)]
+    pub fn to_words(&self, lang: Language) -> String {
+        self.0
+            .to_words(lang.into())
+            .expect("conversion to words failed")
+            .phrase()
+            .to_string()
+    }
 
     #[wasm_bindgen(getter, js_name = publicAddress)]
     pub fn public_address(&self) -> PublicAddress {
@@ -55,6 +72,16 @@ impl SaplingKey {
     #[wasm_bindgen(getter, js_name = spendingKey)]
     pub fn spending_key(&self) -> Vec<u8> {
         self.0.spending_key().to_vec()
+    }
+
+    #[wasm_bindgen(getter, js_name = spendAuthorizingKey)]
+    pub fn spend_authorizing_key(&self) -> Fr {
+        self.0.spend_authorizing_key().to_owned().into()
+    }
+
+    #[wasm_bindgen(getter, js_name = proofAuthorizingKey)]
+    pub fn proof_authorizing_key(&self) -> Fr {
+        self.0.proof_authorizing_key().to_owned().into()
     }
 
     #[wasm_bindgen(getter, js_name = incomingViewKey)]
@@ -80,7 +107,9 @@ impl SaplingKey {
 
 #[cfg(test)]
 mod tests {
-    use crate::keys::{IncomingViewKey, OutgoingViewKey, ProofGenerationKey, SaplingKey, ViewKey};
+    use crate::keys::{
+        IncomingViewKey, Language, OutgoingViewKey, ProofGenerationKey, SaplingKey, ViewKey,
+    };
     use wasm_bindgen_test::wasm_bindgen_test;
 
     macro_rules! assert_serde_ok {
@@ -101,5 +130,16 @@ mod tests {
         assert_serde_ok!(OutgoingViewKey, key.outgoing_view_key());
         assert_serde_ok!(ViewKey, key.view_key());
         assert_serde_ok!(ProofGenerationKey, key.proof_generation_key());
+    }
+
+    #[test]
+    #[wasm_bindgen_test]
+    fn from_to_words() {
+        let key = SaplingKey::random();
+        let lang = Language::English;
+        assert_eq!(
+            &key,
+            &SaplingKey::from_words(lang, key.to_words(lang).as_ref()).unwrap()
+        );
     }
 }

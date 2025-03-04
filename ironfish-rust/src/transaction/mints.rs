@@ -58,6 +58,17 @@ impl MintBuilder {
         self
     }
 
+    pub fn build_circuit(
+        &self,
+        proof_generation_key: &ProofGenerationKey,
+        public_key_randomness: &ironfish_jubjub::Fr,
+    ) -> MintAsset {
+        MintAsset {
+            proof_generation_key: Some(proof_generation_key.clone()),
+            public_key_randomness: Some(*public_key_randomness),
+        }
+    }
+
     pub fn build(
         &self,
         proof_generation_key: &ProofGenerationKey,
@@ -65,10 +76,7 @@ impl MintBuilder {
         public_key_randomness: &ironfish_jubjub::Fr,
         randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<UnsignedMintDescription, IronfishError> {
-        let circuit = MintAsset {
-            proof_generation_key: Some(proof_generation_key.clone()),
-            public_key_randomness: Some(*public_key_randomness),
-        };
+        let circuit = self.build_circuit(proof_generation_key, public_key_randomness);
 
         let proof = groth16::create_random_proof(circuit, &SAPLING.mint_params, &mut thread_rng())?;
 

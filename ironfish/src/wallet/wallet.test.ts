@@ -570,6 +570,7 @@ describe('Wallet', () => {
         spendingKey: null,
         createdAt: null,
         ...key,
+        ledger: true,
       }
       const viewonlyAccount = await node.wallet.importAccount(accountValue)
       expect(viewonlyAccount.name).toEqual(accountValue.name)
@@ -591,6 +592,7 @@ describe('Wallet', () => {
         spendingKey: null,
         createdAt: null,
         ...key,
+        ledger: true,
       }
       const accountImport1 = await node.wallet.importAccount(accountValue)
       const clone = { ...accountValue }
@@ -706,6 +708,7 @@ describe('Wallet', () => {
         createdAt: null,
         scanningEnabled: false,
         ...key,
+        ledger: false,
       }
 
       await expect(node.wallet.importAccount(accountValue)).rejects.toThrow()
@@ -727,6 +730,7 @@ describe('Wallet', () => {
         createdAt: null,
         scanningEnabled: false,
         ...key,
+        ledger: false,
       }
 
       await node.wallet.unlock(passphrase)
@@ -2686,56 +2690,6 @@ describe('Wallet', () => {
       await expect(node.wallet.getTransactionType(accountB, transactionValue)).resolves.toEqual(
         TransactionType.RECEIVE,
       )
-    })
-  })
-
-  describe('shouldDecryptForAccount', () => {
-    it('should return true for an account with null createdAt', async () => {
-      const { node } = nodeTest
-
-      const account = await useAccountFixture(node.wallet)
-
-      await account.updateCreatedAt(null)
-
-      const block = await useMinerBlockFixture(node.chain, 2)
-
-      expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(true)
-    })
-
-    it('should return true for an account with createdAt earlier than the header', async () => {
-      const { node } = nodeTest
-
-      const account = await useAccountFixture(node.wallet)
-
-      await account.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 1 })
-
-      const block = await useMinerBlockFixture(node.chain, 2)
-
-      expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(true)
-    })
-
-    it('should return false for an account created after the header', async () => {
-      const { node } = nodeTest
-
-      const account = await useAccountFixture(node.wallet)
-
-      await account.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 3 })
-
-      const block = await useMinerBlockFixture(node.chain, 2)
-
-      expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(false)
-    })
-
-    it('should return true for an account created at the header', async () => {
-      const { node } = nodeTest
-
-      const account = await useAccountFixture(node.wallet)
-
-      const block = await useMinerBlockFixture(node.chain, 2)
-
-      await account.updateCreatedAt(block.header)
-
-      expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(true)
     })
   })
 

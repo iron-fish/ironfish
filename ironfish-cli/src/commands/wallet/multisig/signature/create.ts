@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { multisig } from '@ironfish/rust-nodejs'
-import { RpcClient, UnsignedTransaction } from '@ironfish/sdk'
+import { UnsignedTransaction } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
@@ -46,9 +46,9 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     const client = await this.connectRpc()
     await ui.checkWalletUnlocked(client)
 
-    let participantName = flags.account
-    if (!participantName) {
-      participantName = await ui.multisigSecretPrompt(client)
+    let accountName = flags.account
+    if (!accountName) {
+      accountName = await ui.multisigAccountPrompt(client)
     }
 
     let signingPackageString = options.signingPackage
@@ -66,7 +66,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     await renderUnsignedTransactionDetails(
       client,
       unsignedTransaction,
-      participantName,
+      accountName,
       this.logger,
     )
 
@@ -76,8 +76,6 @@ export class CreateSignatureShareCommand extends IronfishCommand {
 
     if (flags.ledger) {
       await this.createSignatureShareWithLedger(
-        client,
-        participantName,
         unsignedTransaction,
         signingPackage.frostSigningPackage().toString('hex'),
       )
@@ -85,7 +83,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     }
 
     const signatureShareResponse = await client.wallet.multisig.createSignatureShare({
-      account: participantName,
+      account: accountName,
       signingPackage: signingPackageString,
     })
 
@@ -115,15 +113,18 @@ export class CreateSignatureShareCommand extends IronfishCommand {
   }
 
   async createSignatureShareWithLedger(
-    client: RpcClient,
-    participantName: string,
     unsignedTransaction: UnsignedTransaction,
     frostSigningPackage: string,
   ): Promise<void> {
     const ledger = new LedgerMultiSigner()
 
-    const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
-    const identity = identityResponse.content.identity
+    const identity = (
+      await ui.ledger({
+        ledger,
+        message: 'Getting Ledger Identity',
+        action: () => ledger.dkgGetIdentity(0),
+      })
+    ).toString('hex')
 
     const frostSignatureShare = await ui.ledger({
       ledger,

@@ -1642,17 +1642,19 @@ dependencies = [
 
 [[package]]
 name = "ironfish-wasm"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "blstrs",
  "getrandom",
  "group 0.12.1",
  "hex-literal",
  "ironfish",
+ "ironfish-bellperson",
  "ironfish-jubjub",
  "ironfish_zkp",
  "rand",
  "rayon",
+ "tiny-bip39",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]

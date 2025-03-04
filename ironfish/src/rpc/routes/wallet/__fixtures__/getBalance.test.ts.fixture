@@ -2,23 +2,25 @@
   "Route wallet/getBalance with a valid account returns balance of the native asset": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "52c255c6-5ded-48d4-b96d-c2fe3ea3e9b8",
+        "id": "1cd36b71-e5b9-46cb-9b7b-c9d750e08067",
         "name": "accountA",
-        "spendingKey": "c28dba5b927a45b93dd55dd642a776010e1b258084b32ac16cee815eb4b69277",
-        "viewKey": "743f609888b8d9cce8524346293027e16b9f2c5c5d2297a33a188e01c40999cec40ca84dc7df8dbdbc6c20b9ab9fbd093f297285b492e715e9a4b4f9f051d600",
-        "incomingViewKey": "168a0b262ff8e611f9455ae2189bbfcc81058f996f6ccce6e21be0197e789e00",
-        "outgoingViewKey": "1a7780e356f6ff92687dd172e417c1d11db1db67e2612f72bbf75d7af9f2a51f",
-        "publicAddress": "729b67146151c1ac6498339f39b29854f7338137088d95dc8204fc5c5476094a",
+        "spendingKey": "e882311c4a64d393f32d77757fbfcbd6a75f100cd1d2856eeaf83ac9eaf161a1",
+        "viewKey": "4468a7013ace713bce11a329cf2f4713e119a20f9a6a24d9110ce625e42e97d7362b7c82ce2d870835268d2b4c2490b697a35e27cd2c72ae314d281615df1968",
+        "incomingViewKey": "25963dc49913772ec41dbd2664f2b3ee0b759d9949ebbb2ad9d4e851f0d42705",
+        "outgoingViewKey": "7f8d514c9da9a48e0e3f715d460fca638823839b7a065931d1908e24aa611436",
+        "publicAddress": "491ab4322bc3ada812811b367d11193125241bf1487516a310c8a170c187eab9",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "6fe09a2a90f14af29013780e8c8864c6d1fab8b78891c7c8981b878d214a6104"
+        "proofAuthorizingKey": "03dec7952013dc12d913201c9b64631aaff342afc0380f0c0931ee8780782b0e",
+        "ledger": false
       },
       "head": {
         "hash": {
@@ -32,23 +34,25 @@
   "Route wallet/getBalance with a valid account returns balance of an arbitrary asset": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "26bca817-04be-4dc3-b1ba-9e97a815364e",
+        "id": "682ee96a-efde-4b99-a991-7c4a1c403df4",
         "name": "accountB",
-        "spendingKey": "0c731e6f2f1323b864f2f68119ddf9ab2ae08a1b3bd4ab4a84928e38a9367980",
-        "viewKey": "989f04e7ed117d9f69d80c54bed9497b6c8fa83550e6835eb16a39e5bff92ad37c0a118cba506db5a3d8ec92376adcfcea66047f47bd56db1c3d133c6f912a38",
-        "incomingViewKey": "d1c5a5cfb2137d7a560a7073582fbd3711675313963557a8b1da9c0745f4ae00",
-        "outgoingViewKey": "9e76dbb76ca0eaab4aa1f317f670c200983a658d7173432158b924eaa601dc08",
-        "publicAddress": "f0b5e7f518003051809e4fd6c8834d3dd192f08650f3b6cd0333384e5f732336",
+        "spendingKey": "d37d118207ca96878fde57afe07b9676c29af96796889174b36cb972e782ea9f",
+        "viewKey": "36a27b9b51e35d0d2e9caed6ec1c7d81b6fe5a50ebf35215664a23d7a580ed2c8ce2c91a7fd0947373627c178d4382c91f29b24546bb3ab4eaf9c9f6259964df",
+        "incomingViewKey": "2b24a706d788bffdf5fedb8231730d30399e518906c622f5ae74c005eb761000",
+        "outgoingViewKey": "cffb33e07eab63c29f7d0a703bc4c460c7bda8411edf4965400f585c58e4d12f",
+        "publicAddress": "a6c68e23f46a0a23cea40c93d52383780d26e992976fd752e691652ac007cfeb",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "994201f9f78b5f6d855e79e3cb5fe411b5f1270710dce85f0eabfc61f6ee3e0b"
+        "proofAuthorizingKey": "89390353c4de33fc4f963d27f2272cf2a0c66d439a3969f7734977e50f760c0a",
+        "ledger": false
       },
       "head": {
         "hash": {
@@ -62,23 +66,25 @@
   "Route wallet/getBalance with a valid account returns asset verification information": [
     {
       "value": {
+        "encrypted": false,
         "version": 4,
-        "id": "a34a1c02-d4c3-41eb-a536-a48352ac1474",
+        "id": "79b7f729-8e64-43f4-9466-1b102c174e62",
         "name": "accountC",
-        "spendingKey": "b78c39f9bceebde813c1dce3cf40560a09baa731308324cbcfb653754cff08dc",
-        "viewKey": "562249b7ac5215b2c51ded99ea7f51cd9e2b1c3af5d65f6f5776ab9630d26b5a6d4bb12439850f6e4da60fffcd94dc7bc09a6bcf83ea9593e4565dbaa39401bf",
-        "incomingViewKey": "9290d8cc63d915b1f3c7379b5793babdee36788481b6cf9984c7d596b8793d04",
-        "outgoingViewKey": "46f90576b523c19844a2f88366effbc0027dfa1ae0a617a0af2394bdd7a789e8",
-        "publicAddress": "bac4ec835217387d0781872dff60dd24b21d94096d4029d3ad468a7209650eef",
+        "spendingKey": "20b1073d4a9ad2af4020f73798d4493904e2a7de3f82aef7315fe5c4c50c9dd0",
+        "viewKey": "7e55fb61f08dda5916ac2c5d6ec995e80cd0c7a680c507bb4b4b3bacc681c443f5fd01f01233d3a6d2bce39de287b9a2e426c672e3e8b312b49eaa737372ecd2",
+        "incomingViewKey": "0fb0e501cfe0c896b0c65a97ea29eb87ba39a5e4047d1a51c8eacee6ff751701",
+        "outgoingViewKey": "f1bd4147cb6d026059fa86f834abf465ff5cab1a1beea44dc3843f46377a598f",
+        "publicAddress": "69151e6340f47deba2e4cb22af6c6633a79d4bf3e6890c7852b70ad127e5595f",
         "createdAt": {
+          "sequence": 1,
           "hash": {
             "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
+            "data": "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          }
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "b12805e6fa39dc04436ee7526d503264e2fae9684bf35f6242f9907d5acebe04"
+        "proofAuthorizingKey": "5a3fd9aebba2df4fccf703eac56a14924b50264ad1e3c83f83a6c89073013006",
+        "ledger": false
       },
       "head": {
         "hash": {

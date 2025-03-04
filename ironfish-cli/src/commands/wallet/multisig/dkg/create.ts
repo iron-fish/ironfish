@@ -235,37 +235,19 @@ export class DkgCreateCommand extends IronfishCommand {
     identity: string
     name: string
   }> {
-    const identities = await client.wallet.multisig.getIdentities()
-
     if (ledger) {
-      const ledgerIdentity = await ui.ledger({
-        ledger,
-        message: 'Getting Ledger Identity',
-        action: () => ledger.dkgGetIdentity(0),
-      })
+      const ledgerIdentity = (
+        await ui.ledger({
+          ledger,
+          message: 'Getting Ledger Identity',
+          action: () => ledger.dkgGetIdentity(0),
+        })
+      ).toString('hex')
 
-      const foundIdentity = identities.content.identities.find(
-        (i) => i.identity === ledgerIdentity.toString('hex'),
-      )
-
-      if (foundIdentity) {
-        this.debug('Identity from ledger already exists')
-        return foundIdentity
-      }
-
-      // We must use the ledger's identity
-      while (identities.content.identities.find((i) => i.name === name)) {
-        this.log('An identity with the same name already exists')
-        name = await ui.inputPrompt('Enter a new name for the identity', true)
-      }
-
-      const created = await client.wallet.multisig.importParticipant({
-        name,
-        identity: ledgerIdentity.toString('hex'),
-      })
-
-      return { name, identity: created.content.identity }
+      return { name, identity: ledgerIdentity }
     }
+
+    const identities = await client.wallet.multisig.getIdentities()
 
     const foundIdentity = identities.content.identities.find((i) => i.name === name)
 
@@ -301,15 +283,18 @@ export class DkgCreateCommand extends IronfishCommand {
 
   async performRound1WithLedger(
     ledger: LedgerMultiSigner,
-    client: RpcClient,
-    participantName: string,
     identities: string[],
     minSigners: number,
   ): Promise<{
     round1: { secretPackage: string; publicPackage: string }
   }> {
-    const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
-    const identity = identityResponse.content.identity
+    const identity = (
+      await ui.ledger({
+        ledger,
+        message: 'Getting Ledger Identity',
+        action: () => ledger.dkgGetIdentity(0),
+      })
+    ).toString('hex')
 
     if (!identities.includes(identity)) {
       identities.push(identity)
@@ -351,13 +336,7 @@ export class DkgCreateCommand extends IronfishCommand {
     })
 
     if (ledger) {
-      return await this.performRound1WithLedger(
-        ledger,
-        client,
-        participantName,
-        identities,
-        minSigners,
-      )
+      return await this.performRound1WithLedger(ledger, identities, minSigners)
     }
 
     this.log('\nPerforming DKG Round 1...')
@@ -450,14 +429,18 @@ export class DkgCreateCommand extends IronfishCommand {
     ledger: LedgerMultiSigner,
     client: RpcClient,
     accountName: string,
-    participantName: string,
     round1PublicPackagesStr: string[],
     round2PublicPackagesStr: string[],
     round2SecretPackage: string,
     accountCreatedAt?: number,
   ): Promise<void> {
-    const identityResponse = await client.wallet.multisig.getIdentity({ name: participantName })
-    const identity = identityResponse.content.identity
+    const identity = (
+      await ui.ledger({
+        ledger,
+        message: 'Getting Ledger Identity',
+        action: () => ledger.dkgGetIdentity(0),
+      })
+    ).toString('hex')
 
     // Sort packages by identity
     const round1PublicPackages = round1PublicPackagesStr
@@ -529,6 +512,7 @@ export class DkgCreateCommand extends IronfishCommand {
       name: accountName,
       createdAt: null,
       spendingKey: null,
+      ledger: true,
     }
 
     // Import multisig account
@@ -566,7 +550,6 @@ export class DkgCreateCommand extends IronfishCommand {
         ledger,
         client,
         accountName,
-        participantName,
         round1PublicPackages,
         round2PublicPackages,
         round2Result.secretPackage,

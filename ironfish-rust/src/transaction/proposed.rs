@@ -8,7 +8,7 @@ use crate::{
         asset_identifier::{AssetIdentifier, NATIVE_ASSET},
     },
     errors::{IronfishError, IronfishErrorKind},
-    keys::{PublicAddress, SaplingKey},
+    keys::{EphemeralKeyPair, PublicAddress, SaplingKey},
     note::Note,
     transaction::{
         burns::{BurnBuilder, BurnDescription},
@@ -32,6 +32,7 @@ use group::GroupEncoding;
 use ironfish_jubjub::ExtendedPoint;
 use ironfish_zkp::{
     constants::{SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR},
+    proofs,
     redjubjub::{self, Signature},
     ProofGenerationKey,
 };
@@ -193,6 +194,49 @@ impl ProposedTransaction {
             self.add_output(change_note)?;
         }
         Ok(())
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub fn build_circuits(
+        &mut self,
+        proof_authorizing_key: ironfish_jubjub::Fr,
+        view_key: ViewKey,
+        intended_transaction_fee: i64,
+        change_goes_to: Option<PublicAddress>,
+    ) -> Result<
+        (
+            Vec<proofs::Spend>,
+            Vec<(proofs::Output, EphemeralKeyPair)>,
+            Vec<proofs::MintAsset>,
+        ),
+        IronfishError,
+    > {
+        let public_address = view_key.public_address()?;
+        let proof_generation_key =
+            ProofGenerationKey::new(view_key.authorizing_key, proof_authorizing_key);
+
+        let is_miners_fee = self.outputs.iter().any(|output| output.get_is_miners_fee());
+        if !is_miners_fee {
+            self.add_change_notes(change_goes_to, public_address, intended_transaction_fee)?;
+        }
+
+        let spend_circuits = self
+            .spends
+            .iter()
+            .map(|spend| spend.build_circuit(&proof_generation_key, &self.public_key_randomness))
+            .collect();
+        let output_circuits = self
+            .outputs
+            .iter()
+            .map(|output| output.build_circuit(&proof_generation_key, &self.public_key_randomness))
+            .collect();
+        let mint_circuits = self
+            .mints
+            .iter()
+            .map(|mint| mint.build_circuit(&proof_generation_key, &self.public_key_randomness))
+            .collect();
+
+        Ok((spend_circuits, output_circuits, mint_circuits))
     }
 
     pub fn build(

@@ -22,6 +22,7 @@ describe('Base64JsonEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      ledger: false,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -40,6 +41,7 @@ describe('Base64JsonEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      ledger: false,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -58,6 +60,7 @@ describe('Base64JsonEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      ledger: false,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -84,6 +87,7 @@ describe('Base64JsonEncoder', () => {
         sequence: 1,
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
+      ledger: false,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -104,6 +108,7 @@ describe('Base64JsonEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      ledger: false,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -127,6 +132,7 @@ describe('Base64JsonEncoder', () => {
         publicKeyPackage: 'abcdef0000',
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
+      ledger: false,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -152,6 +158,7 @@ describe('Base64JsonEncoder', () => {
         keyPackage: 'bbbb',
       },
       proofAuthorizingKey: null,
+      ledger: false,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -172,6 +179,7 @@ describe('Base64JsonEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: null,
+      ledger: true,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -184,12 +192,12 @@ describe('Base64JsonEncoder', () => {
   it('throws an error when decoding strings without the prefix', () => {
     const encoded = 'not base64'
 
-    expect(() => encoder.decode(encoded)).toThrow()
+    expect(() => encoder.decode(encoded)).toThrow('Invalid prefix for base64 encoded account')
   })
 
   it('throws an error when decoding non-base64 strings', () => {
     const encoded = 'ifaccountnot base64'
 
-    expect(() => encoder.decode(encoded)).toThrow()
+    expect(() => encoder.decode(encoded)).toThrow('Invalid JSON')
   })
 })

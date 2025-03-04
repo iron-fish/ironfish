@@ -29,7 +29,7 @@ default = ["transaction-proofs"]
 benchmark = []
 download-params = ["dep:reqwest"]
 note-encryption-stats = []
-transaction-proofs = []
+transaction-proofs = ["dep:lazy_static"]
 
 [lib]
 name = "ironfish"
@@ -50,7 +50,7 @@ ironfish-frost = { version = "0.1.0" }
 fish_hash = "0.3.0"
 ironfish_zkp = { version = "0.2.0", path = "../ironfish-zkp" }
 ironfish-jubjub = { version = "0.1.0", features = ["multiply-many"] }
-lazy_static = "1.4.0"
+lazy_static = { version = "1.4.0", optional = true }
 rand = "0.8.5"
 tiny-bip39 = "1.0"
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }

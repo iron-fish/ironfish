@@ -109,7 +109,7 @@ pub fn spending_key_to_words(private_key: String, language_code: LanguageCode) -
 
 #[napi]
 pub fn words_to_spending_key(words: String, language_code: LanguageCode) -> Result<String> {
-    let key = SaplingKey::from_words(words, language_code.into()).map_err(to_napi_err)?;
+    let key = SaplingKey::from_words(&words, language_code.into()).map_err(to_napi_err)?;
     Ok(key.hex_spending_key())
 }
 

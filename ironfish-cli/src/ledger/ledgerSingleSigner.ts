@@ -22,7 +22,7 @@ export class LedgerSingleSigner extends Ledger {
     return response.publicAddress.toString('hex')
   }
 
-  importAccount = async () => {
+  importAccount = async (): Promise<AccountImport> => {
     const publicAddress = await this.getPublicAddress()
 
     const responseViewKey: KeyResponse = await this.tryInstruction((app) =>
@@ -51,6 +51,7 @@ export class LedgerSingleSigner extends Ledger {
       proofAuthorizingKey: responsePGK.nsk.toString('hex'),
       spendingKey: null,
       createdAt: null,
+      ledger: true,
     }
 
     return accountImport

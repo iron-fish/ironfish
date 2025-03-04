@@ -76,6 +76,7 @@ export class Account {
   readonly prefixRange: DatabaseKeyRange
   readonly multisigKeys?: MultisigKeys
   readonly proofAuthorizingKey: string | null
+  ledger: boolean
 
   constructor({
     accountValue,
@@ -103,6 +104,7 @@ export class Account {
     this.scanningEnabled = accountValue.scanningEnabled
     this.multisigKeys = accountValue.multisigKeys
     this.proofAuthorizingKey = accountValue.proofAuthorizingKey
+    this.ledger = accountValue.ledger
   }
 
   isSpendingAccount(): this is SpendingAccount {
@@ -124,6 +126,7 @@ export class Account {
       scanningEnabled: this.scanningEnabled,
       multisigKeys: this.multisigKeys,
       proofAuthorizingKey: this.proofAuthorizingKey,
+      ledger: this.ledger,
     }
   }
 

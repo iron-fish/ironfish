@@ -51,15 +51,6 @@ export class DuplicateAccountNameError extends Error {
   }
 }
 
-export class DuplicateIdentityNameError extends Error {
-  name = this.constructor.name
-
-  constructor(name: string) {
-    super()
-    this.message = `Multisig identity already exists with the name ${name}`
-  }
-}
-
 export class DuplicateIdentityError extends Error {
   name = this.constructor.name
 

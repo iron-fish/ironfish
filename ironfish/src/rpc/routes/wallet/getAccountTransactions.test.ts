@@ -114,9 +114,9 @@ describe('Route wallet/getAccountTransactions', () => {
       block3.transactions[0].hash(),
     ]
     const accountTransactions = await AsyncUtils.materialize(response.contentStream())
-    const accountTransactionHashes = accountTransactions
-      .map(({ hash }) => Buffer.from(hash, 'hex'))
-      .sort()
+    const accountTransactionHashes = accountTransactions.map(({ hash }) =>
+      Buffer.from(hash, 'hex'),
+    )
 
     expect(accountTransactionHashes).toEqual(blockTransactionHashes)
   })

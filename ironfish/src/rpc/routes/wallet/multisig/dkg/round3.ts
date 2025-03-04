@@ -92,6 +92,7 @@ routes.register<typeof DkgRound3RequestSchema, DkgRound3Response>(
         keyPackage,
         publicKeyPackage,
       },
+      ledger: false,
     }
 
     const account = await node.wallet.importAccount(accountImport, {
