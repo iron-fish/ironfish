@@ -6,7 +6,7 @@ RUN \
     apt-get update && \
     apt-get install jq rsync -y
 
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain=1.76.0
 
 COPY ./ /usr/src/ironfish
 
