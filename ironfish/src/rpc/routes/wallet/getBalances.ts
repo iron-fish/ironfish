@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { AssetVerification } from '../../../assets'
-import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
@@ -113,13 +112,13 @@ routes.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
         assetOwner: asset?.owner.toString('hex') ?? '',
         assetVerification: { status: context.assetsVerifier.verify(balance.assetId).status },
         blockHash: balance.blockHash?.toString('hex') ?? null,
-        confirmed: CurrencyUtils.encode(balance.confirmed),
+        confirmed: balance.confirmed.toString(),
         sequence: balance.sequence,
-        unconfirmed: CurrencyUtils.encode(balance.unconfirmed),
+        unconfirmed: balance.unconfirmed.toString(),
         unconfirmedCount: balance.unconfirmedCount,
-        pending: CurrencyUtils.encode(balance.pending),
+        pending: balance.pending.toString(),
         pendingCount: balance.pendingCount,
-        available: CurrencyUtils.encode(balance.available),
+        available: balance.available.toString(),
         availableNoteCount: balance.availableNoteCount,
       })
     }

@@ -34,13 +34,6 @@ export class CurrencyUtils {
   }
 
   /**
-   * Serialize ore into a string
-   */
-  static encode(amount: bigint): string {
-    return amount.toString()
-  }
-
-  /**
    * Parses a value in a major denomination as the minor denomination where possible:
    * - $IRON is always going to have 8 decimal places.
    * - If a custom asset, and `decimals` is provided, it will give the value

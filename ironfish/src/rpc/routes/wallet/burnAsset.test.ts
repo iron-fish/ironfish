@@ -10,7 +10,6 @@ import {
   usePostTxFixture,
 } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { CurrencyUtils } from '../../../utils'
 import { serializeRpcWalletTransaction } from './serializers'
 
 describe('Route wallet/burnAsset', () => {
@@ -84,7 +83,7 @@ describe('Route wallet/burnAsset', () => {
         account: account.name,
         assetId: assetId.toString('hex'),
         fee: '1',
-        value: CurrencyUtils.encode(value),
+        value: value.toString(),
       })
 
       const walletTransaction = await account.getTransaction(burnTransaction.hash())

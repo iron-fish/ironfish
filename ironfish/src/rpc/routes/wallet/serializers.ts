@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Config } from '../../../fileStores'
-import { BufferUtils, CurrencyUtils } from '../../../utils'
+import { BufferUtils } from '../../../utils'
 import { Account, Wallet } from '../../../wallet'
 import {
   isMultisigHardwareSignerImport,
@@ -135,7 +135,7 @@ export function serializeRpcWalletNote(
   asset?: AssetValue,
 ): RpcWalletNote {
   return {
-    value: CurrencyUtils.encode(note.note.value()),
+    value: note.note.value().toString(),
     assetId: note.note.assetId().toString('hex'),
     assetName: asset?.name.toString('hex') || '',
     memo: BufferUtils.toHuman(note.note.memo()),

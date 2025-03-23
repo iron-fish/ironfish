@@ -346,8 +346,8 @@ export class BridgeCommand extends IronfishCommand {
           memo: txn.gas_fee_output.memo,
         },
       ],
-      fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
-      feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
+      fee: flags.fee ? flags.fee.toString() : null,
+      feeRate: flags.feeRate ? flags.feeRate.toString() : null,
       expiration,
     }
 

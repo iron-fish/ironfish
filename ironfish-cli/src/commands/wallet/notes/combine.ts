@@ -297,12 +297,12 @@ export class CombineNotesCommand extends IronfishCommand {
         {
           publicAddress: to,
           assetId,
-          amount: CurrencyUtils.encode(totalAmount),
+          amount: totalAmount.toString(),
           memo,
         },
       ],
-      fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
-      feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
+      fee: flags.fee ? flags.fee.toString() : null,
+      feeRate: flags.feeRate ? flags.feeRate.toString() : null,
       notes: notes.map((note) => note.noteHash),
       expiration,
     }
@@ -326,8 +326,8 @@ export class CombineNotesCommand extends IronfishCommand {
     if (assetId === Asset.nativeId().toString('hex')) {
       amount = totalAmount - raw.fee
     }
-    params.outputs[0].amount = CurrencyUtils.encode(amount)
-    params.fee = CurrencyUtils.encode(raw.fee)
+    params.outputs[0].amount = amount.toString()
+    params.fee = raw.fee.toString()
 
     const createTransactionResponse = await client.wallet.createTransaction(params)
     const createTransactionBytes = Buffer.from(

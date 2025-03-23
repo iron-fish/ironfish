@@ -85,7 +85,7 @@ export async function selectFee(options: {
 
     const custom = await options.client.wallet.createTransaction({
       ...options.transaction,
-      fee: CurrencyUtils.encode(fee),
+      fee: fee.toString(),
     })
 
     const bytes = Buffer.from(custom.content.transaction, 'hex')
@@ -103,7 +103,7 @@ async function getTxWithFee(
 ): Promise<RawTransaction | null> {
   const promise = client.wallet.createTransaction({
     ...params,
-    feeRate: CurrencyUtils.encode(feeRate),
+    feeRate: feeRate.toString(),
   })
 
   const response = await promise.catch((e) => {

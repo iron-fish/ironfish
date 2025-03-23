@@ -5,7 +5,6 @@ import { Asset } from '@ironfish/rust-nodejs'
 import {
   BenchUtils,
   CreateTransactionRequest,
-  CurrencyUtils,
   EstimateFeeRatesResponse,
   IronfishSdk,
   RawTransaction,
@@ -79,7 +78,7 @@ export async function benchmarkSpendPostTime(
     outputs: [
       {
         publicAddress: publicKey,
-        amount: CurrencyUtils.encode(BigInt(notes[0].value)),
+        amount: BigInt(notes[0].value).toString(),
         memo: '',
       },
     ],
@@ -95,7 +94,7 @@ export async function benchmarkSpendPostTime(
     outputs: [
       {
         publicAddress: publicKey,
-        amount: CurrencyUtils.encode(BigInt(notes[0].value) + BigInt(notes[1].value)),
+        amount: (BigInt(notes[0].value) + BigInt(notes[1].value)).toString(),
         memo: '',
       },
     ],
