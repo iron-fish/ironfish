@@ -4,6 +4,19 @@
 
 // This file contains response types for chainport requests
 
+export type ChainportBridgeFeeV1 = {
+  source_token_fee_amount: string
+  portx_fee_amount: string
+  is_portx_fee_payment: boolean
+}
+
+export type ChainportBridgeFeeV2 = {
+  publicAddress: string
+  source_token_fee_amount: string
+  memo: string
+  assetId: string
+}
+
 export type ChainportBridgeTransaction = {
   bridge_output: {
     publicAddress: string
@@ -16,11 +29,7 @@ export type ChainportBridgeTransaction = {
     amount: string
     memo: string
   }
-  bridge_fee: {
-    source_token_fee_amount: string
-    portx_fee_amount: string
-    is_portx_fee_payment: boolean
-  }
+  bridge_fee: ChainportBridgeFeeV1 | ChainportBridgeFeeV2
 }
 
 export type ChainportNetwork = {
