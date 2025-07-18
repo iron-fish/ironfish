@@ -38,16 +38,22 @@ describe('ChainportMemoMetadata', () => {
 
   test('decode decodes encoded hex string correctly', () => {
     expect(
-      ChainportMemoMetadata.decode(
+      ChainportMemoMetadata.decodeV1(
         '000214d3c11c03c10481c50cc28e24228a30220620a08c08530c2c614220f24a',
       ),
     ).toEqual([2, '0x5DF170F118753CaE92aaC2868A2C25Ccb6528f9a'.toLowerCase(), false])
 
     expect(
-      ChainportMemoMetadata.decode(
+      ChainportMemoMetadata.decodeV1(
         '02161ca1882c130f04f04638f2092851863c518018c0012ca1093c438b10200a',
       ),
     ).toEqual([22, '0x7A68B1Cf1F16Ef89A566F5606C01BA49F4Eb420A'.toLowerCase(), true])
+
+    expect(
+      ChainportMemoMetadata.decodeV2(
+        '01742d35cc6634c0532925a3b8d4c9db96c4b4d8b668775c9100000000000000',
+      ),
+    ).toEqual([1, '0x742d35cc6634c0532925a3b8d4c9db96c4b4d8b6'.toLowerCase(), false])
   })
 
   test('encode and decode are reversible', () => {
@@ -56,7 +62,7 @@ describe('ChainportMemoMetadata', () => {
     const toIronfish = false
 
     const encoded = ChainportMemoMetadata.encode(networkId, address, toIronfish)
-    const decoded = ChainportMemoMetadata.decode(encoded)
+    const decoded = ChainportMemoMetadata.decodeV1(encoded)
 
     expect(decoded).toEqual([networkId, '0x' + address.toLowerCase(), toIronfish])
   })

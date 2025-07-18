@@ -63,7 +63,7 @@ export class ChainportMemoMetadata {
     return hexString.padStart(64, '0')
   }
 
-  public static decode(encodedHex: string): [number, string, boolean] {
+  public static decodeV1(encodedHex: string): [number, string, boolean] {
     const hexInteger = BigInt('0x' + encodedHex)
     const encodedString = hexInteger.toString(2)
     const padded = encodedString.padStart(250, '0')
@@ -79,6 +79,16 @@ export class ChainportMemoMetadata {
     }
 
     const address = '0x' + addressCharacters.join('')
+
+    return [networkId, address.toLowerCase(), toIronfish]
+  }
+
+  public static decodeV2(encodedHex: string): [number, string, boolean] {
+    const bytes = Buffer.from(encodedHex, 'hex')
+    const networkId = bytes.readUInt8(0)
+    const addressBytes = bytes.subarray(1, 21)
+    const address = '0x' + addressBytes.toString('hex')
+    const toIronfish = (bytes[21] & 0x80) !== 0
 
     return [networkId, address.toLowerCase(), toIronfish]
   }

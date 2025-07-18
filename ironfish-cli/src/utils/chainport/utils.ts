@@ -43,7 +43,7 @@ export const extractChainportDataFromTransaction = (
 
 const getIncomingChainportTransactionData = (
   transaction: RpcWalletTransaction,
-  config: { incomingAddresses: Set<string> },
+  config: { incomingAddresses: Set<string>; bridgeFeeUpgrade: Date },
 ): ChainportTransactionData => {
   const bridgeNote = transaction.notes?.[0]
 
@@ -51,7 +51,15 @@ const getIncomingChainportTransactionData = (
     return undefined
   }
 
-  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(bridgeNote.memoHex)
+  let sourceNetwork: number
+  let address: string
+  let _toIronFish: boolean
+
+  if (new Date(transaction.timestamp) < config.bridgeFeeUpgrade) {
+    ;[sourceNetwork, address, _toIronFish] = ChainportMemoMetadata.decodeV1(bridgeNote.memoHex)
+  } else {
+    ;[sourceNetwork, address, _toIronFish] = ChainportMemoMetadata.decodeV2(bridgeNote.memoHex)
+  }
 
   return {
     type: TransactionType.RECEIVE,
@@ -62,7 +70,7 @@ const getIncomingChainportTransactionData = (
 
 const getOutgoingChainportTransactionData = (
   transaction: RpcWalletTransaction,
-  config: { outgoingAddresses: Set<string> },
+  config: { outgoingAddresses: Set<string>; bridgeFeeUpgrade: Date },
 ): ChainportTransactionData => {
   if (!transaction.notes || transaction.notes.length < 2) {
     return undefined
@@ -80,7 +88,15 @@ const getOutgoingChainportTransactionData = (
     return undefined
   }
 
-  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(bridgeNote.memoHex)
+  let sourceNetwork: number
+  let address: string
+  let _toIronFish: boolean
+
+  if (new Date(transaction.timestamp) < config.bridgeFeeUpgrade) {
+    ;[sourceNetwork, address, _toIronFish] = ChainportMemoMetadata.decodeV1(bridgeNote.memoHex)
+  } else {
+    ;[sourceNetwork, address, _toIronFish] = ChainportMemoMetadata.decodeV2(bridgeNote.memoHex)
+  }
 
   return {
     type: TransactionType.SEND,
