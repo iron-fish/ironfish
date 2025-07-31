@@ -65,11 +65,7 @@ export const fetchChainportBridgeTransaction = async (
   url.searchParams.append('asset_id', assetId)
   url.searchParams.append('target_network_id', targetNetworkId.toString())
   url.searchParams.append('target_address', targetAddress.toString())
-  const isBridgeFeeUpgradeActivated = new Date(config.bridgeFeeUpgrade) < new Date()
-
-  if (isBridgeFeeUpgradeActivated) {
-    url.searchParams.append('source_address', sourceAddress)
-  }
+  url.searchParams.append('source_address', sourceAddress)
 
   return await makeChainportRequest<ChainportBridgeTransaction>(url.toString())
 }

@@ -19,18 +19,14 @@ import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../../flags'
 import * as ui from '../../../ui'
 import {
-  ChainportBridgeFeeV2,
   ChainportBridgeTransaction,
   ChainportToken,
   ChainportTokenWithNetwork,
   fetchChainportBridgeTransaction,
   fetchChainportTokenPaths,
   fetchChainportTokens,
-  isBridgeFeeV1,
-  isBridgeFeeV2,
 } from '../../../utils/chainport'
 import { isEthereumAddress } from '../../../utils/chainport/address'
-import { getConfig } from '../../../utils/chainport/config'
 import { promptCurrency } from '../../../utils/currency'
 import { promptExpiration } from '../../../utils/expiration'
 import { getExplorer } from '../../../utils/explorer'
@@ -353,30 +349,17 @@ export class BridgeCommand extends IronfishCommand {
     }
 
     const outputs = [userOutput, gasOutput]
-    const isChainportFeeUpgradeActive = new Date() > getConfig(networkId).bridgeFeeUpgrade
-    const bridgeFeeV1 = isBridgeFeeV1(txn.bridge_fee)
-    const bridgeFeeV2 = isBridgeFeeV2(txn.bridge_fee)
-    if (isChainportFeeUpgradeActive) {
-      if (!bridgeFeeV2) {
-        throw new Error('Bridge fee upgrade is active but the bridge fee is not v2')
-      } else {
-        const bridgeFee = txn.bridge_fee as ChainportBridgeFeeV2
-        const bridgeFeeAmount = BigInt(bridgeFee.source_token_fee_amount)
-        if (bridgeFeeAmount > 0n) {
-          userOutput.amount = (BigInt(userOutput.amount) - bridgeFeeAmount).toString()
-          const bridgeFeeOutput = {
-            publicAddress: bridgeFee.publicAddress,
-            amount: bridgeFeeAmount.toString(),
-            memo: bridgeFee.memo,
-            assetId: bridgeFee.assetId,
-          }
-          outputs.push(bridgeFeeOutput)
-        }
+
+    const bridgeFeeAmount = BigInt(txn.bridge_fee.source_token_fee_amount)
+    if (bridgeFeeAmount > 0n) {
+      userOutput.amount = (BigInt(userOutput.amount) - bridgeFeeAmount).toString()
+      const bridgeFeeOutput = {
+        publicAddress: txn.bridge_fee.publicAddress,
+        amount: bridgeFeeAmount.toString(),
+        memo: txn.bridge_fee.memo,
+        assetId: txn.bridge_fee.assetId,
       }
-    } else {
-      if (!bridgeFeeV1) {
-        throw new Error('Bridge fee upgrade is not active but the bridge fee is not v1')
-      }
+      outputs.push(bridgeFeeOutput)
     }
 
     const params: CreateTransactionRequest = {
@@ -442,31 +425,15 @@ export class BridgeCommand extends IronfishCommand {
 
     const targetNetworkFee = CurrencyUtils.render(BigInt(txn.gas_fee_output.amount), true)
 
-    let chainportFee: string
-
-    if ('is_portx_fee_payment' in txn.bridge_fee && txn.bridge_fee.is_portx_fee_payment) {
-      this.logger.log('\nStaked PortX detected')
-
-      chainportFee = CurrencyUtils.render(
-        BigInt(txn.bridge_fee.portx_fee_amount),
-        true,
-        'portx asset id',
-        {
-          decimals: 18,
-          symbol: 'PORTX',
-        },
-      )
-    } else {
-      chainportFee = CurrencyUtils.render(
-        BigInt(txn.bridge_fee.source_token_fee_amount ?? 0),
-        true,
-        'chainport fee id',
-        {
-          decimals: sourceToken.decimals,
-          symbol: sourceAsset.verification.symbol,
-        },
-      )
-    }
+    const chainportFee = CurrencyUtils.render(
+      BigInt(txn.bridge_fee.source_token_fee_amount ?? 0),
+      true,
+      'chainport fee id',
+      {
+        decimals: sourceToken.decimals,
+        symbol: sourceAsset.verification.symbol,
+      },
+    )
 
     const summary = `\
  \nBRIDGE TRANSACTION SUMMARY:

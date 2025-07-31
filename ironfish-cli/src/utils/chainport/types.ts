@@ -29,7 +29,7 @@ export type ChainportBridgeTransaction = {
     amount: string
     memo: string
   }
-  bridge_fee: ChainportBridgeFeeV1 | ChainportBridgeFeeV2
+  bridge_fee: ChainportBridgeFeeV2
 }
 
 export type ChainportNetwork = {

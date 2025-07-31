@@ -15,7 +15,6 @@ const config = {
     incomingAddresses: new Set([
       '06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13',
     ]),
-    bridgeFeeUpgrade: new Date('2025-07-01T00:00:00Z'),
   },
   [MAINNET.id]: {
     endpoint: 'https://api.ironfish.network/',
@@ -26,7 +25,6 @@ const config = {
     incomingAddresses: new Set([
       '1216302193e8f1ad020f458b54a163039403d803e98673c6a85e59b5f4a1a900',
     ]),
-    bridgeFeeUpgrade: new Date('2025-07-15T00:00:00Z'),
   },
 }
 

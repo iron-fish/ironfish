@@ -14,7 +14,6 @@ describe('isChainportTransaction', () => {
   const mockConfig = {
     incomingAddresses: new Set(['incoming1', 'incoming2']),
     outgoingAddresses: new Set(['outgoing1', 'outgoing2']),
-    bridgeFeeUpgrade: new Date('2025-07-01T00:00:00Z'),
   }
 
   beforeEach(() => {
@@ -44,11 +43,10 @@ describe('isChainportTransaction', () => {
     })
 
     it('should return true for valid incoming chainport transaction', () => {
-      ;(ChainportMemoMetadata.decodeV1 as Mock).mockReturnValue([1, 'address', true])
+      ;(ChainportMemoMetadata.decode as Mock).mockReturnValue([1, 'address'])
 
       const transaction = {
         type: TransactionType.RECEIVE,
-        timestamp: new Date('2024-01-01T00:00:00Z').getTime(),
         notes: [{ sender: 'incoming1', memoHex: 'mockHex' }] as RpcWalletNote[],
       } as RpcWalletTransaction
       const result = extractChainportDataFromTransaction(1, transaction)
@@ -95,10 +93,9 @@ describe('isChainportTransaction', () => {
     })
 
     it('should return true for valid outgoing chainport transaction with bridge fee v1', () => {
-      ;(ChainportMemoMetadata.decodeV1 as Mock).mockReturnValue([1, 'address', false])
+      ;(ChainportMemoMetadata.decode as Mock).mockReturnValue([1, 'address'])
       const transaction = {
         type: TransactionType.SEND,
-        timestamp: new Date('2024-01-01T00:00:00Z').getTime(),
         notes: [
           { owner: 'outgoing1', memo: '{"type": "fee_payment"}', memoHex: 'mockHex' },
           { owner: 'outgoing1', memo: '', memoHex: 'mockHex' },
@@ -114,10 +111,9 @@ describe('isChainportTransaction', () => {
     })
 
     it('should return true for valid outgoing chainport transaction with bridge fee v2', () => {
-      ;(ChainportMemoMetadata.decodeV2 as Mock).mockReturnValue([1, 'address', false])
+      ;(ChainportMemoMetadata.decode as Mock).mockReturnValue([1, 'address'])
       const transaction = {
         type: TransactionType.SEND,
-        timestamp: new Date('2026-01-01T00:00:00Z').getTime(),
         notes: [
           { owner: 'outgoing1', memo: '{"type": "fee_payment"}', memoHex: 'mockHex' },
           { owner: 'outgoing1', memo: '', memoHex: 'mockHex' },

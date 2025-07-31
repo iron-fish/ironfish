@@ -7,12 +7,7 @@ import { ux } from '@oclif/core'
 import { getConfig, isNetworkSupportedByChainport } from './config'
 import { ChainportMemoMetadata } from './metadata'
 import { fetchChainportTransactionStatus } from './requests'
-import {
-  ChainportBridgeFeeV1,
-  ChainportBridgeFeeV2,
-  ChainportNetwork,
-  ChainportTransactionStatus,
-} from './types'
+import { ChainportNetwork, ChainportTransactionStatus } from './types'
 
 export type ChainportTransactionData =
   | {
@@ -43,7 +38,7 @@ export const extractChainportDataFromTransaction = (
 
 const getIncomingChainportTransactionData = (
   transaction: RpcWalletTransaction,
-  config: { incomingAddresses: Set<string>; bridgeFeeUpgrade: Date },
+  config: { incomingAddresses: Set<string> },
 ): ChainportTransactionData => {
   const bridgeNote = transaction.notes?.[0]
 
@@ -51,15 +46,7 @@ const getIncomingChainportTransactionData = (
     return undefined
   }
 
-  let sourceNetwork: number
-  let address: string
-  let _toIronFish: boolean
-
-  if (new Date(transaction.timestamp) < config.bridgeFeeUpgrade) {
-    ;[sourceNetwork, address, _toIronFish] = ChainportMemoMetadata.decodeV1(bridgeNote.memoHex)
-  } else {
-    ;[sourceNetwork, address, _toIronFish] = ChainportMemoMetadata.decodeV2(bridgeNote.memoHex)
-  }
+  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(bridgeNote.memoHex)
 
   return {
     type: TransactionType.RECEIVE,
@@ -70,7 +57,7 @@ const getIncomingChainportTransactionData = (
 
 const getOutgoingChainportTransactionData = (
   transaction: RpcWalletTransaction,
-  config: { outgoingAddresses: Set<string>; bridgeFeeUpgrade: Date },
+  config: { outgoingAddresses: Set<string> },
 ): ChainportTransactionData => {
   if (!transaction.notes || transaction.notes.length < 2) {
     return undefined
@@ -88,15 +75,7 @@ const getOutgoingChainportTransactionData = (
     return undefined
   }
 
-  let sourceNetwork: number
-  let address: string
-  let _toIronFish: boolean
-
-  if (new Date(transaction.timestamp) < config.bridgeFeeUpgrade) {
-    ;[sourceNetwork, address, _toIronFish] = ChainportMemoMetadata.decodeV1(bridgeNote.memoHex)
-  } else {
-    ;[sourceNetwork, address, _toIronFish] = ChainportMemoMetadata.decodeV2(bridgeNote.memoHex)
-  }
+  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(bridgeNote.memoHex)
 
   return {
     type: TransactionType.SEND,
@@ -201,36 +180,4 @@ Target Network:               ${network?.label ?? 'Error fetching network detail
            ? new URL('address/' + data.address, network.explorer_url).toString()
            : 'Error fetching network details'
        }`)
-}
-
-/**
- * Type guard to check if bridge_fee is ChainportBridgeFeeV1
- */
-export function isBridgeFeeV1(
-  bridge_fee: ChainportBridgeFeeV1 | ChainportBridgeFeeV2,
-): bridge_fee is ChainportBridgeFeeV1 {
-  return (
-    'source_token_fee_amount' in bridge_fee &&
-    'portx_fee_amount' in bridge_fee &&
-    'is_portx_fee_payment' in bridge_fee &&
-    !('publicAddress' in bridge_fee) &&
-    !('memo' in bridge_fee) &&
-    !('assetId' in bridge_fee)
-  )
-}
-
-/**
- * Type guard to check if bridge_fee is ChainportBridgeFeeV2
- */
-export function isBridgeFeeV2(
-  bridge_fee: ChainportBridgeFeeV1 | ChainportBridgeFeeV2,
-): bridge_fee is ChainportBridgeFeeV2 {
-  return (
-    'publicAddress' in bridge_fee &&
-    'source_token_fee_amount' in bridge_fee &&
-    'memo' in bridge_fee &&
-    'assetId' in bridge_fee &&
-    !('portx_fee_amount' in bridge_fee) &&
-    !('is_portx_fee_payment' in bridge_fee)
-  )
 }
