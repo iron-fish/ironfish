@@ -85,4 +85,72 @@ describe('ChainportMemoMetadata', () => {
 
     expect(decoded).toEqual([networkId, '0x' + address.toLowerCase(), toIronfish])
   })
+
+  test('should throw error if networkId is greater than 63', () => {
+    const networkId = 64
+    const address = '5DF170F118753CaE92aaC2868A2C25Ccb6528f9a'
+    const toIronfish = false
+    const timestamp = 1753715824
+    const version = 1
+
+    expect(() =>
+      ChainportMemoMetadata.encodeV2(networkId, address, toIronfish, timestamp, version),
+    ).toThrow('networkId exceeds 6-bit capacity')
+  })
+
+  test('should throw error if version is greater than 3', () => {
+    const networkId = 2
+    const address = '5DF170F118753CaE92aaC2868A2C25Ccb6528f9a'
+    const toIronfish = false
+    const timestamp = 1753715824
+    const version = 4
+
+    expect(() =>
+      ChainportMemoMetadata.encodeV2(networkId, address, toIronfish, timestamp, version),
+    ).toThrow('version exceeds 2-bit capacity')
+  })
+
+  test('should throw error if timestamp is greater than 2147483647', () => {
+    const networkId = 2
+    const address = '5DF170F118753CaE92aaC2868A2C25Ccb6528f9a'
+    const toIronfish = false
+    const timestamp = 2147483648
+    const version = 1
+
+    expect(() =>
+      ChainportMemoMetadata.encodeV2(networkId, address, toIronfish, timestamp, version),
+    ).toThrow('timestamp exceeds 31-bit capacity')
+  })
+
+  test('should throw error if address is not 40 hexadecimal characters', () => {
+    const networkId = 2
+    const address = '5DF170F118753CaE92aaC2868A2C25Ccb6528f9atest'
+    const toIronfish = false
+    const timestamp = 1753715824
+    const version = 1
+
+    expect(() =>
+      ChainportMemoMetadata.encodeV2(networkId, address, toIronfish, timestamp, version),
+    ).toThrow('address must be 40 hexadecimal characters')
+  })
+
+  test('should throw error if memoHex version is not 1 for decodeV2', () => {
+    const networkId = 2
+    const address = '5DF170F118753CaE92aaC2868A2C25Ccb6528f9a'
+    const toIronfish = false
+    const timestamp = 1753715824
+    const version = 2
+
+    const encoded = ChainportMemoMetadata.encodeV2(
+      networkId,
+      address,
+      toIronfish,
+      timestamp,
+      version,
+    )
+
+    expect(() => ChainportMemoMetadata.decodeV2(encoded)).toThrow(
+      'Unexpected memoHex version: 10',
+    )
+  })
 })

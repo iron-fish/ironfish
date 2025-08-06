@@ -137,10 +137,6 @@ export class ChainportMemoMetadata {
 
     pos += 49
 
-    if (pos !== 256) {
-      throw new Error('pos is not 256')
-    }
-
     const result = new Uint8Array(32)
     for (let i = 0; i < 32; i++) {
       let byte = 0
