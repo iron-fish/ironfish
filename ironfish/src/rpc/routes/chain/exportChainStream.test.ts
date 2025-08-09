@@ -37,8 +37,8 @@ describe('Route chain/exportChainStream', () => {
         block: {
           head: true,
           hash: blockA1.header.hash.toString('hex'),
-          prev: chain.genesis.hash.toString('hex'),
-          seq: 2,
+          previousBlockHash: chain.genesis.hash.toString('hex'),
+          sequence: 2,
         },
       },
     })
