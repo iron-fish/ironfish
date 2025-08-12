@@ -92,7 +92,25 @@ describe('isChainportTransaction', () => {
       expect(result).not.toBeDefined()
     })
 
-    it('should return true for valid outgoing chainport transaction', () => {
+    it('should return true for valid outgoing chainport transaction with bridge fee v1', () => {
+      ;(ChainportMemoMetadata.decode as Mock).mockReturnValue([1, 'address'])
+      const transaction = {
+        type: TransactionType.SEND,
+        notes: [
+          { owner: 'outgoing1', memo: '{"type": "fee_payment"}', memoHex: 'mockHex' },
+          { owner: 'outgoing1', memo: '', memoHex: 'mockHex' },
+        ],
+      } as RpcWalletTransaction
+      const result = extractChainportDataFromTransaction(1, transaction)
+      expect(result).toBeDefined()
+      expect(result).toEqual({
+        type: TransactionType.SEND,
+        chainportNetworkId: 1,
+        address: 'address',
+      })
+    })
+
+    it('should return true for valid outgoing chainport transaction with bridge fee v2', () => {
       ;(ChainportMemoMetadata.decode as Mock).mockReturnValue([1, 'address'])
       const transaction = {
         type: TransactionType.SEND,

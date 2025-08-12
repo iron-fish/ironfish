@@ -44,6 +44,15 @@ export class ChainportMemoMetadata {
     return String.fromCharCode(num - 10 + 'a'.charCodeAt(0))
   }
 
+  public static convertHexToBinary(encodedHex: string): string {
+    const buffer = Buffer.from(encodedHex, 'hex')
+    let binaryString = ''
+    for (let i = 0; i < buffer.length; i++) {
+      binaryString += buffer[i].toString(2).padStart(8, '0')
+    }
+    return binaryString
+  }
+
   public static encode(networkId: number, address: string, toIronfish: boolean) {
     if (address.startsWith('0x')) {
       address = address.slice(2)
@@ -63,7 +72,86 @@ export class ChainportMemoMetadata {
     return hexString.padStart(64, '0')
   }
 
-  public static decode(encodedHex: string): [number, string, boolean] {
+  public static encodeV2(
+    networkId: number,
+    address: string,
+    toIronfish: boolean,
+    timestamp: number,
+    version: number,
+  ) {
+    if (networkId >= 1 << 6) {
+      throw new Error('networkId exceeds 6-bit capacity')
+    }
+    if (version >= 1 << 2) {
+      throw new Error('version exceeds 2-bit capacity')
+    }
+    if (BigInt(timestamp) >= 1n << 31n) {
+      throw new Error('timestamp exceeds 31-bit capacity')
+    }
+
+    let addressClean = address
+    if (addressClean.startsWith('0x')) {
+      addressClean = addressClean.slice(2)
+    }
+
+    if (addressClean.length !== 40) {
+      throw new Error('address must be 40 hexadecimal characters')
+    }
+
+    const addrBytes = Buffer.from(addressClean, 'hex')
+
+    if (addrBytes.length !== 20) {
+      throw new Error('address must decode to 20 bytes')
+    }
+
+    const bitArray: number[] = new Array(256).fill(0) as number[]
+    let pos = 0
+
+    pos += 6
+
+    bitArray[pos] = toIronfish ? 1 : 0
+    pos += 1
+
+    pos += 1
+
+    bitArray[pos] = (version >> 1) & 1
+    bitArray[pos + 1] = version & 1
+    pos += 2
+
+    for (let i = 0; i < 6; i++) {
+      bitArray[pos + i] = (networkId >> (5 - i)) & 1
+    }
+    pos += 6
+
+    for (const byte of addrBytes) {
+      for (let i = 0; i < 8; i++) {
+        bitArray[pos] = (byte >> (7 - i)) & 1
+        pos += 1
+      }
+    }
+
+    for (let i = 0; i < 31; i++) {
+      bitArray[pos + i] = (timestamp >> (30 - i)) & 1
+    }
+    pos += 31
+
+    pos += 49
+
+    const result = new Uint8Array(32)
+    for (let i = 0; i < 32; i++) {
+      let byte = 0
+      for (let j = 0; j < 8; j++) {
+        byte = (byte << 1) | bitArray[i * 8 + j]
+      }
+      result[i] = byte
+    }
+
+    return Array.from(result)
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('')
+  }
+
+  public static decodeV1(encodedHex: string): [number, string, boolean] {
     const hexInteger = BigInt('0x' + encodedHex)
     const encodedString = hexInteger.toString(2)
     const padded = encodedString.padStart(250, '0')
@@ -81,5 +169,33 @@ export class ChainportMemoMetadata {
     const address = '0x' + addressCharacters.join('')
 
     return [networkId, address.toLowerCase(), toIronfish]
+  }
+
+  public static decodeV2(encodedHex: string): [number, string, boolean] {
+    const bits = this.convertHexToBinary(encodedHex)
+    const toIronfish = bits[6] === '1'
+    const memoHexVersion = bits.slice(8, 10)
+    if (memoHexVersion !== '01') {
+      throw new Error(`Unexpected memoHex version: ${memoHexVersion}`)
+    }
+
+    const networkIdBits = bits.slice(10, 16)
+    const networkId = parseInt(networkIdBits, 2)
+    const addressBits = bits.slice(16, 176)
+    let address = '0x'
+    for (let i = 0; i < addressBits.length; i += 4) {
+      address += parseInt(addressBits.slice(i, i + 4), 2).toString(16)
+    }
+
+    return [networkId, address.toLowerCase(), toIronfish]
+  }
+
+  public static decode(encodedHex: string): [number, string, boolean] {
+    const bits = this.convertHexToBinary(encodedHex)
+    const memoHexVersion = bits.slice(8, 10)
+    if (memoHexVersion === '01') {
+      return this.decodeV2(encodedHex)
+    }
+    return this.decodeV1(encodedHex)
   }
 }

@@ -320,6 +320,10 @@ export class BridgeCommand extends IronfishCommand {
     expiration: number | undefined,
   ) {
     const { flags } = await this.parse(BridgeCommand)
+    const response = await client.wallet.getAccountPublicKey({
+      account: from,
+    })
+    const sourceAddress = response.content.publicKey
 
     ux.action.start('Fetching bridge transaction details')
     const txn = await fetchChainportBridgeTransaction(
@@ -328,24 +332,39 @@ export class BridgeCommand extends IronfishCommand {
       asset.web3_address,
       tokenWithNetwork.network.chainport_network_id,
       to,
+      sourceAddress,
     )
     ux.action.stop()
 
+    const userOutput = {
+      publicAddress: txn.bridge_output.publicAddress,
+      amount: txn.bridge_output.amount,
+      memoHex: txn.bridge_output.memoHex,
+      assetId: txn.bridge_output.assetId,
+    }
+    const gasOutput = {
+      publicAddress: txn.gas_fee_output.publicAddress,
+      amount: txn.gas_fee_output.amount,
+      memo: txn.gas_fee_output.memo,
+    }
+
+    const outputs = [userOutput, gasOutput]
+
+    const bridgeFeeAmount = BigInt(txn.bridge_fee.source_token_fee_amount)
+    if (bridgeFeeAmount > 0n) {
+      userOutput.amount = (BigInt(userOutput.amount) - bridgeFeeAmount).toString()
+      const bridgeFeeOutput = {
+        publicAddress: txn.bridge_fee.publicAddress,
+        amount: bridgeFeeAmount.toString(),
+        memo: txn.bridge_fee.memo,
+        assetId: txn.bridge_fee.assetId,
+      }
+      outputs.push(bridgeFeeOutput)
+    }
+
     const params: CreateTransactionRequest = {
       account: from,
-      outputs: [
-        {
-          publicAddress: txn.bridge_output.publicAddress,
-          amount: txn.bridge_output.amount,
-          memoHex: txn.bridge_output.memoHex,
-          assetId: txn.bridge_output.assetId,
-        },
-        {
-          publicAddress: txn.gas_fee_output.publicAddress,
-          amount: txn.gas_fee_output.amount,
-          memo: txn.gas_fee_output.memo,
-        },
-      ],
+      outputs,
       fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
       feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
       expiration,
@@ -406,31 +425,15 @@ export class BridgeCommand extends IronfishCommand {
 
     const targetNetworkFee = CurrencyUtils.render(BigInt(txn.gas_fee_output.amount), true)
 
-    let chainportFee: string
-
-    if (txn.bridge_fee.is_portx_fee_payment) {
-      this.logger.log('\nStaked PortX detected')
-
-      chainportFee = CurrencyUtils.render(
-        BigInt(txn.bridge_fee.portx_fee_amount),
-        true,
-        'portx asset id',
-        {
-          decimals: 18,
-          symbol: 'PORTX',
-        },
-      )
-    } else {
-      chainportFee = CurrencyUtils.render(
-        BigInt(txn.bridge_fee.source_token_fee_amount ?? 0),
-        true,
-        'chainport fee id',
-        {
-          decimals: sourceToken.decimals,
-          symbol: sourceAsset.verification.symbol,
-        },
-      )
-    }
+    const chainportFee = CurrencyUtils.render(
+      BigInt(txn.bridge_fee.source_token_fee_amount ?? 0),
+      true,
+      'chainport fee id',
+      {
+        decimals: sourceToken.decimals,
+        symbol: sourceAsset.verification.symbol,
+      },
+    )
 
     const summary = `\
  \nBRIDGE TRANSACTION SUMMARY:
