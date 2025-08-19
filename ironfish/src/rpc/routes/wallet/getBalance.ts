@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { AssetVerification } from '../../../assets'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
@@ -30,10 +29,6 @@ export type GetBalanceResponse = {
   confirmations: number
   blockHash: string | null
   sequence: number | null
-  /**
-   * @deprecated Please use getAsset endpoint to get this information
-   * */
-  assetVerification: { status: AssetVerification['status'] }
 }
 
 export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup
@@ -48,9 +43,6 @@ export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yu
   .object({
     account: yup.string().defined(),
     assetId: yup.string().defined(),
-    assetVerification: yup
-      .object({ status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined() })
-      .defined(),
     unconfirmed: yup.string().defined(),
     unconfirmedCount: yup.number().defined(),
     pending: yup.string().defined(),
@@ -86,7 +78,6 @@ routes.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
     request.end({
       account: account.name,
       assetId: assetId.toString('hex'),
-      assetVerification: { status: node.assetsVerifier.verify(assetId).status },
       confirmed: balance.confirmed.toString(),
       unconfirmed: balance.unconfirmed.toString(),
       unconfirmedCount: balance.unconfirmedCount,

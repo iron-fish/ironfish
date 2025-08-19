@@ -24,14 +24,6 @@ export type ExportChainStreamResponse = {
     main: boolean
     head: boolean
     latest: boolean
-    /**
-     * @deprecated Please use sequence instead
-     */
-    seq: number
-    /**
-     * @deprecated Please use previousBlockHash instead
-     */
-    prev: string
   }
 }
 
@@ -49,9 +41,7 @@ export const ExportChainStreamResponseSchema: yup.ObjectSchema<ExportChainStream
     block: RpcBlockHeaderSchema.concat(
       yup
         .object({
-          seq: yup.number().defined(),
           main: yup.boolean().defined(),
-          prev: yup.string().defined(),
           head: yup.boolean().defined(),
           latest: yup.boolean().defined(),
         })
@@ -84,8 +74,6 @@ routes.register<typeof ExportChainStreamRequestSchema, ExportChainStreamResponse
         const blockResult = {
           ...serializeRpcBlockHeader(block),
           main: isMain,
-          seq: block.sequence,
-          prev: block.previousBlockHash.toString('hex'),
           head: block.hash.equals(node.chain.head.hash),
           latest: block.hash.equals(node.chain.latest.hash),
         }

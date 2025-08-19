@@ -11,7 +11,6 @@ import { RpcBlock, RpcBlockHeader, RpcEncryptedNote, RpcTransaction } from './ty
 export function serializeRpcBlockHeader(header: BlockHeader): RpcBlockHeader {
   return {
     hash: header.hash.toString('hex'),
-    previous: header.previousBlockHash.toString('hex'),
     sequence: Number(header.sequence),
     previousBlockHash: header.previousBlockHash.toString('hex'),
     timestamp: header.timestamp.valueOf(),
