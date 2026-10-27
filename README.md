@@ -52,7 +52,7 @@ Once your environment is set up - you can run the CLI by following [these direct
 
 ## Running Tests
 
-> **Note:** Running tests requires Node.js 20 or greater.
+> **Note:** Running tests requires Node.js 22.23.4+, 24.22.1+, or 26.12.1+.
 
 1. To test the entire monorepo:
    1. Run `yarn test` at the root of the repository
