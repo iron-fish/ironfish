@@ -8,7 +8,7 @@ on:
       - "ironfish-rust-nodejs/**"
       - "ironfish-rust-wasm/**"
       - "ironfish-zkp/**"
-      - "rust-toolchain"
+      - "rust-toolchain*"
       - ".github/workflows/rust*"
       - ".cargo/**"
       - "Cargo*"
@@ -23,7 +23,7 @@ on:
       - "ironfish-rust-nodejs/**"
       - "ironfish-rust-wasm/**"
       - "ironfish-zkp/**"
-      - "rust-toolchain"
+      - "rust-toolchain*"
       - ".github/workflows/rust*"
       - ".cargo/**"
       - "Cargo*"
@@ -53,6 +53,11 @@ jobs:
       - name: Check for license headers for ironfish-rust-wasm
         run: ./ci/lintHeaders.sh ./ironfish-rust-wasm/src *.rs
 
+      # rust-toolchain.toml auto-installs the pinned toolchain with the minimal
+      # profile, which does not include rustfmt or clippy
+      - name: Install rustfmt and clippy
+        run: rustup component add rustfmt clippy
+
       - name: cargo fmt
         run: |
           cargo fmt --all -- --check
@@ -75,7 +80,7 @@ jobs:
 
       - name: Install cargo-all-features
         run: |
-          cargo install --locked cargo-all-features
+          cargo install --locked cargo-all-features --version 1.10.0
 
       - name: Check that cargo lockfile is up to date
         run: |
@@ -95,7 +100,7 @@ jobs:
 
       - name: Install cargo-vet
         run: |
-          cargo install --locked cargo-vet
+          cargo install --locked cargo-vet --version 0.10.1
 
       - name: Vet dependencies
         run: |
