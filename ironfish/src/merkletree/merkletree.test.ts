@@ -41,14 +41,10 @@ describe('Merkle tree', function () {
     await tree2.add('B')
 
     expect(await tree1.size()).toBe(1)
-    expect(await tree1.rootHash()).toBe(
-      '<<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>|<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>-3>',
-    )
+    expect(await tree1.rootHash()).toBe('<<<<a|~-0>|~-1>|~-2>|~-3>')
 
     expect(await tree2.size()).toBe(2)
-    expect(await tree2.rootHash()).toBe(
-      '<<<<A|B-0>|<A|B-0>-1>|<<A|B-0>|<A|B-0>-1>-2>|<<<A|B-0>|<A|B-0>-1>|<<A|B-0>|<A|B-0>-1>-2>-3>',
-    )
+    expect(await tree2.rootHash()).toBe('<<<<A|B-0>|~-1>|~-2>|~-3>')
   })
 
   it('rehashes tree when rightmost branch nodes have no sibling nodes', async () => {
@@ -57,9 +53,9 @@ describe('Merkle tree', function () {
     await tree.addBatch('abc')
     await expect(tree).toHaveLeaves('abc', [1, 1, 2])
     await expect(tree).toHaveNodes([
-      [1, Side.Left, 3, '<c|c-0>'],
+      [1, Side.Left, 3, '<c|~-0>'],
       [2, Side.Right, 1, '<a|b-0>'],
-      [3, Side.Left, 0, '<<a|b-0>|<c|c-0>-1>'],
+      [3, Side.Left, 0, '<<a|b-0>|<c|~-0>-1>'],
     ])
 
     await tree.addBatch('defghi')
@@ -70,17 +66,12 @@ describe('Merkle tree', function () {
       [3, Side.Left, 6, '<<e|f-0>|<g|h-0>-1>'],
       [4, Side.Left, 5, '<g|h-0>'],
       [5, Side.Right, 3, '<<a|b-0>|<c|d-0>-1>'],
-      [6, Side.Left, 11, '<<<i|i-0>|<i|i-0>-1>|<<i|i-0>|<i|i-0>-1>-2>'],
+      [6, Side.Left, 11, '<<<i|~-0>|~-1>|~-2>'],
       [7, Side.Right, 4, '<e|f-0>'],
-      [8, Side.Left, 9, '<i|i-0>'],
-      [9, Side.Left, 10, '<<i|i-0>|<i|i-0>-1>'],
+      [8, Side.Left, 9, '<i|~-0>'],
+      [9, Side.Left, 10, '<<i|~-0>|~-1>'],
       [10, Side.Right, 6, '<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>'],
-      [
-        11,
-        Side.Left,
-        0,
-        '<<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>|<<<i|i-0>|<i|i-0>-1>|<<i|i-0>|<i|i-0>-1>-2>-3>',
-      ],
+      [11, Side.Left, 0, '<<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>|<<<i|~-0>|~-1>|~-2>-3>'],
     ])
   })
 
@@ -98,16 +89,16 @@ describe('Merkle tree', function () {
       [3, Side.Left, 6, '<<e|f-0>|<g|h-0>-1>'],
       [4, Side.Left, 5, '<g|h-0>'],
       [5, Side.Right, 3, '<<a|b-0>|<c|d-0>-1>'],
-      [6, Side.Left, 11, '<<<i|j-0>|<k|k-0>-1>|<<i|j-0>|<k|k-0>-1>-2>'],
+      [6, Side.Left, 11, '<<<i|j-0>|<k|~-0>-1>|~-2>'],
       [7, Side.Right, 4, '<e|f-0>'],
-      [8, Side.Left, 9, '<k|k-0>'],
-      [9, Side.Left, 10, '<<i|j-0>|<k|k-0>-1>'],
+      [8, Side.Left, 9, '<k|~-0>'],
+      [9, Side.Left, 10, '<<i|j-0>|<k|~-0>-1>'],
       [10, Side.Right, 6, '<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>'],
       [
         11,
         Side.Left,
         0,
-        '<<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>|<<<i|j-0>|<k|k-0>-1>|<<i|j-0>|<k|k-0>-1>-2>-3>',
+        '<<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>|<<<i|j-0>|<k|~-0>-1>|~-2>-3>',
       ],
       [12, Side.Right, 8, '<i|j-0>'],
     ])
@@ -127,9 +118,9 @@ describe('Merkle tree', function () {
     await tree.add('c')
     await expect(tree).toHaveLeaves('abc', [1, 1, 2])
     await expect(tree).toHaveNodes([
-      [1, Side.Left, 3, '<c|c-0>'],
+      [1, Side.Left, 3, '<c|~-0>'],
       [2, Side.Right, 1, '<a|b-0>'],
-      [3, Side.Left, 0, '<<a|b-0>|<c|c-0>-1>'],
+      [3, Side.Left, 0, '<<a|b-0>|<c|~-0>-1>'],
     ])
 
     await tree.add('d')
@@ -145,10 +136,10 @@ describe('Merkle tree', function () {
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
       [2, Side.Right, 1, '<a|b-0>'],
-      [3, Side.Left, 6, '<<e|e-0>|<e|e-0>-1>'],
-      [4, Side.Left, 5, '<e|e-0>'],
+      [3, Side.Left, 6, '<<e|~-0>|~-1>'],
+      [4, Side.Left, 5, '<e|~-0>'],
       [5, Side.Right, 3, '<<a|b-0>|<c|d-0>-1>'],
-      [6, Side.Left, 0, '<<<a|b-0>|<c|d-0>-1>|<<e|e-0>|<e|e-0>-1>-2>'],
+      [6, Side.Left, 0, '<<<a|b-0>|<c|d-0>-1>|<<e|~-0>|~-1>-2>'],
     ])
 
     await tree.add('f')
@@ -156,10 +147,10 @@ describe('Merkle tree', function () {
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
       [2, Side.Right, 1, '<a|b-0>'],
-      [3, Side.Left, 6, '<<e|f-0>|<e|f-0>-1>'],
+      [3, Side.Left, 6, '<<e|f-0>|~-1>'],
       [4, Side.Left, 5, '<e|f-0>'],
       [5, Side.Right, 3, '<<a|b-0>|<c|d-0>-1>'],
-      [6, Side.Left, 0, '<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<e|f-0>-1>-2>'],
+      [6, Side.Left, 0, '<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|~-1>-2>'],
     ])
 
     await tree.add('g')
@@ -167,10 +158,10 @@ describe('Merkle tree', function () {
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
       [2, Side.Right, 1, '<a|b-0>'],
-      [3, Side.Left, 6, '<<e|f-0>|<g|g-0>-1>'],
-      [4, Side.Left, 5, '<g|g-0>'],
+      [3, Side.Left, 6, '<<e|f-0>|<g|~-0>-1>'],
+      [4, Side.Left, 5, '<g|~-0>'],
       [5, Side.Right, 3, '<<a|b-0>|<c|d-0>-1>'],
-      [6, Side.Left, 0, '<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|g-0>-1>-2>'],
+      [6, Side.Left, 0, '<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|~-0>-1>-2>'],
       [7, Side.Right, 4, '<e|f-0>'],
     ])
 
@@ -194,17 +185,12 @@ describe('Merkle tree', function () {
       [3, Side.Left, 6, '<<e|f-0>|<g|h-0>-1>'],
       [4, Side.Left, 5, '<g|h-0>'],
       [5, Side.Right, 3, '<<a|b-0>|<c|d-0>-1>'],
-      [6, Side.Left, 11, '<<<i|i-0>|<i|i-0>-1>|<<i|i-0>|<i|i-0>-1>-2>'],
+      [6, Side.Left, 11, '<<<i|~-0>|~-1>|~-2>'],
       [7, Side.Right, 4, '<e|f-0>'],
-      [8, Side.Left, 9, '<i|i-0>'],
-      [9, Side.Left, 10, '<<i|i-0>|<i|i-0>-1>'],
+      [8, Side.Left, 9, '<i|~-0>'],
+      [9, Side.Left, 10, '<<i|~-0>|~-1>'],
       [10, Side.Right, 6, '<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>'],
-      [
-        11,
-        Side.Left,
-        0,
-        '<<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>|<<<i|i-0>|<i|i-0>-1>|<<i|i-0>|<i|i-0>-1>-2>-3>',
-      ],
+      [11, Side.Left, 0, '<<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>|<<<i|~-0>|~-1>|~-2>-3>'],
     ])
 
     await tree.addBatch('jklmnopqrstuvwxyz')
@@ -230,7 +216,7 @@ describe('Merkle tree', function () {
         11,
         Side.Left,
         20,
-        '<<<<q|r-0>|<s|t-0>-1>|<<u|v-0>|<w|x-0>-1>-2>|<<<y|z-0>|<y|z-0>-1>|<<y|z-0>|<y|z-0>-1>-2>-3>',
+        '<<<<q|r-0>|<s|t-0>-1>|<<u|v-0>|<w|x-0>-1>-2>|<<<y|z-0>|~-1>|~-2>-3>',
       ],
       [12, Side.Right, 8, '<i|j-0>'],
       [13, Side.Left, 14, '<o|p-0>'],
@@ -238,7 +224,7 @@ describe('Merkle tree', function () {
       [15, Side.Right, 13, '<m|n-0>'],
       [16, Side.Left, 17, '<s|t-0>'],
       [17, Side.Left, 18, '<<u|v-0>|<w|x-0>-1>'],
-      [18, Side.Left, 19, '<<<y|z-0>|<y|z-0>-1>|<<y|z-0>|<y|z-0>-1>-2>'],
+      [18, Side.Left, 19, '<<<y|z-0>|~-1>|~-2>'],
       [
         19,
         Side.Right,
@@ -249,14 +235,14 @@ describe('Merkle tree', function () {
         20,
         Side.Left,
         0,
-        '<<<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>|<<<i|j-0>|<k|l-0>-1>|<<m|n-0>|<o|p-0>-1>-2>-3>|<<<<q|r-0>|<s|t-0>-1>|<<u|v-0>|<w|x-0>-1>-2>|<<<y|z-0>|<y|z-0>-1>|<<y|z-0>|<y|z-0>-1>-2>-3>-4>',
+        '<<<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>|<<<i|j-0>|<k|l-0>-1>|<<m|n-0>|<o|p-0>-1>-2>-3>|<<<<q|r-0>|<s|t-0>-1>|<<u|v-0>|<w|x-0>-1>-2>|<<<y|z-0>|~-1>|~-2>-3>-4>',
       ],
       [21, Side.Right, 16, '<q|r-0>'],
       [22, Side.Left, 23, '<w|x-0>'],
       [23, Side.Right, 17, '<<q|r-0>|<s|t-0>-1>'],
       [24, Side.Right, 22, '<u|v-0>'],
       [25, Side.Left, 26, '<y|z-0>'],
-      [26, Side.Left, 27, '<<y|z-0>|<y|z-0>-1>'],
+      [26, Side.Left, 27, '<<y|z-0>|~-1>'],
       [27, Side.Right, 18, '<<<q|r-0>|<s|t-0>-1>|<<u|v-0>|<w|x-0>-1>-2>'],
     ])
   })
@@ -299,63 +285,35 @@ describe('Merkle tree', function () {
     )
 
     await tree.add('a')
-    await expect(tree.rootHash()).resolves.toBe(
-      '<<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>|<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(1)).resolves.toBe(
-      '<<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>|<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>-3>',
-    )
+    await expect(tree.rootHash()).resolves.toBe('<<<<a|~-0>|~-1>|~-2>|~-3>')
+    await expect(tree.pastRoot(1)).resolves.toBe('<<<<a|~-0>|~-1>|~-2>|~-3>')
     await expect(tree.pastRoot(2)).rejects.toThrow(
       `Unable to get past size 2 for tree with 1 nodes`,
     )
 
     await tree.add('b')
-    await expect(tree.rootHash()).resolves.toBe(
-      '<<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>|<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(1)).resolves.toBe(
-      '<<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>|<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(2)).resolves.toBe(
-      '<<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>|<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>-3>',
-    )
+    await expect(tree.rootHash()).resolves.toBe('<<<<a|b-0>|~-1>|~-2>|~-3>')
+    await expect(tree.pastRoot(1)).resolves.toBe('<<<<a|~-0>|~-1>|~-2>|~-3>')
+    await expect(tree.pastRoot(2)).resolves.toBe('<<<<a|b-0>|~-1>|~-2>|~-3>')
     await expect(tree.pastRoot(3)).rejects.toThrow(
       `Unable to get past size 3 for tree with 2 nodes`,
     )
 
     await tree.add('c')
-    await expect(tree.rootHash()).resolves.toBe(
-      '<<<<a|b-0>|<c|c-0>-1>|<<a|b-0>|<c|c-0>-1>-2>|<<<a|b-0>|<c|c-0>-1>|<<a|b-0>|<c|c-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(1)).resolves.toBe(
-      '<<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>|<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(2)).resolves.toBe(
-      '<<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>|<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(3)).resolves.toBe(
-      '<<<<a|b-0>|<c|c-0>-1>|<<a|b-0>|<c|c-0>-1>-2>|<<<a|b-0>|<c|c-0>-1>|<<a|b-0>|<c|c-0>-1>-2>-3>',
-    )
+    await expect(tree.rootHash()).resolves.toBe('<<<<a|b-0>|<c|~-0>-1>|~-2>|~-3>')
+    await expect(tree.pastRoot(1)).resolves.toBe('<<<<a|~-0>|~-1>|~-2>|~-3>')
+    await expect(tree.pastRoot(2)).resolves.toBe('<<<<a|b-0>|~-1>|~-2>|~-3>')
+    await expect(tree.pastRoot(3)).resolves.toBe('<<<<a|b-0>|<c|~-0>-1>|~-2>|~-3>')
     await expect(tree.pastRoot(4)).rejects.toThrow(
       `Unable to get past size 4 for tree with 3 nodes`,
     )
 
     await tree.add('d')
-    await expect(tree.rootHash()).resolves.toBe(
-      '<<<<a|b-0>|<c|d-0>-1>|<<a|b-0>|<c|d-0>-1>-2>|<<<a|b-0>|<c|d-0>-1>|<<a|b-0>|<c|d-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(1)).resolves.toBe(
-      '<<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>|<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(2)).resolves.toBe(
-      '<<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>|<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(3)).resolves.toBe(
-      '<<<<a|b-0>|<c|c-0>-1>|<<a|b-0>|<c|c-0>-1>-2>|<<<a|b-0>|<c|c-0>-1>|<<a|b-0>|<c|c-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(4)).resolves.toBe(
-      '<<<<a|b-0>|<c|d-0>-1>|<<a|b-0>|<c|d-0>-1>-2>|<<<a|b-0>|<c|d-0>-1>|<<a|b-0>|<c|d-0>-1>-2>-3>',
-    )
+    await expect(tree.rootHash()).resolves.toBe('<<<<a|b-0>|<c|d-0>-1>|~-2>|~-3>')
+    await expect(tree.pastRoot(1)).resolves.toBe('<<<<a|~-0>|~-1>|~-2>|~-3>')
+    await expect(tree.pastRoot(2)).resolves.toBe('<<<<a|b-0>|~-1>|~-2>|~-3>')
+    await expect(tree.pastRoot(3)).resolves.toBe('<<<<a|b-0>|<c|~-0>-1>|~-2>|~-3>')
+    await expect(tree.pastRoot(4)).resolves.toBe('<<<<a|b-0>|<c|d-0>-1>|~-2>|~-3>')
     await expect(tree.pastRoot(5)).rejects.toThrow(
       `Unable to get past size 5 for tree with 4 nodes`,
     )
@@ -367,50 +325,38 @@ describe('Merkle tree', function () {
     await expect(tree.rootHash()).resolves.toBe(
       '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<6|7-0>-1>|<<8|9-0>|<10|11-0>-1>-2>-3>',
     )
-    await expect(tree.pastRoot(1)).resolves.toBe(
-      '<<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>|<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(2)).resolves.toBe(
-      '<<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>|<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(3)).resolves.toBe(
-      '<<<<a|b-0>|<c|c-0>-1>|<<a|b-0>|<c|c-0>-1>-2>|<<<a|b-0>|<c|c-0>-1>|<<a|b-0>|<c|c-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(4)).resolves.toBe(
-      '<<<<a|b-0>|<c|d-0>-1>|<<a|b-0>|<c|d-0>-1>-2>|<<<a|b-0>|<c|d-0>-1>|<<a|b-0>|<c|d-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(5)).resolves.toBe(
-      '<<<<a|b-0>|<c|d-0>-1>|<<0|0-0>|<0|0-0>-1>-2>|<<<a|b-0>|<c|d-0>-1>|<<0|0-0>|<0|0-0>-1>-2>-3>',
-    )
-    await expect(tree.pastRoot(6)).resolves.toBe(
-      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<0|1-0>-1>-2>|<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<0|1-0>-1>-2>-3>',
-    )
+    await expect(tree.pastRoot(1)).resolves.toBe('<<<<a|~-0>|~-1>|~-2>|~-3>')
+    await expect(tree.pastRoot(2)).resolves.toBe('<<<<a|b-0>|~-1>|~-2>|~-3>')
+    await expect(tree.pastRoot(3)).resolves.toBe('<<<<a|b-0>|<c|~-0>-1>|~-2>|~-3>')
+    await expect(tree.pastRoot(4)).resolves.toBe('<<<<a|b-0>|<c|d-0>-1>|~-2>|~-3>')
+    await expect(tree.pastRoot(5)).resolves.toBe('<<<<a|b-0>|<c|d-0>-1>|<<0|~-0>|~-1>-2>|~-3>')
+    await expect(tree.pastRoot(6)).resolves.toBe('<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|~-1>-2>|~-3>')
     await expect(tree.pastRoot(7)).resolves.toBe(
-      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|2-0>-1>-2>|<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|2-0>-1>-2>-3>',
+      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|~-0>-1>-2>|~-3>',
     )
     await expect(tree.pastRoot(8)).resolves.toBe(
-      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>-3>',
+      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|~-3>',
     )
     await expect(tree.pastRoot(9)).resolves.toBe(
-      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|4-0>|<4|4-0>-1>|<<4|4-0>|<4|4-0>-1>-2>-3>',
+      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|~-0>|~-1>|~-2>-3>',
     )
     await expect(tree.pastRoot(10)).resolves.toBe(
-      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<4|5-0>-1>|<<4|5-0>|<4|5-0>-1>-2>-3>',
+      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|~-1>|~-2>-3>',
     )
     await expect(tree.pastRoot(11)).resolves.toBe(
-      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<6|6-0>-1>|<<4|5-0>|<6|6-0>-1>-2>-3>',
+      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<6|~-0>-1>|~-2>-3>',
     )
     await expect(tree.pastRoot(12)).resolves.toBe(
-      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<6|7-0>-1>|<<4|5-0>|<6|7-0>-1>-2>-3>',
+      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<6|7-0>-1>|~-2>-3>',
     )
     await expect(tree.pastRoot(13)).resolves.toBe(
-      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<6|7-0>-1>|<<8|8-0>|<8|8-0>-1>-2>-3>',
+      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<6|7-0>-1>|<<8|~-0>|~-1>-2>-3>',
     )
     await expect(tree.pastRoot(14)).resolves.toBe(
-      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<6|7-0>-1>|<<8|9-0>|<8|9-0>-1>-2>-3>',
+      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<6|7-0>-1>|<<8|9-0>|~-1>-2>-3>',
     )
     await expect(tree.pastRoot(15)).resolves.toBe(
-      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<6|7-0>-1>|<<8|9-0>|<10|10-0>-1>-2>-3>',
+      '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<6|7-0>-1>|<<8|9-0>|<10|~-0>-1>-2>-3>',
     )
     await expect(tree.pastRoot(16)).resolves.toBe(
       '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<6|7-0>-1>|<<8|9-0>|<10|11-0>-1>-2>-3>',
@@ -466,86 +412,86 @@ describe('Merkle tree', function () {
     let witness = await witnessOrThrow(0)
     expect(witness.verify('a')).toBe(true)
     expect(witness.verify('b')).toBe(false)
-    let expectedRoot = '<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>'
+    let expectedRoot = '<<<a|~-0>|~-1>|~-2>'
     expect(witness).toMatchWitness(1, expectedRoot, [
-      [Side.Left, 'a'],
-      [Side.Left, '<a|a-0>'],
-      [Side.Left, '<<a|a-0>|<a|a-0>-1>'],
+      [Side.Left, '~'],
+      [Side.Left, '~'],
+      [Side.Left, '~'],
     ])
 
     await tree.add('b')
     await expect(tree.witness(2)).resolves.toBe(null)
-    expectedRoot = '<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>'
+    expectedRoot = '<<<a|b-0>|~-1>|~-2>'
     witness = await witnessOrThrow(0)
     expect(witness.verify('a')).toBe(true)
     expect(witness.verify('b')).toBe(false)
     expect(witness).toMatchWitness(2, expectedRoot, [
       [Side.Left, 'b'],
-      [Side.Left, '<a|b-0>'],
-      [Side.Left, '<<a|b-0>|<a|b-0>-1>'],
+      [Side.Left, '~'],
+      [Side.Left, '~'],
     ])
     witness = await witnessOrThrow(1)
     expect(witness.verify('b')).toBe(true)
     expect(witness).toMatchWitness(2, expectedRoot, [
       [Side.Right, 'a'],
-      [Side.Left, '<a|b-0>'],
-      [Side.Left, '<<a|b-0>|<a|b-0>-1>'],
+      [Side.Left, '~'],
+      [Side.Left, '~'],
     ])
 
     await tree.add('c')
     await expect(tree.witness(3)).resolves.toBe(null)
-    expectedRoot = '<<<a|b-0>|<c|c-0>-1>|<<a|b-0>|<c|c-0>-1>-2>'
+    expectedRoot = '<<<a|b-0>|<c|~-0>-1>|~-2>'
     witness = await witnessOrThrow(0)
     expect(witness.verify('a')).toBe(true)
     expect(witness).toMatchWitness(3, expectedRoot, [
       [Side.Left, 'b'],
-      [Side.Left, '<c|c-0>'],
-      [Side.Left, '<<a|b-0>|<c|c-0>-1>'],
+      [Side.Left, '<c|~-0>'],
+      [Side.Left, '~'],
     ])
     witness = await witnessOrThrow(1)
     expect(witness.verify('b')).toBe(true)
     expect(witness).toMatchWitness(3, expectedRoot, [
       [Side.Right, 'a'],
-      [Side.Left, '<c|c-0>'],
-      [Side.Left, '<<a|b-0>|<c|c-0>-1>'],
+      [Side.Left, '<c|~-0>'],
+      [Side.Left, '~'],
     ])
     witness = await witnessOrThrow(2)
     expect(witness.verify('c')).toBe(true)
     expect(witness).toMatchWitness(3, expectedRoot, [
-      [Side.Left, 'c'],
+      [Side.Left, '~'],
       [Side.Right, '<a|b-0>'],
-      [Side.Left, '<<a|b-0>|<c|c-0>-1>'],
+      [Side.Left, '~'],
     ])
     await tree.add('d')
     await expect(tree.witness(4)).resolves.toBe(null)
-    expectedRoot = '<<<a|b-0>|<c|d-0>-1>|<<a|b-0>|<c|d-0>-1>-2>'
+    expectedRoot = '<<<a|b-0>|<c|d-0>-1>|~-2>'
     witness = await witnessOrThrow(0)
     expect(witness.verify('a')).toBe(true)
     expect(witness).toMatchWitness(4, expectedRoot, [
       [Side.Left, 'b'],
       [Side.Left, '<c|d-0>'],
-      [Side.Left, '<<a|b-0>|<c|d-0>-1>'],
+      [Side.Left, '~'],
     ])
     witness = await witnessOrThrow(1)
     expect(witness.verify('b')).toBe(true)
     expect(witness).toMatchWitness(4, expectedRoot, [
       [Side.Right, 'a'],
       [Side.Left, '<c|d-0>'],
-      [Side.Left, '<<a|b-0>|<c|d-0>-1>'],
+      [Side.Left, '~'],
     ])
     witness = await witnessOrThrow(2)
     expect(witness.verify('c')).toBe(true)
     expect(witness).toMatchWitness(4, expectedRoot, [
       [Side.Left, 'd'],
       [Side.Right, '<a|b-0>'],
-      [Side.Left, '<<a|b-0>|<c|d-0>-1>'],
+      [Side.Left, '~'],
     ])
     witness = await witnessOrThrow(3)
     expect(witness.verify('d')).toBe(true)
     expect(witness).toMatchWitness(4, expectedRoot, [
       [Side.Right, 'c'],
       [Side.Right, '<a|b-0>'],
-      [Side.Left, '<<a|b-0>|<c|d-0>-1>'],
+      [Side.Left, '~'],
     ])
 
     await tree.add('e')

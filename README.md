@@ -11,6 +11,10 @@ Iron Fish is a Layer 1 blockchain that provides the strongest privacy guarantees
 
 See https://ironfish.network
 
+## Merkle tree compatibility
+
+This code changes the consensus note commitment tree to prevent one owned note from authenticating at multiple positions and producing distinct nullifiers. It is intended for a new chain with a new genesis. Its note roots are incompatible with existing Iron Fish mainnet and testnet history; do not use it to sync or validate those chains. See the [technical postmortem](./docs/merkle-note-position-alias-postmortem.md) for the failure mechanism, scope, and deployment boundary.
+
 ## Developer Install
 
 The following steps should only be used to install if you are planning on contributing to the Iron Fish codebase. Otherwise, we **strongly** recommend using the installation methods here: https://ironfish.network/use/get-started/installation
