@@ -5,7 +5,9 @@
 import { generateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus/verifier'
+import { DEV_GENESIS_ACCOUNT } from '../networks/definitions/devnet'
 import { RawTransaction } from '../primitives/rawTransaction'
+import { TransactionVersion } from '../primitives/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { Side } from './merkletree'
 import { NoteWitness, Witness } from './witness'
@@ -90,5 +92,34 @@ describe('spend proof against copied Merkle branches', () => {
     const honest = createSpend(real)
     expect(await nodeTest.workerPool.verifyTransactions([honest])).toEqual({ valid: true })
     expect(await nodeTest.verifier.verifyTransactionSpends(honest)).toEqual({ valid: true })
+  }, 120000)
+
+  it('spends the regenerated genesis allocation in a V1 devnet block', async () => {
+    const chain = nodeTest.chain
+    expect(await chain.notes.size()).toBe(3)
+    expect(chain.consensus.getActiveTransactionVersion(2)).toBe(TransactionVersion.V1)
+
+    const genesis = await chain.getBlock(chain.genesis.hash)
+    Assert.isNotNull(genesis)
+    const note = genesis.transactions[2].notes[0].decryptNoteForOwner(
+      DEV_GENESIS_ACCOUNT.incomingViewKey,
+    )
+    Assert.isNotUndefined(note)
+    expect(note.value()).toBe(4200000000000000n)
+
+    const witness = await chain.notes.witness(2)
+    Assert.isNotNull(witness)
+    expect(witness.verify(note.hash())).toBe(true)
+
+    const raw = new RawTransaction(TransactionVersion.V1)
+    raw.spends.push({ note, witness })
+    raw.fee = 1n
+    const spend = raw.post(DEV_GENESIS_ACCOUNT.spendingKey)
+    expect(await nodeTest.workerPool.verifyTransactions([spend])).toEqual({ valid: true })
+    expect(await nodeTest.verifier.verifyTransactionSpends(spend)).toEqual({ valid: true })
+
+    const minersFee = await chain.createMinersFee(1n, 2, generateKey().spendingKey)
+    const block = await chain.newBlock([spend], minersFee)
+    await expect(chain).toAddBlock(block)
   }, 120000)
 })
