@@ -20,10 +20,12 @@ jobs:
           - host: windows-latest
             target: x86_64-pc-windows-msvc
 
-          # --zig-abi-suffix=2.17 keeps the glibc requirement low. Do not build on
-          # macos-latest: it is arm64, and cross-compiling from it leaves blst
-          # unlinked (undefined symbol: blst_uint64_from_fr at load time)
-          - host: ubuntu-22.04
+          # Intentionally an Intel macOS host. The host must differ from the target
+          # so the zig --zig-abi-suffix=2.17 linker only applies to the target;
+          # on an x86_64 Linux host it also links proc macros, which then fail to
+          # load. It must be x64: macos-latest is arm64, and cross-compiling from
+          # it leaves blst unlinked (undefined symbol: blst_uint64_from_fr).
+          - host: macos-26-intel
             target: x86_64-unknown-linux-gnu
 
           - host: ubuntu-22.04
