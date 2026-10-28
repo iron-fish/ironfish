@@ -1,27 +1,59 @@
 #!/usr/bin/env node
 
-const MIN_NODE_VERSION = 18
+// Minimum patched release for each supported major line. Older releases are
+// vulnerable to the October 2026 Node.js security release CVEs. Majors not
+// listed here (EOL or odd-numbered) are rejected unless newer than all of them.
+const MIN_NODE_VERSIONS = {
+  22: [22, 23, 4],
+  24: [24, 22, 1],
+  26: [26, 12, 1],
+}
+const MIN_NODE_VERSIONS_TEXT = Object.values(MIN_NODE_VERSIONS)
+  .map((v) => `v${v.join('.')}+`)
+  .join(', ')
 
-// the signal handler does not support windows yet
-if (process.platform !== 'win32') {
-  require('@ironfish/rust-nodejs').initSignalHandler()
+function isSupportedNodeVersion(version) {
+  const current = version.split('.').map(Number)
+  const majors = Object.keys(MIN_NODE_VERSIONS).map(Number)
+  if (current[0] > Math.max(...majors)) {
+    return true
+  }
+
+  const min = MIN_NODE_VERSIONS[current[0]]
+  if (!min) {
+    return false
+  }
+
+  for (let i = 0; i < 3; i++) {
+    if (current[i] !== min[i]) {
+      return current[i] > min[i]
+    }
+  }
+  return true
 }
 
 if (process.platform === 'win32' && process.arch === 'ia32') {
   console.log(
-    `32-bit installations are not supported. You may have accidentally installed 32-bit Node.js. Please try reinstalling Node.js v18 (64-bit): https://nodejs.org/en/download/`,
+    `32-bit installations are not supported. You may have accidentally installed 32-bit Node.js. Please try reinstalling Node.js v26 (64-bit): https://nodejs.org/en/download/`,
   )
   process.exit(1)
 }
 
-if (Number(process.versions.node.split('.')[0]) < MIN_NODE_VERSION) {
+// Check before loading any native modules, so an unsupported Node gets this
+// message rather than an addon load error
+if (!isSupportedNodeVersion(process.versions.node)) {
   console.log(
-    `NodeJS version ${process.versions.node} is not compatible. Must have at least Node v${MIN_NODE_VERSION} installed: https://nodejs.org/en/download/`,
+    `NodeJS version ${process.versions.node} is not compatible. Must have one of Node ${MIN_NODE_VERSIONS_TEXT} installed: https://nodejs.org/en/download/`,
   )
   console.log(
     'After an updated version is installed, MAKE SURE TO run `npm install -g ironfish` again to install ironfish with the correct Node version',
   )
   process.exit(1)
+}
+
+// the signal handler does not support windows yet
+if (process.platform !== 'win32') {
+  require('@ironfish/rust-nodejs').initSignalHandler()
 }
 
 require('@oclif/core').execute({ dir: __dirname })

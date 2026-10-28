@@ -51,7 +51,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '26.12.1'
           cache: yarn
 
       - name: Install Rust
@@ -96,19 +96,20 @@ jobs:
 
           - host: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-            docker: node:18-slim
+            docker: node:26.12.1-slim
 
           - host: ubuntu-22.04
             target: x86_64-unknown-linux-musl
-            docker: node:18-alpine
+            docker: node:26.12.1-alpine
 
           - host: ubuntu-22.04
             target: aarch64-unknown-linux-gnu
-            docker: ghcr.io/napi-rs/napi-rs/nodejs:aarch64-16
+            docker: arm64v8/node:26.12.1-slim
+            platform: linux/arm64/v8
 
           - host: ubuntu-22.04
             target: aarch64-unknown-linux-musl
-            docker: arm64v8/node:18-alpine
+            docker: arm64v8/node:26.12.1-alpine
             platform: linux/arm64/v8
 
     name: Test bindings for ${{ matrix.settings.target }}
@@ -124,7 +125,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '26.12.1'
 
       - name: Download artifacts
         uses: actions/download-artifact@v4

@@ -66,7 +66,7 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 
 ## Requirements
 
-- Node.js 20.0.0 or higher
+- Node.js 22.23.4+, 24.22.1+, or 26.12.1+
 - A JavaScript environment with WebAssembly support
 
 ## Contributing

@@ -21,7 +21,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '26.12.1'
           cache: 'yarn'
 
       - name: Install packages
@@ -63,8 +63,8 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          # Tests will only run on Node v20 due to https://github.com/nodejs/node/issues/35889
-          node-version: 20
+          # Tests need Node v20 or newer due to https://github.com/nodejs/node/issues/35889
+          node-version: '26.12.1'
           cache: 'yarn'
 
       - name: Cache Rust
@@ -108,8 +108,8 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          # Tests will only run on Node v20 due to https://github.com/nodejs/node/issues/35889
-          node-version: 20
+          # Tests need Node v20 or newer due to https://github.com/nodejs/node/issues/35889
+          node-version: '26.12.1'
           cache: 'yarn'
 
       - name: Cache Rust

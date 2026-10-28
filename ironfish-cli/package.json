@@ -20,7 +20,7 @@
     "/oclif.manifest.json"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=22.23.4 <23 || >=24.22.1 <25 || >=26.12.1"
   },
   "devDependencies": {
     "@oclif/test": "4.0.4",
