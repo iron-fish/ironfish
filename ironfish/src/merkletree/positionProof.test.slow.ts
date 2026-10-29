@@ -87,6 +87,20 @@ describe('spend proof against copied Merkle branches', () => {
       })
     }
 
+    const rootBeforeBadBlock = await chain.notes.rootHash()
+    const sizeBeforeBadBlock = await chain.notes.size()
+    const nextMinersFee = await chain.createMinersFee(
+      1n,
+      chain.head.sequence + 1,
+      generateKey().spendingKey,
+    )
+    const badBlock = await chain.newBlock([second], nextMinersFee)
+    const result = await chain.addBlock(badBlock)
+    expect(result.isAdded).toBe(false)
+    expect(result.reason).toBe(VerificationResultReason.INVALID_SPEND)
+    expect(await chain.notes.rootHash()).toEqual(rootBeforeBadBlock)
+    expect(await chain.notes.size()).toBe(sizeBeforeBadBlock)
+
     const real = await chain.notes.witness(position)
     Assert.isNotNull(real)
     const honest = createSpend(real)
