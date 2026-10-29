@@ -109,6 +109,53 @@ describe('Merkle tree adversarial regression tests', () => {
     expect(await tree.rootHash()).not.toBe(root)
   })
 
+  it('matches depth-32 roots and witnesses across larger power-of-two boundaries', async () => {
+    const tree = await makeTree({ depth: 32 })
+    const leaves = Array.from({ length: 129 }, (_, i) => `leaf${i}`)
+    const sizes = [1, 2, 3, 31, 32, 33, 63, 64, 65, 127, 128, 129]
+    const roots = new Map<number, string>()
+
+    for (let size = 1; size <= leaves.length; size++) {
+      await tree.add(leaves[size - 1])
+      if (!sizes.includes(size)) {
+        continue
+      }
+      const expected = referenceRoot(leaves.slice(0, size), 32)
+      roots.set(size, expected)
+      expect(await tree.rootHash()).toBe(expected)
+      for (const index of new Set([0, Math.floor((size - 1) / 2), size - 1])) {
+        const witness = await tree.witness(index)
+        Assert.isNotNull(witness)
+        expect(witness.rootHash).toBe(expected)
+        expect(witness.verify(leaves[index])).toBe(true)
+        const copiedPosition = witness.authenticationPath.map((node) => ({ ...node }))
+        copiedPosition[31].side = Side.Right
+        expect(
+          new Witness(size, expected, copiedPosition, tree.hasher).verify(leaves[index]),
+        ).toBe(false)
+      }
+    }
+
+    for (const size of sizes) {
+      expect(await tree.pastRoot(size)).toBe(roots.get(size))
+      const index = size - 1
+      const witness = await tree.witness(index, size)
+      Assert.isNotNull(witness)
+      expect(witness.rootHash).toBe(roots.get(size))
+      expect(witness.verify(leaves[index])).toBe(true)
+    }
+
+    await tree.truncate(64)
+    expect(await tree.rootHash()).toBe(roots.get(64))
+    await tree.addBatch(['new64', 'new65'])
+    const expected = referenceRoot([...leaves.slice(0, 64), 'new64', 'new65'], 32)
+    expect(await tree.rootHash()).toBe(expected)
+    const witness = await tree.witness(65)
+    Assert.isNotNull(witness)
+    expect(witness.rootHash).toBe(expected)
+    expect(witness.verify('new65')).toBe(true)
+  }, 30000)
+
   it('keeps membership for duplicate commitments retained after a rollback', async () => {
     const tree = await makeTree({ depth: 4, leaves: 'abacadaba' })
     await checkTree(tree, [...'abacadaba'])
@@ -210,6 +257,27 @@ describe('Merkle tree adversarial regression tests', () => {
     }
     await expect(tree.size()).resolves.toBe(0)
   })
+
+  it.each([0xfffffffe, 0xffffffff])(
+    'rejects node counter exhaustion at %i without changing the tree',
+    async (nodeCount) => {
+      const tree = await makeTree({ depth: 32, leaves: 'ab' })
+      const root = await tree.rootHash()
+      const getCount = tree.getCount.bind(tree)
+      const count = jest
+        .spyOn(tree, 'getCount')
+        .mockImplementation((kind, tx) =>
+          kind === 'Nodes' ? Promise.resolve(nodeCount) : getCount(kind, tx),
+        )
+      try {
+        await expect(tree.add('c')).rejects.toThrow(/full: no node indices remain/)
+      } finally {
+        count.mockRestore()
+      }
+      expect(await tree.size()).toBe(2)
+      expect(await tree.rootHash()).toBe(root)
+    },
+  )
 
   it('matches the oracle across deterministic append, rollback, abort, and reopen sequences', async () => {
     const tree = await makeTree({ depth: 6 })

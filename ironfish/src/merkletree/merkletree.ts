@@ -223,8 +223,8 @@ export class MerkleTree<
     await this.db.withTransaction(tx, async (tx) => {
       const merkleHash = this.hasher.hash(element)
       const indexOfNewLeaf = await this.getCount('Leaves', tx)
-      // Counts and indices are stored as u32. At depth 32 the count, rather
-      // than the path length, limits the tree to 2^32 - 1 leaves.
+      // Leaf counts and indices are stored as u32. Internal node indices may
+      // exhaust their own u32 counter before the leaf counter reaches this bound.
       if (indexOfNewLeaf >= Math.min(2 ** this.depth, 0xffffffff)) {
         throw new Error(`Merkle tree ${this.name} is full`)
       }
@@ -283,6 +283,9 @@ export class MerkleTree<
         newParentIndex = nextNodeIndex
 
         while (shouldContinue) {
+          if (nextNodeIndex >= 0xffffffff) {
+            throw new Error(`Merkle tree ${this.name} is full: no node indices remain`)
+          }
           const previousParent = await this.getNode(previousParentIndex, tx)
 
           if (previousParent.side === Side.Left) {
@@ -300,6 +303,9 @@ export class MerkleTree<
             await this.counter.put('Nodes', nextNodeIndex, tx)
 
             if (!previousParent.parentIndex || isEmpty(previousParent.parentIndex)) {
+              if (nextNodeIndex >= 0xffffffff) {
+                throw new Error(`Merkle tree ${this.name} is full: no node indices remain`)
+              }
               const newParent = {
                 side: Side.Left,
                 parentIndex: 0,
