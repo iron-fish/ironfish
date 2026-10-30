@@ -13,7 +13,10 @@ See https://ironfish.network
 
 ## Merkle tree compatibility
 
-This code changes the consensus note commitment tree to prevent a single inserted output from authenticating at copied, unpopulated positions and producing extra nullifiers. It is intended for a new chain with a new genesis. Its note roots are incompatible with existing Iron Fish mainnet and testnet history; do not use it to sync or validate those chains. See the [technical postmortem](./docs/merkle-note-position-alias-postmortem.md) for the failure mechanism, scope, and deployment boundary.
+> [!CAUTION]
+> This code changes the consensus note commitment tree. Its note roots are incompatible with existing Iron Fish mainnet and testnet history. Use it only for a new chain with a new genesis; do not use it to sync or validate existing chains.
+
+The change prevents a single inserted output from authenticating at copied, unpopulated positions and producing extra nullifiers. See the [technical postmortem](./docs/merkle-note-position-alias-postmortem.md) for the failure mechanism, scope, and deployment boundary.
 
 ## Developer Install
 

@@ -27,6 +27,11 @@ import {
 import { depthAtLeafCount, isEmpty, isRight } from './utils'
 import { Witness, WitnessNode } from './witness'
 
+// depthAtLeafCount includes the structural level above the populated root.
+function populatedRootDepth(leafCount: number): number {
+  return Math.max(1, depthAtLeafCount(leafCount) - 1)
+}
+
 export class MerkleTree<
   E,
   H extends DatabaseKey,
@@ -37,9 +42,7 @@ export class MerkleTree<
   readonly db: IDatabase
   readonly name: string = ''
   readonly depth: number = 32
-  // Hash for a missing sibling subtree at any depth. Never duplicate
-  // the populated sibling: doing so authenticates its notes at extra positions,
-  // which gives those notes extra nullifiers in the spend circuit.
+  // A missing sibling must not copy a populated branch: that gives its notes extra nullifiers.
   readonly defaultValue: H
 
   readonly counter: IDatabaseStore<CounterSchema>
@@ -48,14 +51,10 @@ export class MerkleTree<
   readonly nodes: IDatabaseStore<NodesSchema<H>>
 
   private readonly pastRootCache: LRU<number, H> = new LRU<number, H>(300 * 60)
-  private readonly transactionPastRootCache: LRU<
+  private readonly transactionPastRootCache: LRU<number, Map<number, H>> = new LRU<
     number,
-    Map<number, { hash: H; generation: number }>
-  > = new LRU<number, Map<number, { hash: H; generation: number }>>(5)
-  // A committed transaction may publish its local roots after another
-  // transaction truncates the tree. Only roots from the current generation
-  // may enter the shared cache.
-  private rootCacheGeneration = 0
+    Map<number, H>
+  >(5)
 
   constructor({
     hasher,
@@ -427,10 +426,10 @@ export class MerkleTree<
         return
       }
 
-      // Invalidate under the database lock, including the transaction's local
-      // cache, before overwriting any part of the truncated branch.
-      this.rootCacheGeneration++
-      this.invalidatePastRootCache(pastSize, tx)
+      // Clear local roots under the database lock so a delayed commit cannot
+      // publish a root from before truncation.
+      this.transactionPastRootCache.reset()
+      this.invalidatePastRootCache(pastSize)
 
       for (let index = oldSize - 1; index >= pastSize; --index) {
         const leaf = await this.getLeaf(index, tx)
@@ -491,17 +490,8 @@ export class MerkleTree<
     })
   }
 
-  // Invalidate and pastSize entries greater than maxSize
-  private invalidatePastRootCache(maxSize: number, tx?: IDatabaseTransaction): void {
-    if (tx instanceof LevelupTransaction) {
-      const local = this.transactionPastRootCache.get(tx.id)
-      for (const pastSize of local?.keys() || []) {
-        if (pastSize > maxSize) {
-          local?.delete(pastSize)
-        }
-      }
-    }
-
+  // Historical roots within the retained prefix remain valid.
+  private invalidatePastRootCache(maxSize: number): void {
     for (const pastSize of this.pastRootCache.keys()) {
       if (pastSize > maxSize) {
         this.pastRootCache.remove(pastSize)
@@ -511,10 +501,8 @@ export class MerkleTree<
 
   private setPastRootCache(pastSize: number, hash: H, tx: IDatabaseTransaction): void {
     if (tx instanceof LevelupTransaction) {
-      const cache =
-        this.transactionPastRootCache.get(tx.id) ||
-        new Map<number, { hash: H; generation: number }>()
-      cache.set(pastSize, { hash, generation: this.rootCacheGeneration })
+      const cache = this.transactionPastRootCache.get(tx.id) || new Map<number, H>()
+      cache.set(pastSize, hash)
       this.transactionPastRootCache.set(tx.id, cache)
     }
   }
@@ -524,7 +512,7 @@ export class MerkleTree<
       const local = this.transactionPastRootCache.get(tx.id)
       const localResult = local && local.get(pastSize)
 
-      return localResult?.hash || this.pastRootCache.get(pastSize)
+      return localResult || this.pastRootCache.get(pastSize)
     }
 
     return this.pastRootCache.get(pastSize)
@@ -533,10 +521,8 @@ export class MerkleTree<
   pastRootTxCommitted(tx: IDatabaseTransaction): void {
     if (tx instanceof LevelupTransaction) {
       const local = this.transactionPastRootCache.get(tx.id)
-      for (const [pastSize, { hash, generation }] of local?.entries() || []) {
-        if (generation === this.rootCacheGeneration) {
-          this.pastRootCache.set(pastSize, hash)
-        }
+      for (const [pastSize, hash] of local?.entries() || []) {
+        this.pastRootCache.set(pastSize, hash)
       }
       this.transactionPastRootCache.remove(tx.id)
     }
@@ -562,8 +548,7 @@ export class MerkleTree<
         return Promise.resolve(cached)
       }
 
-      // depthAtLeafCount includes a structural level above the populated root.
-      const rootDepth = Math.max(1, depthAtLeafCount(pastSize) - 1)
+      const rootDepth = populatedRootDepth(pastSize)
       const minTreeDepth = Math.min(rootDepth, this.depth)
       const leafIndex = pastSize - 1
       const leaf = await this.getLeaf(leafIndex, tx)
@@ -635,7 +620,7 @@ export class MerkleTree<
       const leafIndex = pastSize - 1
       const leaf = await this.getLeaf(leafIndex, tx)
 
-      const rootDepth = Math.max(1, depthAtLeafCount(pastSize) - 1)
+      const rootDepth = populatedRootDepth(pastSize)
       const minTreeDepth = Math.min(rootDepth, this.depth)
 
       let currentHash = leaf.merkleHash
@@ -764,10 +749,7 @@ export class MerkleTree<
         currentHash = this.hasher.combineHash(0, currentHash, this.defaultValue)
       }
 
-      const rootDepth = Math.min(
-        Math.max(1, depthAtLeafCount(witnessLeafCount) - 1),
-        this.depth,
-      )
+      const rootDepth = Math.min(populatedRootDepth(witnessLeafCount), this.depth)
 
       for (let depth = 1; depth < rootDepth; depth++) {
         const node =

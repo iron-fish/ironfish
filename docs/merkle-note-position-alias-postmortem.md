@@ -50,7 +50,7 @@ The [devnet genesis definition](../ironfish/src/networks/definitions/devnet.ts) 
 
 ## Verification
 
-The focused Merkle and real-proof tests passed. The exhaustive position test covers tree depths one through six and every populated size at each depth; additional depth-32 cases cover larger power-of-two boundaries, historical witnesses, and truncation followed by append. The deterministic state test covers 120 append, rollback, abort, and reopen steps. A separate integration test spends the regenerated V2 devnet genesis allocation in a V1 block. Locally, 202 standard SDK suites (1,425 tests), 16 slow SDK suites (193 tests), and four CLI suites (30 tests) passed. TypeScript checking, SDK and CLI builds, and linting of the changed TypeScript also passed. The local standard SDK run excluded `sdk.test.ts` because it initializes a default home-directory data path; the GitHub CI standard and slow test shards passed with their own isolated runners.
+The adversarial tests check every position for distinct leaves in trees of depth one through six, with additional depth-32 boundary cases. Historical witnesses, truncation and append sequences, delayed cache promotion, real spend proofs, and a spend of the regenerated devnet genesis allocation were also tested. The standard and slow SDK test shards passed in GitHub CI, as did local TypeScript checking, builds, and linting.
 
 These checks exercise the intended fresh-chain behavior. They are not an independent cryptographic audit, nor do they make old chains valid under the changed roots.
 
