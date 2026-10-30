@@ -27,6 +27,11 @@ import {
 import { depthAtLeafCount, isEmpty, isRight } from './utils'
 import { Witness, WitnessNode } from './witness'
 
+// depthAtLeafCount includes the structural level above the populated root.
+function populatedRootDepth(leafCount: number): number {
+  return Math.max(1, depthAtLeafCount(leafCount) - 1)
+}
+
 export class MerkleTree<
   E,
   H extends DatabaseKey,
@@ -37,6 +42,7 @@ export class MerkleTree<
   readonly db: IDatabase
   readonly name: string = ''
   readonly depth: number = 32
+  // A missing sibling must not copy a populated branch: that gives its notes extra nullifiers.
   readonly defaultValue: H
 
   readonly counter: IDatabaseStore<CounterSchema>
@@ -69,6 +75,9 @@ export class MerkleTree<
     name?: string
     depth?: number
   }) {
+    if (!Number.isInteger(depth) || depth < 1 || depth > 32) {
+      throw new Error(`Invalid Merkle tree depth ${depth}: expected an integer from 1 to 32`)
+    }
     this.hasher = hasher
     this.db = db
     this.name = name
@@ -132,7 +141,11 @@ export class MerkleTree<
     index: LeafIndex,
     tx?: IDatabaseTransaction,
   ): Promise<SchemaValue<LeavesSchema<H>> | null> {
+    this.assertValidSize(index)
     return await this.db.withTransaction(tx, async (tx) => {
+      if (index >= (await this.getCount('Leaves', tx))) {
+        return null
+      }
       const leaf = await this.leaves.get(index, tx)
       return leaf || null
     })
@@ -209,6 +222,14 @@ export class MerkleTree<
     await this.db.withTransaction(tx, async (tx) => {
       const merkleHash = this.hasher.hash(element)
       const indexOfNewLeaf = await this.getCount('Leaves', tx)
+      // Leaf counts and indices are stored as u32. Internal node indices may
+      // exhaust their own u32 counter before the leaf counter reaches this bound.
+      if (indexOfNewLeaf >= Math.min(2 ** this.depth, 0xffffffff)) {
+        throw new Error(`Merkle tree ${this.name} is full`)
+      }
+      if (this.hasher.hashSerde().equals(merkleHash, this.defaultValue)) {
+        throw new Error('A Merkle leaf cannot equal the empty subtree hash')
+      }
 
       let newParentIndex: NodeIndex
 
@@ -261,6 +282,9 @@ export class MerkleTree<
         newParentIndex = nextNodeIndex
 
         while (shouldContinue) {
+          if (nextNodeIndex >= 0xffffffff) {
+            throw new Error(`Merkle tree ${this.name} is full: no node indices remain`)
+          }
           const previousParent = await this.getNode(previousParentIndex, tx)
 
           if (previousParent.side === Side.Left) {
@@ -278,6 +302,9 @@ export class MerkleTree<
             await this.counter.put('Nodes', nextNodeIndex, tx)
 
             if (!previousParent.parentIndex || isEmpty(previousParent.parentIndex)) {
+              if (nextNodeIndex >= 0xffffffff) {
+                throw new Error(`Merkle tree ${this.name} is full: no node indices remain`)
+              }
               const newParent = {
                 side: Side.Left,
                 parentIndex: 0,
@@ -371,7 +398,12 @@ export class MerkleTree<
       tx,
     )
 
-    await this.leavesIndex.put(value.merkleHash, index, tx)
+    // Keep the first occurrence so truncating a later duplicate cannot remove
+    // membership of a commitment which is still present in the tree.
+    const firstIndex = await this.leavesIndex.get(value.merkleHash, tx)
+    if (firstIndex === undefined || index < firstIndex) {
+      await this.leavesIndex.put(value.merkleHash, index, tx)
+    }
   }
 
   /**
@@ -386,7 +418,7 @@ export class MerkleTree<
    * grows.
    */
   async truncate(pastSize: number, tx?: IDatabaseTransaction): Promise<void> {
-    this.invalidatePastRootCache(pastSize, tx)
+    this.assertValidSize(pastSize)
     return await this.db.withTransaction(tx, async (tx) => {
       const oldSize = await this.getCount('Leaves', tx)
 
@@ -394,12 +426,19 @@ export class MerkleTree<
         return
       }
 
-      await this.counter.put('Leaves', pastSize, tx)
+      // Clear local roots under the database lock so a delayed commit cannot
+      // publish a root from before truncation.
+      this.transactionPastRootCache.reset()
+      this.invalidatePastRootCache(pastSize)
 
       for (let index = oldSize - 1; index >= pastSize; --index) {
         const leaf = await this.getLeaf(index, tx)
-        await this.leavesIndex.del(leaf.merkleHash, tx)
+        if ((await this.leavesIndex.get(leaf.merkleHash, tx)) === index) {
+          await this.leavesIndex.del(leaf.merkleHash, tx)
+        }
       }
+
+      await this.counter.put('Leaves', pastSize, tx)
 
       if (pastSize === 0) {
         await this.counter.put('Nodes', 1, tx)
@@ -451,17 +490,8 @@ export class MerkleTree<
     })
   }
 
-  // Invalidate and pastSize entries greater than maxSize
-  private invalidatePastRootCache(maxSize: number, tx?: IDatabaseTransaction): void {
-    if (tx instanceof LevelupTransaction) {
-      const local = this.transactionPastRootCache.get(tx.id)
-      for (const pastSize of local?.keys() || []) {
-        if (pastSize > maxSize) {
-          local?.delete(pastSize)
-        }
-      }
-    }
-
+  // Historical roots within the retained prefix remain valid.
+  private invalidatePastRootCache(maxSize: number): void {
     for (const pastSize of this.pastRootCache.keys()) {
       if (pastSize > maxSize) {
         this.pastRootCache.remove(pastSize)
@@ -505,6 +535,7 @@ export class MerkleTree<
    * size is 0
    */
   async pastRoot(pastSize: number, tx?: IDatabaseTransaction): Promise<H> {
+    this.assertValidSize(pastSize)
     return this.db.withTransaction(tx, async (tx) => {
       const leafCount = await this.getCount('Leaves', tx)
 
@@ -517,7 +548,7 @@ export class MerkleTree<
         return Promise.resolve(cached)
       }
 
-      const rootDepth = depthAtLeafCount(pastSize)
+      const rootDepth = populatedRootDepth(pastSize)
       const minTreeDepth = Math.min(rootDepth, this.depth)
       const leafIndex = pastSize - 1
       const leaf = await this.getLeaf(leafIndex, tx)
@@ -530,7 +561,7 @@ export class MerkleTree<
         const siblingHash = sibling.merkleHash
         currentHash = this.hasher.combineHash(0, siblingHash, currentHash)
       } else {
-        currentHash = this.hasher.combineHash(0, currentHash, currentHash)
+        currentHash = this.hasher.combineHash(0, currentHash, this.defaultValue)
       }
 
       for (let depth = 1; depth < minTreeDepth; depth++) {
@@ -540,7 +571,7 @@ export class MerkleTree<
           case Side.Left:
             Assert.isNotUndefined(node.parentIndex)
             currentNodeIndex = node.parentIndex
-            currentHash = this.hasher.combineHash(depth, currentHash, currentHash)
+            currentHash = this.hasher.combineHash(depth, currentHash, this.defaultValue)
             break
 
           case Side.Right: {
@@ -558,7 +589,7 @@ export class MerkleTree<
       }
 
       for (let depth = rootDepth; depth < this.depth; depth++) {
-        currentHash = this.hasher.combineHash(depth, currentHash, currentHash)
+        currentHash = this.hasher.combineHash(depth, currentHash, this.defaultValue)
       }
 
       this.setPastRootCache(pastSize, currentHash, tx)
@@ -574,6 +605,7 @@ export class MerkleTree<
     pastSize: number,
     tx?: IDatabaseTransaction,
   ): Promise<Map<number, H>> {
+    this.assertValidSize(pastSize)
     return this.db.withTransaction(tx, async (tx) => {
       const pastHashes: Map<number, H> = new Map<number, H>()
 
@@ -588,7 +620,7 @@ export class MerkleTree<
       const leafIndex = pastSize - 1
       const leaf = await this.getLeaf(leafIndex, tx)
 
-      const rootDepth = depthAtLeafCount(pastSize)
+      const rootDepth = populatedRootDepth(pastSize)
       const minTreeDepth = Math.min(rootDepth, this.depth)
 
       let currentHash = leaf.merkleHash
@@ -599,7 +631,7 @@ export class MerkleTree<
         const siblingHash = sibling.merkleHash
         currentHash = this.hasher.combineHash(0, siblingHash, currentHash)
       } else {
-        currentHash = this.hasher.combineHash(0, currentHash, currentHash)
+        currentHash = this.hasher.combineHash(0, currentHash, this.defaultValue)
       }
 
       pastHashes.set(currentNodeIndex, currentHash)
@@ -611,7 +643,7 @@ export class MerkleTree<
           case Side.Left:
             Assert.isNotUndefined(node.parentIndex)
             currentNodeIndex = node.parentIndex
-            currentHash = this.hasher.combineHash(depth, currentHash, currentHash)
+            currentHash = this.hasher.combineHash(depth, currentHash, this.defaultValue)
             pastHashes.set(currentNodeIndex, currentHash)
             break
 
@@ -673,17 +705,21 @@ export class MerkleTree<
     size?: number,
     tx?: IDatabaseTransaction,
   ): Promise<Witness<E, H, SE, SH> | null> {
+    this.assertValidSize(index)
+    if (size !== undefined) {
+      this.assertValidSize(size)
+    }
     return this.db.withTransaction(tx, async (tx) => {
       const authenticationPath: WitnessNode<H>[] = []
 
       const currentLeafCount = await this.size(tx)
-      if (size && size > currentLeafCount) {
+      if (size !== undefined && size > currentLeafCount) {
         throw new Error(
           `Unable to get witness at size ${size} for tree with ${currentLeafCount} nodes`,
         )
       }
 
-      const witnessLeafCount = size ? size : currentLeafCount
+      const witnessLeafCount = size ?? currentLeafCount
 
       if (witnessLeafCount === 0 || index >= witnessLeafCount) {
         return null
@@ -709,23 +745,28 @@ export class MerkleTree<
         currentHash = this.hasher.combineHash(0, currentHash, hashOfSibling)
       } else {
         // Left leaf and rightmost node
-        authenticationPath.push({ side: Side.Left, hashOfSibling: currentHash })
-        currentHash = this.hasher.combineHash(0, currentHash, currentHash)
+        authenticationPath.push({ side: Side.Left, hashOfSibling: this.defaultValue })
+        currentHash = this.hasher.combineHash(0, currentHash, this.defaultValue)
       }
 
-      const rootDepth = Math.min(depthAtLeafCount(witnessLeafCount), this.depth)
+      const rootDepth = Math.min(populatedRootDepth(witnessLeafCount), this.depth)
 
       for (let depth = 1; depth < rootDepth; depth++) {
         const node =
           currentPosition !== undefined ? await this.getNodeOrNull(currentPosition, tx) : null
 
         if (node === null) {
-          authenticationPath.push({ side: Side.Left, hashOfSibling: currentHash })
-          currentHash = this.hasher.combineHash(depth, currentHash, currentHash)
+          authenticationPath.push({ side: Side.Left, hashOfSibling: this.defaultValue })
+          currentHash = this.hasher.combineHash(depth, currentHash, this.defaultValue)
         } else if (node.side === Side.Left) {
           Assert.isNotUndefined(currentPosition)
-          // Use the recomputed hash of the right sibling
-          const hashOfSibling = pastSiblingHashes.get(currentPosition) ?? node.hashOfSibling
+          // Siblingless nodes store their own hash for future appends. A witness
+          // must use the empty subtree hash at that position instead.
+          const rightSiblingStart = (Math.floor(index / 2 ** depth) + 1) * 2 ** depth
+          const hashOfSibling =
+            rightSiblingStart >= witnessLeafCount
+              ? this.defaultValue
+              : pastSiblingHashes.get(currentPosition) ?? node.hashOfSibling
 
           authenticationPath.push({ side: Side.Left, hashOfSibling: hashOfSibling })
           currentHash = this.hasher.combineHash(depth, currentHash, hashOfSibling)
@@ -740,8 +781,8 @@ export class MerkleTree<
       }
 
       for (let depth = rootDepth; depth < this.depth; depth++) {
-        authenticationPath.push({ side: Side.Left, hashOfSibling: currentHash })
-        currentHash = this.hasher.combineHash(depth, currentHash, currentHash)
+        authenticationPath.push({ side: Side.Left, hashOfSibling: this.defaultValue })
+        currentHash = this.hasher.combineHash(depth, currentHash, this.defaultValue)
       }
 
       return new Witness(witnessLeafCount, currentHash, authenticationPath, this.hasher)
@@ -776,23 +817,24 @@ export class MerkleTree<
       isRight(leafIndex) ? (leafIndex -= 2) : leafIndex--
     ) {
       // if leafIndex is even, we have a leaf without a sibling on the right of the tree
-      let leftLeaf, rightLeaf
+      let leftLeaf: SchemaValue<LeavesSchema<H>>
+      let rightHash: H
       if (isRight(leafIndex)) {
         leftLeaf = await this.getLeaf(leafIndex - 1, tx)
-        rightLeaf = await this.getLeaf(leafIndex, tx)
+        rightHash = (await this.getLeaf(leafIndex, tx)).merkleHash
       } else {
-        rightLeaf = await this.getLeaf(leafIndex, tx)
-        leftLeaf = rightLeaf
+        leftLeaf = await this.getLeaf(leafIndex, tx)
+        rightHash = this.defaultValue
       }
 
       let depth = 0
-      let hash = this.hasher.combineHash(depth, leftLeaf.merkleHash, rightLeaf.merkleHash)
+      let hash = this.hasher.combineHash(depth, leftLeaf.merkleHash, rightHash)
       let nodeIndex: number | undefined = leftLeaf.parentIndex
       let node: NodeValue<H> = await this.getNode(nodeIndex, tx)
 
       while (node.side === Side.Left && node.parentIndex !== 0) {
         const element = hashStack.pop()
-        const stackHash = element?.hash ?? hash
+        const stackHash = element?.hash ?? this.defaultValue
         // Should only be undefined if on the right side of the tree
         // Ex: In a tree of 6 leaves, the two rightmost leaves will have
         // a parent node with no sibling node
@@ -878,7 +920,7 @@ export class MerkleTree<
 
       let newHash
       if (element.siblingIndex === null) {
-        newHash = this.hasher.combineHash(element.depth + 1, element.hash, element.hash)
+        newHash = this.hasher.combineHash(element.depth + 1, element.hash, this.defaultValue)
       } else {
         newHash =
           node.side === Side.Left
@@ -905,6 +947,12 @@ export class MerkleTree<
     tx: IDatabaseTransaction,
   ): Promise<void> {
     return this.nodes.put(index, { ...node, hashOfSibling: hash }, tx)
+  }
+
+  private assertValidSize(value: number): void {
+    if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) {
+      throw new Error(`Invalid Merkle tree size or index ${value}`)
+    }
   }
 }
 
